@@ -405,7 +405,105 @@ tr:last-child td { border-bottom: none; }
 
   /* Risk renk custom props */
   .risk-btn { --r-color: #aaa; --r-bg: transparent; --r-shadow: transparent; }
+
+  /* ── DASHBOARD ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media(max-width:900px){ .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+  @media(max-width:580px){ .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+
+  .kpi-card {
+    background: var(--white);
+    border: 1px solid #d0d0c0;
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    border-top: 4px solid var(--kpi-color, #f5c400);
+  }
+  .kpi-val {
+    font-size: 26px; font-weight: 800;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--kpi-color, #1a1a1a);
+    line-height: 1.1;
+  }
+  .kpi-lbl { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media(max-width:700px){ .chart-row { grid-template-columns: 1fr; } }
+  .chart-box { margin-bottom: 0 !important; }
+
+  /* MAKİNE KART */
+  .makine-kart-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  @media(max-width:900px){ .makine-kart-grid { grid-template-columns: repeat(2,1fr); } }
+  @media(max-width:580px){ .makine-kart-grid { grid-template-columns: 1fr; } }
+
+  .makine-kart {
+    background: var(--bg);
+    border: 1px solid #d0d0c0;
+    border-radius: 9px;
+    padding: 14px;
+    border-left: 5px solid var(--mk-color, #f5c400);
+  }
+  .makine-kart-baslik {
+    font-size: 14px; font-weight: 800;
+    color: var(--text); margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .makine-kart-bolum {
+    font-size: 11px; color: var(--muted);
+    margin-bottom: 10px; letter-spacing: .5px;
+  }
+  .makine-kart-stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mk-stat {
+    background: var(--white);
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #e0e0d0;
+  }
+  .mk-stat-val {
+    font-size: 18px; font-weight: 800;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text);
+  }
+  .mk-stat-lbl {
+    font-size: 9px; color: var(--muted);
+    font-weight: 700; letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .durum-badge {
+    font-size: 10px; font-weight: 800;
+    padding: 2px 8px; border-radius: 3px;
+    letter-spacing: .5px;
+  }
+  .durum-iyi    { background:#e3f7ee; color:#00875a; }
+  .durum-orta   { background:#fff3e0; color:#e65100; }
+  .durum-kotu   { background:#fde8e8; color:#d32f2f; }
+  .durum-kritik { background:#f3e5f5; color:#6a1b9a; }
+
+  /* Kullanılabilirlik bar */
+  .avail-bar { background:#e4e4d8; border-radius:4px; height:8px; margin-top:6px; overflow:hidden; }
+  .avail-fill { height:100%; border-radius:4px; transition:width .4s; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -432,7 +530,7 @@ tr:last-child td { border-bottom: none; }
 <div class="nav-tabs">
   <button class="nav-tab active" onclick="goTab('form',this)">📝 YENİ KAYIT</button>
   <button class="nav-tab" onclick="goTab('list',this)">📋 KAYITLAR</button>
-  <button class="nav-tab" onclick="goTab('dash',this)">📊 İSTATİSTİK</button>
+  <button class="nav-tab" onclick="goTab('dash',this)">📊 DASHBOARD</button>
 </div>
 
 <!-- ══════════════════════════════════════════════ -->
@@ -765,18 +863,115 @@ tr:last-child td { border-bottom: none; }
 </div>
 
 <!-- ══════════════════════════════════════════════ -->
-<!--  İSTATİSTİK TAB                                -->
+<!--  DASHBOARD TAB                                  -->
 <!-- ══════════════════════════════════════════════ -->
 <div class="tab-pane" id="tab-dash">
-  <div class="stat-grid" id="statGrid"></div>
-  <div class="section">
-    <div class="section-head"><div class="dot"></div>İŞLEM TÜRÜ DAĞILIMI</div>
-    <div class="section-body" id="distBody" style="display:flex;flex-direction:column;gap:10px"></div>
+
+  <!-- DÖNEM FİLTRE -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <select id="dashDonem" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px">
+      <option value="tumu">Tüm Zamanlar</option>
+      <option value="bu_ay">Bu Ay</option>
+      <option value="son3">Son 3 Ay</option>
+      <option value="son6">Son 6 Ay</option>
+      <option value="bu_yil">Bu Yıl</option>
+    </select>
+    <select id="dashBolum" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px">
+      <option value="">Tüm Bölümler</option>
+      <option>TEST</option><option>KESİM</option>
+      <option>ÜRETİM HATLARI</option><option>TESİS</option>
+      <option>HAZIRLIK</option><option>KALIPLAR</option>
+      <option>ALT MONTAJ</option><option>DEPO & SEVKİYAT</option>
+      <option>ÜRETİM BORDLARI</option>
+    </select>
+    <select id="dashMakine" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px">
+      <option value="">Tüm Makineler</option>
+    </select>
   </div>
-  <div class="section">
-    <div class="section-head"><div class="dot"></div>BÖLÜM BAZLI KAYIT SAYISI</div>
-    <div class="section-body" id="bolumBody" style="display:flex;flex-direction:column;gap:10px"></div>
+
+  <!-- ANA KPI KARTLAR -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- GRAFİKLER SIRA 1 -->
+  <div class="chart-row">
+    <div class="section chart-box">
+      <div class="section-head"><div class="dot"></div>📈 AYLIK ARIZA TRENDİ</div>
+      <div class="section-body">
+        <canvas id="chartTrend" height="200"></canvas>
+      </div>
+    </div>
+    <div class="section chart-box">
+      <div class="section-head"><div class="dot"></div>🥧 İŞLEM TÜRÜ DAĞILIMI</div>
+      <div class="section-body" style="display:flex;align-items:center;justify-content:center">
+        <canvas id="chartIslem" height="200"></canvas>
+      </div>
+    </div>
   </div>
+
+  <!-- GRAFİKLER SIRA 2 -->
+  <div class="chart-row">
+    <div class="section chart-box">
+      <div class="section-head"><div class="dot"></div>⚙️ MAKİNE BAZLI MTTR (dk)</div>
+      <div class="section-body">
+        <canvas id="chartMTTR" height="200"></canvas>
+      </div>
+    </div>
+    <div class="section chart-box">
+      <div class="section-head"><div class="dot"></div>🏭 BÖLÜM BAZLI ARIZA SAYISI</div>
+      <div class="section-body">
+        <canvas id="chartBolum" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- RİSK DAĞILIMI -->
+  <div class="chart-row">
+    <div class="section chart-box">
+      <div class="section-head"><div class="dot"></div>⚠️ RİSK SEVİYESİ DAĞILIMI</div>
+      <div class="section-body" style="display:flex;align-items:center;justify-content:center">
+        <canvas id="chartRisk" height="200"></canvas>
+      </div>
+    </div>
+    <div class="section chart-box">
+      <div class="section-head"><div class="dot"></div>💰 YEDEK PARÇA MALİYET TRENDİ</div>
+      <div class="section-body">
+        <canvas id="chartMaliyet" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAKİNE PARKURU -->
+  <div class="section">
+    <div class="section-head"><div class="dot"></div>🚗 MAKİNE PARKURU — KPI KARTLAR</div>
+    <div class="section-body">
+      <div class="makine-kart-grid" id="makineKartGrid"></div>
+    </div>
+  </div>
+
+  <!-- MAKİNE PARKURU TABLO -->
+  <div class="section">
+    <div class="section-head"><div class="dot"></div>📋 MAKİNE PARKURU — DETAY TABLO</div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>MAKİNE</th>
+              <th>BÖLÜM</th>
+              <th>ARIZA SAYISI</th>
+              <th>MTTR (dk)</th>
+              <th>MTBF (saat)</th>
+              <th>KULLANILABİLİRLİK %</th>
+              <th>SON ARIZA</th>
+              <th>DURUM</th>
+            </tr>
+          </thead>
+          <tbody id="makineTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 </div><!-- /main -->
@@ -1059,49 +1254,306 @@ function renderList() {
     </tr>`).join('');
 }
 
-// ─── İSTATİSTİK ──────────────────────────────────────────────
-function renderDash() {
-  const total  = kayitlar.length;
-  const ariza  = kayitlar.filter(k=>k.islem==='ARIZA KAYDI').length;
-  const bakim  = kayitlar.filter(k=>k.islem==='BAKIM KAYDI').length;
-  const sureler = kayitlar.map(k=>parseInt(k.sure)||0).filter(Boolean);
-  const avgSure = sureler.length ? Math.round(sureler.reduce((a,b)=>a+b,0)/sureler.length) : 0;
+// ─── CHART REFERANSLARI ───────────────────────────────────────
+let charts = {};
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
-  document.getElementById('statGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Toplam Kayıt</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--ariza)">${ariza}</div><div class="stat-lbl">Arıza</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--bakim)">${bakim}</div><div class="stat-lbl">Bakım</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#f5c400">${avgSure}</div><div class="stat-lbl">Ort. Süre (dk)</div></div>
+// ─── VERİ FİLTRELE ────────────────────────────────────────────
+function filtreliVeri() {
+  const donem  = document.getElementById('dashDonem')?.value || 'tumu';
+  const bolum  = document.getElementById('dashBolum')?.value || '';
+  const makine = document.getElementById('dashMakine')?.value || '';
+  const now    = new Date();
+
+  return kayitlar.filter(k => {
+    const t = new Date(k.tarihBas);
+    if (donem === 'bu_ay'  && (t.getMonth()!==now.getMonth() || t.getFullYear()!==now.getFullYear())) return false;
+    if (donem === 'son3'   && (now-t) > 90*86400000)  return false;
+    if (donem === 'son6'   && (now-t) > 180*86400000) return false;
+    if (donem === 'bu_yil' && t.getFullYear()!==now.getFullYear()) return false;
+    if (bolum  && k.bolum  !== bolum)  return false;
+    if (makine && k.makine !== makine) return false;
+    return true;
+  });
+}
+
+// ─── DASHBOARD ANA FONKSİYON ──────────────────────────────────
+function renderDash() {
+  const veri   = filtreliVeri();
+  const total  = veri.length;
+  const arizaV = veri.filter(k=>k.islem==='ARIZA KAYDI');
+  const sureler = veri.map(k=>parseInt(k.sure)||0).filter(Boolean);
+  const mttr   = sureler.length ? Math.round(sureler.reduce((a,b)=>a+b,0)/sureler.length) : 0;
+
+  // Makine dropdown güncelle
+  const maks = [...new Set(kayitlar.map(k=>k.makine).filter(Boolean))].sort();
+  const mSel = document.getElementById('dashMakine');
+  const mVal = mSel?.value || '';
+  if(mSel){ mSel.innerHTML = '<option value="">Tüm Makineler</option>' + maks.map(m=>`<option${m===mVal?' selected':''}>${m}</option>`).join(''); }
+
+  // MTBF hesapla (sadece arızalar için)
+  let mtbf = 0;
+  if(arizaV.length > 1) {
+    const dates = arizaV.map(k=>new Date(k.tarihBas)).sort((a,b)=>a-b);
+    let toplamAralik = 0;
+    for(let i=1;i<dates.length;i++) toplamAralik += (dates[i]-dates[i-1]);
+    mtbf = Math.round(toplamAralik / (dates.length-1) / 3600000);
+  }
+
+  // Kullanılabilirlik = MTBF / (MTBF + MTTR/60) * 100
+  const mttrSaat = mttr / 60;
+  const avail = mtbf > 0 ? Math.min(99.9, Math.round(mtbf/(mtbf+mttrSaat)*1000)/10) : 0;
+
+  // Toplam maliyet
+  let topMaliyet = 0;
+  veri.forEach(k=>{ const m=parseFloat((k.toplamMaliyet||'').replace('₺','').trim()); if(!isNaN(m)) topMaliyet+=m; });
+
+  // ── KPI KARTLAR ──
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card" style="--kpi-color:#f5c400">
+      <div class="kpi-val">${total}</div>
+      <div class="kpi-lbl">Toplam Kayıt</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#d32f2f">
+      <div class="kpi-val">${arizaV.length}</div>
+      <div class="kpi-lbl">Arıza Kaydı</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#0277bd">
+      <div class="kpi-val">${mttr}<span style="font-size:14px;font-weight:400"> dk</span></div>
+      <div class="kpi-lbl">MTTR</div>
+      <div class="kpi-sub">Ort. Onarım Süresi</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#00875a">
+      <div class="kpi-val">${mtbf}<span style="font-size:14px;font-weight:400"> sa</span></div>
+      <div class="kpi-lbl">MTBF</div>
+      <div class="kpi-sub">Arızalar Arası Süre</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:${avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f'}">
+      <div class="kpi-val">%${avail}</div>
+      <div class="kpi-lbl">KULLANILABİLİRLİK</div>
+      <div class="avail-bar"><div class="avail-fill" style="width:${avail}%;background:${avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f'}"></div></div>
+    </div>
   `;
 
-  // İşlem dağılımı
-  const islemCount = {};
-  kayitlar.forEach(k => { islemCount[k.islem] = (islemCount[k.islem]||0)+1; });
-  const colors = {'ARIZA KAYDI':'var(--ariza)','BAKIM KAYDI':'var(--bakim)','MONTAJ':'var(--montaj)','REVİZYON':'var(--revizyon)','PLANLI BAKIM':'var(--planli)','SERVİS BAKIM':'var(--servis)'};
-  document.getElementById('distBody').innerHTML = Object.entries(islemCount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
-    <div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:13px;font-weight:600">${k}</span>
-        <span style="font-size:13px;color:var(--muted)">${v} kayıt</span>
-      </div>
-      <div style="background:#e4eaf2;border-radius:4px;height:10px;overflow:hidden">
-        <div style="width:${Math.round(v/total*100)}%;height:100%;background:${colors[k]||'var(--accent)'};border-radius:4px;transition:width .4s"></div>
-      </div>
-    </div>`).join('') || '<div class="empty">Henüz kayıt yok</div>';
+  // ── AYLIK TREND GRAFİĞİ ──
+  destroyChart('trend');
+  const ayMap = {};
+  veri.forEach(k=>{
+    if(!k.tarihBas) return;
+    const d=new Date(k.tarihBas);
+    const ay=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
+    if(!ayMap[ay]) ayMap[ay]={ariza:0,bakim:0};
+    if(k.islem==='ARIZA KAYDI') ayMap[ay].ariza++;
+    else ayMap[ay].bakim++;
+  });
+  const aylar = Object.keys(ayMap).sort();
+  const ctx1 = document.getElementById('chartTrend')?.getContext('2d');
+  if(ctx1 && aylar.length) {
+    charts['trend'] = new Chart(ctx1,{
+      type:'bar',
+      data:{
+        labels: aylar,
+        datasets:[
+          {label:'Arıza',data:aylar.map(a=>ayMap[a].ariza),backgroundColor:'rgba(211,47,47,.8)',borderRadius:4},
+          {label:'Bakım',data:aylar.map(a=>ayMap[a].bakim),backgroundColor:'rgba(0,135,90,.7)',borderRadius:4}
+        ]
+      },
+      options:{responsive:true,plugins:{legend:{position:'top'}},scales:{x:{stacked:false},y:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+  }
 
-  // Bölüm dağılımı
-  const bolumCount = {};
-  kayitlar.forEach(k => { bolumCount[k.bolum] = (bolumCount[k.bolum]||0)+1; });
-  document.getElementById('bolumBody').innerHTML = Object.entries(bolumCount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
-    <div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:13px;font-weight:600">${k}</span>
-        <span style="font-size:13px;color:var(--muted)">${v} kayıt</span>
+  // ── İŞLEM TÜRÜ PASTA ──
+  destroyChart('islem');
+  const islemC={};
+  veri.forEach(k=>{ islemC[k.islem]=(islemC[k.islem]||0)+1; });
+  const ctx2=document.getElementById('chartIslem')?.getContext('2d');
+  if(ctx2 && Object.keys(islemC).length){
+    charts['islem'] = new Chart(ctx2,{
+      type:'doughnut',
+      data:{
+        labels:Object.keys(islemC),
+        datasets:[{data:Object.values(islemC),backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'],borderWidth:2,borderColor:'#fff'}]
+      },
+      options:{responsive:true,plugins:{legend:{position:'right'}},cutout:'60%'}
+    });
+  }
+
+  // ── MAKİNE BAZLI MTTR ──
+  destroyChart('mttr');
+  const makineMap={};
+  veri.filter(k=>k.islem==='ARIZA KAYDI').forEach(k=>{
+    if(!k.makine) return;
+    if(!makineMap[k.makine]) makineMap[k.makine]={sure:[],count:0};
+    const s=parseInt(k.sure)||0;
+    if(s) makineMap[k.makine].sure.push(s);
+    makineMap[k.makine].count++;
+  });
+  const makineIsimler = Object.keys(makineMap).slice(0,10);
+  const makineMTTR = makineIsimler.map(m=>{
+    const s=makineMap[m].sure;
+    return s.length ? Math.round(s.reduce((a,b)=>a+b,0)/s.length) : 0;
+  });
+  const ctx3=document.getElementById('chartMTTR')?.getContext('2d');
+  if(ctx3 && makineIsimler.length){
+    charts['mttr'] = new Chart(ctx3,{
+      type:'bar',
+      data:{
+        labels:makineIsimler,
+        datasets:[{label:'MTTR (dk)',data:makineMTTR,backgroundColor:'rgba(2,119,189,.8)',borderRadius:4}]
+      },
+      options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}
+    });
+  }
+
+  // ── BÖLÜM BAZLI ARIZA ──
+  destroyChart('bolum');
+  const bolumC={};
+  veri.forEach(k=>{ bolumC[k.bolum]=(bolumC[k.bolum]||0)+1; });
+  const ctx4=document.getElementById('chartBolum')?.getContext('2d');
+  if(ctx4 && Object.keys(bolumC).length){
+    charts['bolum'] = new Chart(ctx4,{
+      type:'bar',
+      data:{
+        labels:Object.keys(bolumC),
+        datasets:[{label:'Kayıt Sayısı',data:Object.values(bolumC),backgroundColor:'rgba(245,196,0,.85)',borderRadius:4}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+    });
+  }
+
+  // ── RİSK DAĞILIMI ──
+  destroyChart('risk');
+  const riskC={'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
+  veri.forEach(k=>{ if(k.riskSeviye && riskC.hasOwnProperty(k.riskSeviye)) riskC[k.riskSeviye]++; });
+  const ctx5=document.getElementById('chartRisk')?.getContext('2d');
+  if(ctx5){
+    charts['risk'] = new Chart(ctx5,{
+      type:'doughnut',
+      data:{
+        labels:Object.keys(riskC),
+        datasets:[{data:Object.values(riskC),backgroundColor:['#00875a','#e65100','#d32f2f','#6a1b9a'],borderWidth:2,borderColor:'#fff'}]
+      },
+      options:{responsive:true,plugins:{legend:{position:'right'}},cutout:'55%'}
+    });
+  }
+
+  // ── MALİYET TRENDİ ──
+  destroyChart('maliyet');
+  const malMap={};
+  veri.forEach(k=>{
+    if(!k.tarihBas||!k.toplamMaliyet) return;
+    const d=new Date(k.tarihBas);
+    const ay=d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0');
+    const m=parseFloat((k.toplamMaliyet||'').replace('₺','').trim());
+    if(!isNaN(m)) malMap[ay]=(malMap[ay]||0)+m;
+  });
+  const malAylar=Object.keys(malMap).sort();
+  const ctx6=document.getElementById('chartMaliyet')?.getContext('2d');
+  if(ctx6 && malAylar.length){
+    charts['maliyet'] = new Chart(ctx6,{
+      type:'line',
+      data:{
+        labels:malAylar,
+        datasets:[{label:'Maliyet (₺)',data:malAylar.map(a=>malMap[a]),borderColor:'#f5c400',backgroundColor:'rgba(245,196,0,.1)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#f5c400'}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+    });
+  }
+
+  // ── MAKİNE PARKURU KARTLAR ──
+  const tumMakineler = [...new Set(veri.map(k=>k.makine).filter(Boolean))].sort();
+  document.getElementById('makineKartGrid').innerHTML = tumMakineler.map(mak=>{
+    const mKayit  = veri.filter(k=>k.makine===mak);
+    const mAriza  = mKayit.filter(k=>k.islem==='ARIZA KAYDI');
+    const mSureler = mAriza.map(k=>parseInt(k.sure)||0).filter(Boolean);
+    const mMTTR   = mSureler.length ? Math.round(mSureler.reduce((a,b)=>a+b,0)/mSureler.length) : 0;
+    let mMTBF = 0;
+    if(mAriza.length>1){
+      const ds=mAriza.map(k=>new Date(k.tarihBas)).sort((a,b)=>a-b);
+      let top=0; for(let i=1;i<ds.length;i++) top+=(ds[i]-ds[i-1]);
+      mMTBF=Math.round(top/(ds.length-1)/3600000);
+    }
+    const mMTTRsa = mMTTR/60;
+    const mAvail  = mMTBF>0 ? Math.min(99.9,Math.round(mMTBF/(mMTBF+mMTTRsa)*1000)/10) : (mAriza.length===0?100:0);
+    const bolum   = mKayit[0]?.bolum || '-';
+    const sonAriza = mAriza.length ? mAriza.sort((a,b)=>new Date(b.tarihBas)-new Date(a.tarihBas))[0].tarihBas : '-';
+
+    let durumClass='durum-iyi', durumText='İYİ';
+    if(mAvail<85){ durumClass='durum-kotu'; durumText='KÖTÜ'; }
+    else if(mAvail<95){ durumClass='durum-orta'; durumText='ORTA'; }
+    if(mAriza.filter(k=>k.riskSeviye==='KRİTİK').length>0){ durumClass='durum-kritik'; durumText='KRİTİK'; }
+
+    const renkler=['#f5c400','#0277bd','#00875a','#d32f2f','#6a1b9a','#e65100','#00695c'];
+    const renk = renkler[tumMakineler.indexOf(mak) % renkler.length];
+
+    return `
+    <div class="makine-kart" style="--mk-color:${renk}">
+      <div class="makine-kart-baslik">
+        <span>${mak}</span>
+        <span class="durum-badge ${durumClass}">${durumText}</span>
       </div>
-      <div style="background:#e4eaf2;border-radius:4px;height:10px;overflow:hidden">
-        <div style="width:${Math.round(v/total*100)}%;height:100%;background:var(--accent);border-radius:4px;transition:width .4s"></div>
+      <div class="makine-kart-bolum">${bolum}</div>
+      <div class="makine-kart-stats">
+        <div class="mk-stat">
+          <div class="mk-stat-val" style="color:#d32f2f">${mAriza.length}</div>
+          <div class="mk-stat-lbl">Arıza</div>
+        </div>
+        <div class="mk-stat">
+          <div class="mk-stat-val" style="color:#0277bd">${mMTTR}</div>
+          <div class="mk-stat-lbl">MTTR (dk)</div>
+        </div>
+        <div class="mk-stat">
+          <div class="mk-stat-val" style="color:#00875a">${mMTBF}</div>
+          <div class="mk-stat-lbl">MTBF (sa)</div>
+        </div>
+        <div class="mk-stat">
+          <div class="mk-stat-val" style="color:${mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f'}">%${mAvail}</div>
+          <div class="mk-stat-lbl">Kullanılab.</div>
+        </div>
       </div>
-    </div>`).join('') || '<div class="empty">Henüz kayıt yok</div>';
+      <div class="avail-bar" style="margin-top:8px">
+        <div class="avail-fill" style="width:${mAvail}%;background:${mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f'}"></div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty">Henüz makine kaydı yok</div>';
+
+  // ── MAKİNE PARKURU TABLO ──
+  document.getElementById('makineTableBody').innerHTML = tumMakineler.map(mak=>{
+    const mKayit  = veri.filter(k=>k.makine===mak);
+    const mAriza  = mKayit.filter(k=>k.islem==='ARIZA KAYDI');
+    const mSureler = mAriza.map(k=>parseInt(k.sure)||0).filter(Boolean);
+    const mMTTR   = mSureler.length ? Math.round(mSureler.reduce((a,b)=>a+b,0)/mSureler.length) : 0;
+    let mMTBF=0;
+    if(mAriza.length>1){
+      const ds=mAriza.map(k=>new Date(k.tarihBas)).sort((a,b)=>a-b);
+      let top=0; for(let i=1;i<ds.length;i++) top+=(ds[i]-ds[i-1]);
+      mMTBF=Math.round(top/(ds.length-1)/3600000);
+    }
+    const mMTTRsa=mMTTR/60;
+    const mAvail=mMTBF>0?Math.min(99.9,Math.round(mMTBF/(mMTBF+mMTTRsa)*1000)/10):(mAriza.length===0?100:0);
+    const bolum=mKayit[0]?.bolum||'-';
+    const sonAriza=mAriza.length?mAriza.sort((a,b)=>new Date(b.tarihBas)-new Date(a.tarihBas))[0].tarihBas:'-';
+
+    let durumClass='durum-iyi', durumText='İYİ';
+    if(mAvail<85){durumClass='durum-kotu';durumText='KÖTÜ';}
+    else if(mAvail<95){durumClass='durum-orta';durumText='ORTA';}
+
+    return `<tr>
+      <td><strong>${mak}</strong></td>
+      <td>${bolum}</td>
+      <td style="text-align:center;font-weight:700;color:#d32f2f">${mAriza.length}</td>
+      <td style="text-align:center;font-family:'IBM Plex Mono',monospace;color:#0277bd">${mMTTR} dk</td>
+      <td style="text-align:center;font-family:'IBM Plex Mono',monospace;color:#00875a">${mMTBF} sa</td>
+      <td style="text-align:center">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="avail-bar" style="flex:1"><div class="avail-fill" style="width:${mAvail}%;background:${mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f'}"></div></div>
+          <span style="font-weight:700;color:${mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f'};min-width:42px">%${mAvail}</span>
+        </div>
+      </td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${sonAriza}</td>
+      <td><span class="durum-badge ${durumClass}">${durumText}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="empty">Henüz makine kaydı yok</td></tr>';
 }
 
 // ─── CSV İNDİR ───────────────────────────────────────────────
