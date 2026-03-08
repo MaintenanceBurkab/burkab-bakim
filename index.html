@@ -263,7 +263,7 @@ tr:last-child td { border-bottom: none; }
 </div>
     <div class="login-field">
       <label>Kullanıcı Adı</label>
-      <input type="text" id="loginUser" placeholder="Kullanici.adi" autocapitalize="none" autocomplete="username">
+      <input type="text" id="loginUser" placeholder="Kullanici.adi" autocapitalize="none" autocomplete="Kullanıcı">
     </div>
     <div class="login-field">
       <label>Şifre / PIN</label>
@@ -722,16 +722,16 @@ tr:last-child td { border-bottom: none; }
 // ══════════════════════════════════════════════
 
 const USERS = [
-  { username:'admin',  password:'1234', name:'MEHMET ERTURK',         role:'admin' },
-  { username:'ENES', password:'1111', name:'ENES BALKAN',  role:'bakim' },
-  { username:'FERHAT', password:'2222', name:'FERHAT OKTAY',  role:'bakim' },
-  { username:'SAVCI', password:'3333', name:'SUNAY AVCI',      role:'bakim' },
-  { username:'CEMAL', password:'4444', name:'CEMAL ÖZMISIR',   role:'bakim' },
-  { username:'AHMET', password:'5555', name:'AHMET ALTIPARMAK',   role:'bakim' },
-  { username:'VOLKAN', password:'6666', name:'VOLKAN AKAR',   role:'bakim' },
-  { username:'YUNUS', password:'7777', name:'YUNUS DİKGÖZ',   role:'bakim' },
-  { username:'URETİM', password:'8888', name:'ÜRETİM',   role:'bakim' },
-  { username:'PLANLAMA', password:'9999', name:'PLANLAMA',   role:'bakim' },
+  { Kullanıcı:'admin',  password:'1234', name:'MEHMET ERTURK',         role:'admin' },
+  { Kullanıcı:'ENES', password:'1111', name:'ENES BALKAN',  role:'bakim' },
+  { Kullanıcı:'FERHAT', password:'2222', name:'FERHAT OKTAY',  role:'bakim' },
+  { Kullanıcı:'SAVCI', password:'3333', name:'SUNAY AVCI',      role:'bakim' },
+  { Kullanıcı:'CEMAL', password:'4444', name:'CEMAL ÖZMISIR',   role:'bakim' },
+  { Kullanıcı:'AHMET', password:'5555', name:'AHMET ALTIPARMAK',   role:'bakim' },
+  { Kullanıcı:'VOLKAN', password:'6666', name:'VOLKAN AKAR',   role:'bakim' },
+  { Kullanıcı:'YUNUS', password:'7777', name:'YUNUS DİKGÖZ',   role:'bakim' },
+  { Kullanıcı:'URETİM', password:'8888', name:'ÜRETİM',   role:'bakim' },
+  { Kullanıcı:'PLANLAMA', password:'9999', name:'PLANLAMA',   role:'bakim' },
 ];
 
 let currentUser = null;
@@ -821,7 +821,7 @@ document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key
 function doLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
-  const found = USERS.find(x => x.username.toLowerCase() === u && x.password === p);
+  const found = USERS.find(x => x.Kullanıcı.toLowerCase() === u && x.password === p);
   if (!found) {
     document.getElementById('loginErr').style.display = 'block';
     return;
