@@ -261,23 +261,20 @@ tr:last-child td { border-bottom: none; }
   <h2>BURKAB A.Ş</h2>
   <p>BAKIM & ARIZA YÖNETİM MODÜLÜ</p>
 </div>
-      <div id="loginScreen">
-  <div class="login-field">
-    <label>Kullanıcı Adı</label>
-    <input type="text" id="loginUser" placeholder="kullanici.adi" autocapitalize="none" autocomplete="off">
+    <div class="login-field">
+      <label>Kullanıcı Adı</label>
+      <input type="text" id="loginUser" placeholder="Kullanici.adi" autocapitalize="none" autocomplete="Kullanıcı">
+    </div>
+    <div class="login-field">
+      <label>Şifre / PIN</label>
+      <input type="password" id="loginPass" placeholder="••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="loginBtn">GİRİŞ YAP</button>
+    <div class="login-err" id="loginErr">Kullanıcı adı veya şifre hatalı.</div>
   </div>
-  <div class="login-field">
-    <label>Şifre / PIN</label>
-    <input type="password" id="loginPass" placeholder="••••" autocomplete="current-password">
-  </div>
-  <button class="login-btn" id="loginBtn">GİRİŞ YAP</button>
-  <div class="login-err" id="loginErr">Kullanıcı adı veya şifre hatalı.</div>
 </div>
 
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-</div>
-
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 
 <!-- HEADER -->
 <div class="header">
@@ -725,7 +722,7 @@ tr:last-child td { border-bottom: none; }
 // ══════════════════════════════════════════════
 
 
-const USERS = [
+ const USERS = [
   { Kullanıcı:'admin', password:'1234', name:'MEHMET ERTURK', role:'admin' },
   { Kullanıcı:'enes', password:'1111', name:'ENES BALKAN', role:'bakim' },
   { Kullanıcı:'ferhat', password:'2222', name:'FERHAT OKTAY', role:'bakim' },
@@ -826,7 +823,7 @@ function doLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
 
-  // Hem USERS hem input küçük harfe çevriliyor
+  // Hem USERS içindeki hem de input küçük harfe çevrilerek karşılaştırılıyor
   const found = USERS.find(x => x.Kullanıcı.toLowerCase() === u && x.password === p);
 
   if (!found) {
@@ -847,8 +844,30 @@ function doLogin() {
     });
   });
 
+  // Veri yüklendikten sonra welcome ekranını göster
   showWelcome(found);
 }
+
+
+  if (!found) {
+    document.getElementById('loginErr').style.display = 'block';
+    return;
+  }
+  currentUser = found;
+  sessionStorage.setItem('burkab_user', JSON.stringify(found));
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('userAv').textContent = found.name[0];
+  document.getElementById('userNm').textContent = found.name;
+  idbOpen().then(() => {
+    syncPending();
+    idbGetAll().then(list => {
+      if (list.length) setSyncUI('offline', `${list.length} bekleyen kayıt mevcut`);
+    });
+  });
+  // Veri yüklendikten sonra welcome ekranını göster
+  showWelcome(found);
+}
+
 
 // ═══════════════════════════════════════════
 // ── HOŞ GELDİN & ROZET SİSTEMİ ────────────
