@@ -821,7 +821,7 @@ document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key
 function doLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
-  const found = USERS.find(x => x.username === u && x.password === p);
+  const found = USERS.find(x => x.username.toLowerCase() === u && x.password === p);
   if (!found) {
     document.getElementById('loginErr').style.display = 'block';
     return;
