@@ -816,8 +816,9 @@ window.addEventListener('offline', () => {
 
 // ── Login ──────────────────────────────────────
 document.getElementById('loginBtn').addEventListener('click', doLogin);
-document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-
+document.getElementById('loginPass').addEventListener('keydown', e => {
+  if(e.key==='Enter') doLogin();
+});
 function doLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
@@ -831,6 +832,7 @@ function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('userAv').textContent = found.name[0];
   document.getElementById('userNm').textContent = found.name;
+}
   idbOpen().then(() => {
     syncPending();
     idbGetAll().then(list => {
