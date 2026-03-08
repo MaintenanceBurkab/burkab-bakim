@@ -263,7 +263,7 @@ tr:last-child td { border-bottom: none; }
 </div>
     <div class="login-field">
       <label>Kullanıcı Adı</label>
-      <input type="text" id="loginUser" placeholder="Kullanici.adi" autocapitalize="none" autocomplete="Kullanıcı">
+      <input type="text" id="loginUser" placeholder="UserName" autocapitalize="none" autocomplete="username">
     </div>
     <div class="login-field">
       <label>Şifre / PIN</label>
@@ -721,18 +721,17 @@ tr:last-child td { border-bottom: none; }
 // BURKAB — KULLANICI & OFFLINE SİSTEMİ
 // ══════════════════════════════════════════════
 
-
- const USERS = [
-  { Kullanıcı:'admin', password:'1234', name:'MEHMET ERTURK', role:'admin' },
-  { Kullanıcı:'enes', password:'1111', name:'ENES BALKAN', role:'bakim' },
-  { Kullanıcı:'ferhat', password:'2222', name:'FERHAT OKTAY', role:'bakim' },
-  { Kullanıcı:'savci', password:'3333', name:'SUNAY AVCI', role:'bakim' },
-  { Kullanıcı:'cemal', password:'4444', name:'CEMAL ÖZMISIR', role:'bakim' },
-  { Kullanıcı:'ahmet', password:'5555', name:'AHMET ALTIPARMAK', role:'bakim' },
-  { Kullanıcı:'volkan', password:'6666', name:'VOLKAN AKAR', role:'bakim' },
-  { Kullanıcı:'yunus', password:'7777', name:'YUNUS DİKGÖZ', role:'bakim' },
-  { Kullanıcı:'uretim', password:'8888', name:'ÜRETİM', role:'bakim' },
-  { Kullanıcı:'planlama', password:'9999', name:'PLANLAMA', role:'bakim' },
+const USERS = [
+  { username:'admin',  password:'1234', name:'MEHMET ERTURK',         role:'admin' },
+  { username:'ENES', password:'1111', name:'ENES BALKAN',  role:'bakim' },
+  { username:'FERHAT', password:'2222', name:'FERHAT OKTAY',  role:'bakim' },
+  { username:'SAVCI', password:'3333', name:'SUNAY AVCI',      role:'bakim' },
+  { username:'CEMAL', password:'4444', name:'CEMAL ÖZMISIR',   role:'bakim' },
+  { username:'AHMET', password:'5555', name:'AHMET ALTIPARMAK',   role:'bakim' },
+  { username:'VOLKAN', password:'6666', name:'VOLKAN AKAR',   role:'bakim' },
+  { username:'YUNUS', password:'7777', name:'YUNUS DİKGÖZ',   role:'bakim' },
+  { username:'URETİM', password:'8888', name:'ÜRETİM',   role:'bakim' },
+  { username:'PLANLAMA', password:'9999', name:'PLANLAMA',   role:'bakim' },
 ];
 
 let currentUser = null;
@@ -822,33 +821,7 @@ document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key
 function doLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
-
-  // Hem USERS içindeki hem de input küçük harfe çevrilerek karşılaştırılıyor
-  const found = USERS.find(x => x.Kullanıcı.toLowerCase() === u && x.password === p);
-
-  if (!found) {
-    document.getElementById('loginErr').style.display = 'block';
-    return;
-  }
-
-  currentUser = found;
-  sessionStorage.setItem('burkab_user', JSON.stringify(found));
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('userAv').textContent = found.name[0];
-  document.getElementById('userNm').textContent = found.name;
-
-  idbOpen().then(() => {
-    syncPending();
-    idbGetAll().then(list => {
-      if (list.length) setSyncUI('offline', `${list.length} bekleyen kayıt mevcut`);
-    });
-  });
-
-  // Veri yüklendikten sonra welcome ekranını göster
-  showWelcome(found);
-}
-
-
+  const found = USERS.find(x => x.username.toLowerCase() === u && x.password === p);
   if (!found) {
     document.getElementById('loginErr').style.display = 'block';
     return;
