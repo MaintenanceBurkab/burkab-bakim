@@ -263,7 +263,7 @@ tr:last-child td { border-bottom: none; }
 </div>
     <div class="login-field">
       <label>Kullanıcı Adı</label>
-      <input type="text" id="loginUser" placeholder="kullanici.adi" autocapitalize="none" autocomplete="username">
+      <input type="text" id="loginUser" placeholder="UserName" autocapitalize="none" autocomplete="username">
     </div>
     <div class="login-field">
       <label>Şifre / PIN</label>
@@ -1836,12 +1836,12 @@ function exportCSV() {
   const cols = ['formNo','islem','bolum','makine','bildiren','arizaTuru','arizaKodu',
                 'tarihBas','tarihBit','arizaBas','onarimBas','onarimBit','arizaBit',
                 'sure','bakimci','kalite','yapilan','riskSeviye','toplamMaliyet'];
-  const head = ['Form No','İşlem','Bölüm','Makine','Bildiren','Arıza Türü','Arıza Kodu',
+  //const head = ['Form No','İşlem','Bölüm','Makine','Bildiren','Arıza Türü','Arıza Kodu',
                 'Baş Tarihi','Bitiş Tarihi','Arıza Baş','Onarım Baş','Onarım Bit','Arıza Bit',
                 'Süre','Bakımcı','Kalite','Yapılan','Risk','Maliyet'];
-  const csv = [head.join(','), ...kayitlar.map(k =>
-    cols.map(c => `"${(k[c]||'').toString().replace(/"/g,'""')}"`).join(',')
-  )].join('\n');
+const csv = kayitlar.map(k =>
+  cols.map(c => `${(k[c]||'').toString().replace(/,/g,'')}`).join(',')
+).join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
   a.download = 'bakim_kayitlar_' + today + '.csv';
