@@ -721,17 +721,18 @@ tr:last-child td { border-bottom: none; }
 // BURKAB — KULLANICI & OFFLINE SİSTEMİ
 // ══════════════════════════════════════════════
 
-const USERS = [
-  { Kullanıcı:'admin',  password:'1234', name:'MEHMET ERTURK',         role:'admin' },
-  { Kullanıcı:'ENES', password:'1111', name:'ENES BALKAN',  role:'bakim' },
-  { Kullanıcı:'FERHAT', password:'2222', name:'FERHAT OKTAY',  role:'bakim' },
-  { Kullanıcı:'SAVCI', password:'3333', name:'SUNAY AVCI',      role:'bakim' },
-  { Kullanıcı:'CEMAL', password:'4444', name:'CEMAL ÖZMISIR',   role:'bakim' },
-  { Kullanıcı:'AHMET', password:'5555', name:'AHMET ALTIPARMAK',   role:'bakim' },
-  { Kullanıcı:'VOLKAN', password:'6666', name:'VOLKAN AKAR',   role:'bakim' },
-  { Kullanıcı:'YUNUS', password:'7777', name:'YUNUS DİKGÖZ',   role:'bakim' },
-  { Kullanıcı:'URETİM', password:'8888', name:'ÜRETİM',   role:'bakim' },
-  { Kullanıcı:'PLANLAMA', password:'9999', name:'PLANLAMA',   role:'bakim' },
+
+ const USERS = [
+  { Kullanıcı:'admin', password:'1234', name:'MEHMET ERTURK', role:'admin' },
+  { Kullanıcı:'enes', password:'1111', name:'ENES BALKAN', role:'bakim' },
+  { Kullanıcı:'ferhat', password:'2222', name:'FERHAT OKTAY', role:'bakim' },
+  { Kullanıcı:'savci', password:'3333', name:'SUNAY AVCI', role:'bakim' },
+  { Kullanıcı:'cemal', password:'4444', name:'CEMAL ÖZMISIR', role:'bakim' },
+  { Kullanıcı:'ahmet', password:'5555', name:'AHMET ALTIPARMAK', role:'bakim' },
+  { Kullanıcı:'volkan', password:'6666', name:'VOLKAN AKAR', role:'bakim' },
+  { Kullanıcı:'yunus', password:'7777', name:'YUNUS DİKGÖZ', role:'bakim' },
+  { Kullanıcı:'uretim', password:'8888', name:'ÜRETİM', role:'bakim' },
+  { Kullanıcı:'planlama', password:'9999', name:'PLANLAMA', role:'bakim' },
 ];
 
 let currentUser = null;
@@ -822,6 +823,8 @@ function doLogin() {
   const u = document.getElementById('loginUser').value.trim().toLowerCase();
   const p = document.getElementById('loginPass').value.trim();
   const found = USERS.find(x => x.Kullanıcı.toLowerCase() === u && x.password === p);
+
+
   if (!found) {
     document.getElementById('loginErr').style.display = 'block';
     return;
