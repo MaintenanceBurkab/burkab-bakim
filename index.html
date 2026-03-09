@@ -1273,19 +1273,29 @@ function parcaEkle() {
   div.innerHTML =
     '<input type="text" placeholder="Parça adı / kodu" oninput="this.value=this.value.toUpperCase()" class="parca-ad">' +
     '<input type="number" placeholder="Adet" min="1" value="1" class="parca-adet" onchange="hesaplaMaliyet()">' +
-    '<input type="number" placeholder="Birim fiyat ₺" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()">' +
+    '<input type="number" placeholder="Birim fiyat" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()">' +
+    '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center">' +
+    '<option value="₺">₺</option>' +
+    '<option value="$">$</option>' +
+    '<option value="€">€</option>' +
+    '</select>' +
     '<button class="btn-parca-sil" onclick="parcaSil(\'parca-' + id + '\')">✕</button>';
   document.getElementById('parcaListesi').appendChild(div);
 }
 function parcaSil(id) { document.getElementById(id)&&document.getElementById(id).remove(); hesaplaMaliyet(); }
 function hesaplaMaliyet() {
-  let t = 0;
+  const ozet = { '₺': 0, '$': 0, '€': 0 };
   document.querySelectorAll('.parca-row').forEach(row => {
-    const a = parseFloat(row.querySelector('.parca-adet')?.value)||0;
-    const f = parseFloat(row.querySelector('.parca-fiyat')?.value)||0;
-    t += a * f;
+    const a    = parseFloat(row.querySelector('.parca-adet')?.value) || 0;
+    const f    = parseFloat(row.querySelector('.parca-fiyat')?.value) || 0;
+    const para = row.querySelector('.parca-para')?.value || '₺';
+    if (ozet[para] !== undefined) ozet[para] += a * f;
   });
-  document.getElementById('toplamMaliyet').value = t > 0 ? t.toFixed(2) + ' ₺' : '';
+  const parcalar = [];
+  if (ozet['₺'] > 0) parcalar.push(ozet['₺'].toFixed(2) + ' ₺');
+  if (ozet['$'] > 0) parcalar.push(ozet['$'].toFixed(2) + ' $');
+  if (ozet['€'] > 0) parcalar.push(ozet['€'].toFixed(2) + ' €');
+  document.getElementById('toplamMaliyet').value = parcalar.length ? parcalar.join(' + ') : '';
 }
 function getParcaListesi() {
   const p = [];
@@ -1293,7 +1303,8 @@ function getParcaListesi() {
     const ad    = row.querySelector('.parca-ad')?.value.trim();
     const adet  = parseFloat(row.querySelector('.parca-adet')?.value) || 0;
     const fiyat = parseFloat(row.querySelector('.parca-fiyat')?.value) || 0;
-    if (ad) p.push({ ad, adet, fiyat, toplam: adet * fiyat });
+    const para  = row.querySelector('.parca-para')?.value || '₺';
+    if (ad) p.push({ ad, adet, fiyat, para, toplam: adet * fiyat });
   });
   return JSON.stringify(p);
 }
@@ -1309,7 +1320,8 @@ function renderParcaDetay(parcaStr) {
   return list.map(p =>
     '<div style="display:flex;justify-content:space-between;padding:6px 10px;background:#f7f5f0;border-radius:5px;margin-bottom:4px;font-size:13px">' +
     '<span style="font-weight:600">' + p.ad + '</span>' +
-    '<span style="color:#666">' + p.adet + ' adet &nbsp;×&nbsp; ' + p.fiyat + '₺ = <strong style="color:#b8900a">' + p.toplam.toFixed(2) + '₺</strong></span>' +
+    '<span style="color:#666">' + p.adet + ' adet × ' + p.fiyat + ' ' + (p.para||'₺') +
+    ' = <strong style="color:#b8900a">' + p.toplam.toFixed(2) + ' ' + (p.para||'₺') + '</strong></span>' +
     '</div>'
   ).join('');
 }
