@@ -337,8 +337,8 @@ tr:last-child td { border-bottom: none; }
   <button class="nav-tab active" onclick="goTab('form',this)">📝 YENİ KAYIT</button>
   <button class="nav-tab" onclick="goTab('list',this)">📋 KAYITLAR</button>
   <button class="nav-tab" onclick="goTab('dash',this)">📊 DASHBOARD</button>
+  <button class="nav-tab" onclick="goTab('uretim',this)">🏭 ÜRETİM DURUMU</button>
 </div>
-
 <div class="main">
 
 <!-- ── FORM TAB ── -->
@@ -744,7 +744,65 @@ tr:last-child td { border-bottom: none; }
     </div>
   </div>
 </div>
+<!-- ── ÜRETİM DURUMU TAB ── -->
+<div class="tab-pane" id="tab-uretim">
 
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="font-size:13px;color:var(--muted)">
+      🔄 Son güncelleme: <span id="sonGuncelleme">—</span>
+      &nbsp;|&nbsp; Her 5 dakikada otomatik yenilenir
+    </div>
+    <button onclick="manuelYenile()" class="btn-gen" style="padding:8px 18px;border-radius:7px;font-size:13px">
+      🔄 Şimdi Yenile
+    </button>
+  </div>
+
+  <!-- ÖZET KPI -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="uretimKpi"></div>
+
+  <!-- BÖLÜM BAZLI DURUM -->
+  <div class="section">
+    <div class="section-head"><div class="dot"></div>🏭 BÖLÜM BAZLI MAKİNE DURUMU</div>
+    <div class="section-body" id="bolumDurumGrid"></div>
+  </div>
+
+  <!-- BUGÜNÜN ARIZALARI -->
+  <div class="section">
+    <div class="section-head" style="background:linear-gradient(90deg,#b71c1c,#d32f2f)">
+      <div class="dot" style="background:#ff8a80"></div>
+      🚨 BUGÜNÜN ARIZALARI / AKTİF DURUMLAR
+    </div>
+    <div class="section-body">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>BÖLÜM</th><th>MAKİNE</th><th>ARIZA TÜRÜ</th>
+              <th>BAŞLAMA</th><th>RİSK</th><th>BAKIMCI</th>
+              <th>DURUM</th><th>ETKİ</th>
+            </tr>
+          </thead>
+          <tbody id="bugunArizaBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BAKIMCI PERFORMANS -->
+  <div class="section">
+    <div class="section-head"><div class="dot"></div>👷 BAKIMCI PERFORMANS ÖZETİ</div>
+    <div class="section-body">
+      <div id="bakimciPerformansGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+    </div>
+  </div>
+
+  <!-- HAFTALIK ÖZET -->
+  <div class="section">
+    <div class="section-head"><div class="dot"></div>📅 HAFTALIK ÖZET RAPOR</div>
+    <div class="section-body" id="haftalikOzet"></div>
+  </div>
+
+</div>
 </div><!-- /main -->
 
 <!-- DETAY MODAL -->
@@ -765,16 +823,17 @@ tr:last-child td { border-bottom: none; }
 // ══════════════════════════════════════════════
 
 const USERS = [
-  { username:'admin',   password:'1234', name:'MEHMET ERTURK',      role:'admin' },
-  { username:'ENES',    password:'1111', name:'ENES BALKAN',         role:'bakim' },
-  { username:'FERHAT',  password:'2222', name:'FERHAT OKTAY',        role:'bakim' },
-  { username:'SAVCI',   password:'3333', name:'SUNAY AVCI',          role:'bakim' },
-  { username:'CEMAL',   password:'4444', name:'CEMAL ÖZMISIR',       role:'bakim' },
-  { username:'AHMET',   password:'5555', name:'AHMET ALTIPARMAK',    role:'bakim' },
-  { username:'VOLKAN',  password:'6666', name:'VOLKAN AKAR',         role:'bakim' },
-  { username:'YUNUS',   password:'7777', name:'YUNUS DİKGÖZ',        role:'bakim' },
-  { username:'URETİM',  password:'8888', name:'ÜRETİM',              role:'bakim' },
-  { username:'PLANLAMA',password:'9999', name:'PLANLAMA',            role:'bakim' },
+  { username:'admin',    password:'1234', name:'MEHMET ERTÜRK',      role:'admin'     },
+  { username:'ENES',     password:'1111', name:'ENES BALKAN',         role:'bakim'     },
+  { username:'FERHAT',   password:'2222', name:'FERHAT OKTAY',        role:'bakim'     },
+  { username:'SAVCI',    password:'3333', name:'SUNAY AVCI',          role:'bakim'     },
+  { username:'CEMAL',    password:'4444', name:'CEMAL ÖZMISIR',       role:'yonetici'  },
+  { username:'AHMET',    password:'5555', name:'AHMET ALTIPARMAK',    role:'bakim'     },
+  { username:'VOLKAN',   password:'6666', name:'VOLKAN AKAR',         role:'bakim'     },
+  { username:'YUNUS',    password:'7777', name:'YUNUS DİKGÖZ',        role:'bakim'     },
+  { username:'URETIM',   password:'8888', name:'ÜRETİM',              role:'uretim'    },
+  { username:'PLANLAMA', password:'9999', name:'PLANLAMA',            role:'uretim'    },
+  { username:'PATRON',   password:'0000', name:'YÖNETİM',             role:'yonetici'  },
 ];
 
 let currentUser = null;
@@ -877,12 +936,45 @@ function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('userAv').textContent = found.name[0];
   document.getElementById('userNm').textContent = found.name;
+
+  // ROL BAZLI GÖRÜNÜM
+  applyRoleUI(found.role);
+
   idbOpen().then(() => {
     syncPending();
     idbGetAll().then(list => {
       if (list.length) setSyncUI('offline', list.length + ' bekleyen kayıt mevcut');
     });
   });
+}
+
+function applyRoleUI(role) {
+  const navTabs = document.querySelector('.nav-tabs');
+  if (role === 'yonetici' || role === 'uretim') {
+    // Sadece dashboard ve üretim durumu görünsün
+    navTabs.innerHTML = `
+      <button class="nav-tab active" onclick="goTab('dash',this)">📊 DASHBOARD</button>
+      <button class="nav-tab" onclick="goTab('uretim',this)">🏭 ÜRETİM DURUMU</button>
+    `;
+    // Form tabını gizle
+    document.getElementById('tab-form').style.display = 'none';
+    document.getElementById('tab-list').style.display = 'none';
+    // Dashboard'u aktif yap
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-dash').classList.add('active');
+    // Canlı veri çekmeyi başlat
+    startLiveDashboard();
+  } else {
+    // Bakım/admin — tüm sekmeler açık
+    navTabs.innerHTML = `
+      <button class="nav-tab active" onclick="goTab('form',this)">📝 YENİ KAYIT</button>
+      <button class="nav-tab" onclick="goTab('list',this)">📋 KAYITLAR</button>
+      <button class="nav-tab" onclick="goTab('dash',this)">📊 DASHBOARD</button>
+      <button class="nav-tab" onclick="goTab('uretim',this)">🏭 ÜRETİM DURUMU</button>
+    `;
+    document.getElementById('tab-form').style.display = 'block';
+    document.getElementById('tab-list').style.display = 'block';
+  }
 }
 
 function cikisYap() {
@@ -1908,6 +2000,229 @@ function showToast(msg, type) {
   clearTimeout(t._tid);
   t._tid = setTimeout(() => { t.className = 'toast'; }, 3500);
 }
+// ══════════════════════════════════════════════
+// CANLI DASHBOARD — 5 DAKİKADA BİR SHEETS'TEN ÇEK
+// ══════════════════════════════════════════════
+
+let liveInterval = null;
+
+function startLiveDashboard() {
+  // Hemen çek
+  liveVeriCek();
+  // Her 5 dakikada tekrar çek
+  if (liveInterval) clearInterval(liveInterval);
+  liveInterval = setInterval(liveVeriCek, 5 * 60 * 1000);
+}
+
+async function liveVeriCek() {
+  try {
+    const json = await gsGet();
+    if (json && json.ok && Array.isArray(json.data)) {
+      kayitlar = json.data.map(row => {
+        const obj = {};
+        COLS.forEach(c => obj[c] = row[c] || '');
+        obj.id = parseInt(obj.id) || Date.now();
+        obj.sure = parseInt(obj.sure) || 0;
+        return obj;
+      });
+    }
+  } catch(e) {
+    console.warn('Canlı veri çekme hatası:', e);
+  }
+  const now = new Date();
+  const saat = String(now.getHours()).padStart(2,'0') + ':' +
+               String(now.getMinutes()).padStart(2,'0') + ':' +
+               String(now.getSeconds()).padStart(2,'0');
+  const el = document.getElementById('sonGuncelleme');
+  if (el) el.textContent = saat;
+
+  // Aktif sekmeyi yenile
+  renderUretimDurumu();
+  if (document.getElementById('tab-dash').classList.contains('active')) {
+    renderDash();
+  }
+}
+
+function manuelYenile() {
+  showToast('🔄 Veriler güncelleniyor...', '');
+  liveVeriCek();
+}
+
+// ── ÜRETİM DURUMU SAYFASI ─────────────────────
+function renderUretimDurumu() {
+  const bugun = new Date().toISOString().split('T')[0];
+  const bugunKayit = kayitlar.filter(k => k.tarihBas === bugun);
+  const arizali = bugunKayit.filter(k => k.islem === 'ARIZA KAYDI');
+  const kritik  = arizali.filter(k => k.riskSeviye === 'KRİTİK' || k.riskSeviye === 'YÜKSEK');
+  const duran   = bugunKayit.filter(k => k.durusEtkisi === 'TAM DURUŞ');
+
+  // KPI
+  const kpiEl = document.getElementById('uretimKpi');
+  if (kpiEl) {
+    kpiEl.innerHTML =
+      kpiCard('🚨', arizali.length, 'Bugünkü Arıza', '#d32f2f') +
+      kpiCard('⛔', duran.length, 'Tam Duruş', '#b71c1c') +
+      kpiCard('⚠️', kritik.length, 'Kritik/Yüksek Risk', '#e65100') +
+      kpiCard('✅', bugunKayit.filter(k=>k.islem==='BAKIM KAYDI').length, 'Bakım Tamamlandı', '#00875a');
+  }
+
+  // Bölüm bazlı durum
+  const bolumEl = document.getElementById('bolumDurumGrid');
+  if (bolumEl) {
+    const bolumler = ['TEST','KESİM','ÜRETİM HATLARI','TESİS','HAZIRLIK','KALIPLAR','ALT MONTAJ','DEPO & SEVKİYAT'];
+    bolumEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">' +
+      bolumler.map(b => {
+        const bArizali = arizali.filter(k => k.bolum === b);
+        const bDuran   = bArizali.filter(k => k.durusEtkisi === 'TAM DURUŞ');
+        const durum    = bDuran.length > 0 ? 'DURDU' : bArizali.length > 0 ? 'SORUNLU' : 'NORMAL';
+        const renk     = durum === 'DURDU' ? '#d32f2f' : durum === 'SORUNLU' ? '#e65100' : '#00875a';
+        const bg       = durum === 'DURDU' ? '#fde8e8' : durum === 'SORUNLU' ? '#fff3e0' : '#e3f7ee';
+        const ikon     = durum === 'DURDU' ? '🔴' : durum === 'SORUNLU' ? '🟡' : '🟢';
+        return `<div style="background:${bg};border:2px solid ${renk};border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:24px;margin-bottom:6px">${ikon}</div>
+          <div style="font-weight:800;font-size:13px;color:${renk};letter-spacing:.5px">${b}</div>
+          <div style="font-size:20px;font-weight:800;color:${renk};margin-top:6px">${durum}</div>
+          ${bArizali.length > 0 ? `<div style="font-size:11px;color:#666;margin-top:4px">${bArizali.length} arıza kaydı</div>` : ''}
+        </div>`;
+      }).join('') + '</div>';
+  }
+
+  // Bugünün arızaları tablosu
+  const arizaBody = document.getElementById('bugunArizaBody');
+  if (arizaBody) {
+    if (!bugunKayit.length) {
+      arizaBody.innerHTML = '<tr><td colspan="8" class="empty">🎉 Bugün arıza kaydı yok!</td></tr>';
+    } else {
+      const goruntulenecek = bugunKayit.filter(k =>
+        k.islem === 'ARIZA KAYDI' || k.durusEtkisi === 'TAM DURUŞ' || k.durusEtkisi === 'KISMİ DURUŞ'
+      );
+      if (!goruntulenecek.length) {
+        arizaBody.innerHTML = '<tr><td colspan="8" class="empty">🎉 Bugün arıza/duruş kaydı yok!</td></tr>';
+      } else {
+        const rBadge = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon'};
+        arizaBody.innerHTML = goruntulenecek.map(k => {
+          const durusRenk = k.durusEtkisi === 'TAM DURUŞ' ? '#d32f2f' :
+                            k.durusEtkisi === 'KISMİ DURUŞ' ? '#e65100' : '#00875a';
+          return `<tr>
+            <td>${k.bolum}</td>
+            <td><strong>${k.makine}</strong></td>
+            <td>${k.arizaTuru || '—'}</td>
+            <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${k.arizaBas || k.tarihBas}</td>
+            <td>${k.riskSeviye ? `<span class="badge ${rBadge[k.riskSeviye]||''}">${k.riskSeviye}</span>` : '—'}</td>
+            <td>${k.bakimci}</td>
+            <td><span class="badge ${badgeMap[k.islem]||'b-ariza'}">${k.islem}</span></td>
+            <td style="font-weight:700;color:${durusRenk}">${k.durusEtkisi || 'DURUŞ YOK'}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+  }
+
+  // Bakımcı performans
+  const bakimciEl = document.getElementById('bakimciPerformansGrid');
+  if (bakimciEl) {
+    const bakimciList = ['MEHMET ERTÜRK','ABDURRAHİM YILMAZ','FERHAT OKTAY','SUNAY AVCI','ENES BALKAN'];
+    const son30 = kayitlar.filter(k => {
+      const t = new Date(k.tarihBas);
+      return (new Date() - t) <= 30 * 86400000;
+    });
+    bakimciEl.innerHTML = bakimciList.map(b => {
+      const bKayit = son30.filter(k => k.bakimci && k.bakimci.includes(b));
+      const bSureler = bKayit.map(k => parseInt(k.sure)||0).filter(Boolean);
+      const bMTTR = bSureler.length ? Math.round(bSureler.reduce((a,x)=>a+x,0)/bSureler.length) : 0;
+      return `<div style="background:var(--bg);border:1px solid #d0d0c0;border-radius:9px;padding:14px;border-left:4px solid #f5c400">
+        <div style="font-weight:800;font-size:13px;margin-bottom:8px">👷 ${b}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="text-align:center;background:#fff;border-radius:6px;padding:8px;border:1px solid #e0e0d0">
+            <div style="font-size:20px;font-weight:800;color:#0277bd">${bKayit.length}</div>
+            <div style="font-size:9px;color:#888;font-weight:700">30 GÜN İŞ</div>
+          </div>
+          <div style="text-align:center;background:#fff;border-radius:6px;padding:8px;border:1px solid #e0e0d0">
+            <div style="font-size:20px;font-weight:800;color:#e65100">${bMTTR}</div>
+            <div style="font-size:9px;color:#888;font-weight:700">ORT. MTTR dk</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Haftalık özet
+  const haftalikEl = document.getElementById('haftalikOzet');
+  if (haftalikEl) {
+    const pazartesi = new Date();
+    pazartesi.setDate(pazartesi.getDate() - pazartesi.getDay() + 1);
+    pazartesi.setHours(0,0,0,0);
+    const haftaKayit = kayitlar.filter(k => new Date(k.tarihBas) >= pazartesi);
+    const hGunler = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+    const gunData = hGunler.map((g, i) => {
+      const d = new Date(pazartesi);
+      d.setDate(pazartesi.getDate() + i);
+      const ds = d.toISOString().split('T')[0];
+      const gKayit = kayitlar.filter(k => k.tarihBas === ds);
+      return { gun: g, tarih: ds, ariza: gKayit.filter(k=>k.islem==='ARIZA KAYDI').length, bakim: gKayit.filter(k=>k.islem==='BAKIM KAYDI').length, toplam: gKayit.length };
+    });
+    haftalikEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px">
+        ${gunData.map(g => {
+          const isToday = g.tarih === new Date().toISOString().split('T')[0];
+          return `<div style="text-align:center;background:${isToday?'#f5c400':'var(--bg)'};border:${isToday?'2px solid #f5c400':'1px solid #d0d0c0'};border-radius:9px;padding:10px">
+            <div style="font-size:10px;font-weight:700;color:${isToday?'#1a1a1a':'#888'};text-transform:uppercase">${g.gun.slice(0,3)}</div>
+            <div style="font-size:20px;font-weight:800;color:${isToday?'#1a1a1a':g.ariza>0?'#d32f2f':'#00875a'}">${g.ariza}</div>
+            <div style="font-size:9px;color:${isToday?'#333':'#888'}">arıza</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        ${kpiCard('📊', haftaKayit.length, 'Bu Hafta Toplam', '#0277bd')}
+        ${kpiCard('🚨', haftaKayit.filter(k=>k.islem==='ARIZA KAYDI').length, 'Bu Hafta Arıza', '#d32f2f')}
+        ${kpiCard('🔧', haftaKayit.filter(k=>k.islem==='BAKIM KAYDI').length, 'Bu Hafta Bakım', '#00875a')}
+        ${kpiCard('⛔', haftaKayit.filter(k=>k.durusEtkisi==='TAM DURUŞ').length, 'Bu Hafta Duruş', '#b71c1c')}
+      </div>`;
+  }
+}
+
+function kpiCard(ikon, deger, etiket, renk) {
+  return `<div style="background:#fff;border:1px solid #d0d0c0;border-radius:10px;padding:16px;text-align:center;border-top:4px solid ${renk};box-shadow:0 2px 8px rgba(0,0,0,.06)">
+    <div style="font-size:22px;margin-bottom:4px">${ikon}</div>
+    <div style="font-size:26px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:${renk}">${deger}</div>
+    <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:.8px;text-transform:uppercase;margin-top:4px">${etiket}</div>
+  </div>`;
+}
+
+// goTab fonksiyonunu güncelle — uretim sekmesi için
+const _origGoTab = goTab;
+goTab = function(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  const pane = document.getElementById('tab-' + id);
+  if (pane) pane.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'list') renderList();
+  if (id === 'dash') setTimeout(renderDash, 50);
+  if (id === 'uretim') renderUretimDurumu();
+};
+
+// Sayfa yüklenince session varsa rolü uygula
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('burkab_user');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('userAv').textContent = currentUser.name[0];
+      document.getElementById('userNm').textContent = currentUser.name;
+      applyRoleUI(currentUser.role);
+      idbOpen().then(() => {
+        syncPending();
+        idbGetAll().then(list => {
+          if (list.length) setSyncUI('offline', list.length + ' bekleyen kayıt mevcut');
+        });
+      });
+    } catch(e) {
+      sessionStorage.removeItem('burkab_user');
+    }
+  }
+});
 </script>
 </body>
 </html>
