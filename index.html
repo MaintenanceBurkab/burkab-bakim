@@ -632,24 +632,7 @@ tr:last-child td { border-bottom: none; }
   <div class="section" style="margin-top:0">
     <div class="section-head"><div class="dot"></div>KAYIT LİSTESİ <span id="kayitSayiBadge" style="margin-left:8px;background:#f5c400;color:#1a1a1a;border-radius:4px;padding:1px 8px;font-size:11px">0</span></div>
     <div class="section-body">
-      <div class="filter-row">
-        <input type="text" id="fSearch" placeholder="🔍 Ara..." oninput="renderList()">
-        <select id="fIslem" onchange="renderList()">
-          <option value="">Tüm İşlemler</option>
-          <option>ARIZA KAYDI</option><option>BAKIM KAYDI</option>
-          <option>MONTAJ</option><option>REVİZYON</option>
-          <option>PLANLI BAKIM</option><option>SERVİS BAKIM</option>
-        </select>
-        <select id="fBolum" onchange="renderList()">
-          <option value="">Tüm Bölümler</option>
-          <option>TEST</option><option>KESİM</option><option>ÜRETİM HATLARI</option>
-          <option>TESİS</option><option>HAZIRLIK</option><option>KALIPLAR</option>
-          <option>ALT MONTAJ</option><option>DEPO &amp; SEVKİYAT</option><option>ÜRETİM BORDLARI</option>
-        </select>
-        <button class="btn-gen" style="border-radius:7px;padding:0 14px;font-size:13px" onclick="exportCSV()">📥 CSV</button>
-        <button class="btn-gen" style="border-radius:7px;padding:0 14px;font-size:13px;background:#d32f2f;color:#fff" onclick="tumKayitlariSil()">🗑️ Tümünü Sil</button>
-      </div>
-      <div class="tbl-wrap">
+     <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
@@ -667,24 +650,6 @@ tr:last-child td { border-bottom: none; }
 
 <!-- ── DASHBOARD TAB ── -->
 <div class="tab-pane" id="tab-dash">
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-    <select id="dashDonem" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px">
-      <option value="tumu">Tüm Zamanlar</option>
-      <option value="bu_ay">Bu Ay</option>
-      <option value="son3">Son 3 Ay</option>
-      <option value="son6">Son 6 Ay</option>
-      <option value="bu_yil">Bu Yıl</option>
-    </select>
-    <select id="dashBolum" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px">
-      <option value="">Tüm Bölümler</option>
-      <option>TEST</option><option>KESİM</option><option>ÜRETİM HATLARI</option>
-      <option>TESİS</option><option>HAZIRLIK</option><option>KALIPLAR</option>
-      <option>ALT MONTAJ</option><option>DEPO &amp; SEVKİYAT</option><option>ÜRETİM BORDLARI</option>
-    </select>
-    <select id="dashMakine" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px">
-      <option value="">Tüm Makineler</option>
-    </select>
-  </div>
 
   <div class="kpi-grid" id="kpiGrid"></div>
 
@@ -752,14 +717,14 @@ tr:last-child td { border-bottom: none; }
 <div class="tab-pane" id="tab-uretim">
 
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-    <div style="font-size:13px;color:var(--muted)">
-      🔄 Son güncelleme: <span id="sonGuncelleme">—</span>
-      &nbsp;|&nbsp; Her 5 dakikada otomatik yenilenir
-    </div>
-    <button onclick="manuelYenile()" class="btn-gen" style="padding:8px 18px;border-radius:7px;font-size:13px">
-      🔄 Şimdi Yenile
-    </button>
+  <div style="font-size:12px;color:var(--muted)">
+    🔄 Son güncelleme: <span id="sonGuncelleme">—</span>
+    &nbsp;·&nbsp; Her 5 dakikada otomatik yenilenir
   </div>
+  <button onclick="manuelYenile()" class="btn-gen" style="padding:8px 18px;border-radius:7px;font-size:13px">
+    🔄 Şimdi Yenile
+  </button>
+</div>
 
   <!-- ÖZET KPI -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="uretimKpi"></div>
@@ -1662,13 +1627,7 @@ document.getElementById('detayModal').addEventListener('click', function(e) {
 });
 
 function renderList() {
-  const q  = (document.getElementById('fSearch').value||'').toLowerCase();
-  const fi = document.getElementById('fIslem').value;
-  const fb = document.getElementById('fBolum').value;
-  let list = kayitlar.slice().reverse();
-  if (q)  list = list.filter(k => JSON.stringify(k).toLowerCase().includes(q));
-  if (fi) list = list.filter(k => k.islem === fi);
-  if (fb) list = list.filter(k => k.bolum === fb);
+  const list = kayitlar.slice().reverse();
   const badge = document.getElementById('kayitSayiBadge');
   if (badge) badge.textContent = kayitlar.length;
   const tb = document.getElementById('listBody');
@@ -1720,20 +1679,7 @@ function ensureChartJs(cb) {
 
 // ─── VERİ FİLTRELE ───────────────────────────────────────────
 function filtreliVeri() {
-  const donem  = document.getElementById('dashDonem')?.value || 'tumu';
-  const bolum  = document.getElementById('dashBolum')?.value || '';
-  const makine = document.getElementById('dashMakine')?.value || '';
-  const now    = new Date();
-  return kayitlar.filter(k => {
-    const t = new Date(k.tarihBas);
-    if (donem === 'bu_ay'  && (t.getMonth()!==now.getMonth()||t.getFullYear()!==now.getFullYear())) return false;
-    if (donem === 'son3'   && (now-t) > 90*86400000)  return false;
-    if (donem === 'son6'   && (now-t) > 180*86400000) return false;
-    if (donem === 'bu_yil' && t.getFullYear()!==now.getFullYear()) return false;
-    if (bolum  && k.bolum  !== bolum)  return false;
-    if (makine && k.makine !== makine) return false;
-    return true;
-  });
+  return kayitlar.slice();
 }
 
 // ─── DASHBOARD ───────────────────────────────────────────────
