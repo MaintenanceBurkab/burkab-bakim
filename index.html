@@ -647,6 +647,14 @@ tr:last-child td { border-bottom: none; }
 
 <!-- ── DASHBOARD TAB ── -->
 <div class="tab-pane" id="tab-dash">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <select id="raporDonem" onchange="renderDash()" style="flex:1;min-width:140px;font-size:14px;padding:9px 12px;background:var(--bg);border:1.5px solid #c8d4e3;border-radius:7px;color:var(--text)">
+      <option value="bugun">Bugün</option>
+      <option value="bu_hafta">Bu Hafta</option>
+      <option value="bu_ay">Bu Ay</option>
+      <option value="tumu" selected>Tüm Zamanlar</option>
+    </select>
+  </div>
   <div class="kpi-grid" id="kpiGrid"></div>
   <div class="chart-row">
     <div class="section chart-box">
@@ -1612,8 +1620,25 @@ function ensureChartJs(cb) {
   document.head.appendChild(s);
 }
 
-function filtreliVeri() { return kayitlar.slice(); }
-
+function filtreliVeri() {
+  const donem = document.getElementById('raporDonem')?.value || 'tumu';
+  const bugun = new Date(); bugun.setHours(0,0,0,0);
+  return kayitlar.filter(k => {
+    if (!k.tarihBas) return donem === 'tumu';
+    const t = new Date(k.tarihBas);
+    if (donem === 'bugun')    return t >= bugun;
+    if (donem === 'bu_hafta') {
+      const pzt = new Date(bugun);
+      pzt.setDate(bugun.getDate() - bugun.getDay() + 1);
+      return t >= pzt;
+    }
+    if (donem === 'bu_ay') {
+      return t.getFullYear() === bugun.getFullYear() &&
+             t.getMonth()    === bugun.getMonth();
+    }
+    return true;
+  });
+}
 function renderDash() { ensureChartJs(() => { buildDash(); }); }
 
 function parseTutar(str) {
