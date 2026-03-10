@@ -1833,6 +1833,10 @@ async function kaydet() {
 
 // ── SİL ──────────────────────────────────────
 async function kayitSil(id) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('❌ Yetkiniz yok!', 'err');
+    return;
+  }
   if (!confirm('Bu kaydı silmek istediğinizden emin misiniz?')) return;
   kayitlar = kayitlar.filter(k => k.id !== id);
   try { showLoading(true); await gsSil(id); await saveData(); }
@@ -1842,6 +1846,10 @@ async function kayitSil(id) {
   showToast('🗑️ Kayıt silindi.', 'ok');
 }
 async function tumKayitlariSil() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('❌ Yetkiniz yok!', 'err');
+    return;
+  }
   if (!confirm('TÜM kayıtlar silinecek! Emin misiniz?')) return;
   if (!confirm('Bu işlem geri alınamaz. Onaylıyor musunuz?')) return;
   kayitlar = []; sayac = {};
@@ -1924,6 +1932,7 @@ document.getElementById('detayModal').addEventListener('click', function(e) {
 
 function renderList() {
   const list = kayitlar.slice().reverse();
+  const isAdmin = currentUser && currentUser.role === 'admin';
   const badge = document.getElementById('kayitSayiBadge');
   if (badge) badge.textContent = kayitlar.length;
   const tb = document.getElementById('listBody');
@@ -1943,7 +1952,10 @@ function renderList() {
     '<td>' + k.bakimci + '</td>' +
     '<td>' + (k.riskSeviye ? '<span class="badge ' + (riskBadge[k.riskSeviye]||'') + '">' + k.riskSeviye + '</span>' : '—') + '</td>' +
     '<td style="white-space:nowrap;display:flex;gap:4px">' +
-    '<button onclick="detayAc(' + k.id + ')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">DETAY</button>' +
+    '<button onclick="detayAc(' + k.id + ')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">DETAY'<td style="white-space:nowrap;display:flex;gap:4px">' +
+'<button onclick="detayAc(' + k.id + ')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">DETAY</button>' +
+(isAdmin ? '<button onclick="kayitSil(' + k.id + ')" style="background:rgba(211,47,47,.1);border:1px solid rgba(211,47,47,.3);border-radius:4px;color:#d32f2f;cursor:pointer;padding:3px 8px;font-size:11px">SİL</button>' : '') +
+'</td></tr>'</button>' +
     '<button onclick="kayitSil(' + k.id + ')" style="background:rgba(211,47,47,.1);border:1px solid rgba(211,47,47,.3);border-radius:4px;color:#d32f2f;cursor:pointer;padding:3px 8px;font-size:11px">SİL</button>' +
     '</td></tr>'
   ).join('');
