@@ -1439,7 +1439,21 @@ async function gsSil(id) {
 async function gsTumunuSil() {
   await gsRequest({ action: 'deleteAll' });
 }
+function bildirimiGorulduYap(bildirim){
 
+  const veri = {
+    bolum: bildirim.bolum,
+    makine: bildirim.makine,
+    bildiren: bildirim.bildiren,
+    konu: bildirim.konu,
+    arizaBas: bildirim.arizaBas
+  };
+
+  localStorage.setItem("aktifAriza", JSON.stringify(veri));
+
+  window.location.href = "#yeniKayit";
+
+}
 function showLoading(show) {
   const el = document.getElementById('loadingOverlay');
   if (el) el.classList.toggle('show', show);
