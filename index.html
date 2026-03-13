@@ -3273,49 +3273,6 @@ function exportCSV() {
   showToast('📥 CSV dosyası indiriliyor...', 'ok');
 }
 
-// ══════════════════════════════════════════════
-// AI ASİSTAN — GEMİNİ ENTEGRASYONU
-// ══════════════════════════════════════════════
-const AI_KEY_STORE = 'burkab_gemini_key';
-const AI_MODEL = 'gemini-1.5-flash';
-let aiSohbet = []; // {role, parts:[{text}]}
-
-function geminiKeyAl() {
-  try { return atob(localStorage.getItem(AI_KEY_STORE) || ''); } catch { return ''; }
-}
-function geminiKeySave() {
-  const v = document.getElementById('geminiKeyInput').value.trim();
-  if (!v) { showToast('❗ Key boş olamaz!', 'err'); return; }
-  localStorage.setItem(AI_KEY_STORE, btoa(v));
-  document.getElementById('geminiKeyInput').value = '';
-  showToast('✅ API Key kaydedildi!', 'ok');
-  document.getElementById('aiKeyUyari').style.display = 'none';
-  document.getElementById('aiKeySection').style.display = 'none';
-}
-function geminiKeySil() {
-  if (!confirm('API Key silinsin mi?')) return;
-  localStorage.removeItem(AI_KEY_STORE);
-  showToast('🗑️ API Key silindi.', 'ok');
-}
-function toggleAiKey() {
-  const s = document.getElementById('aiKeySection');
-  s.style.display = s.style.display === 'none' ? 'block' : 'none';
-  if (s.style.display === 'block') {
-    const k = geminiKeyAl();
-    document.getElementById('geminiKeyInput').value = k ? '••••••••••••' + k.slice(-4) : '';
-    document.getElementById('geminiKeyInput').placeholder = k ? 'Değiştirmek için yeni key gir' : 'AIzaSy...';
-  }
-}
-
-function aiKontekstOlustur() {
-  const satirlar = [];
-  const ctxKayitlar = document.getElementById('aiCtxKayitlar')?.checked;
-  const ctxPlanlar  = document.getElementById('aiCtxPlanlar')?.checked;
-
-  satirlar.push('Sen BURKAB A.Ş. bakım yönetim sisteminin AI asistanısın. Türkçe konuş.');
-  satirlar.push('Fabrika bakım ekibine arıza analizi, bakım önerileri ve teknik destek sağlarsın.');
-  satirlar.push('Ayrıca sistemin geliştirilmesi için kod önerileri yapabilirsin — değişiklikleri MUTLAKA diff formatında göster (- eski satır / + yeni satır).');
-  satirlar.push('');
 
   if (ctxKayitlar && kayitlar.length > 0) {
     const son30 = kayitlar.slice(-50);
