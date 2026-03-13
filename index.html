@@ -513,6 +513,39 @@ tr:last-child td { border-bottom: none; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
 /* ── USER CHIP ── */
+/* ── AI ASİSTAN ── */
+.ai-quick-btn {
+  background: #f7f5f0; border: 1.5px solid #d0d0c0; border-radius: 7px;
+  padding: 9px 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
+  font-weight: 600; color: #444; cursor: pointer; text-align: left;
+  transition: all .15s; width: 100%;
+}
+.ai-quick-btn:hover { border-color: #6d28d9; color: #6d28d9; background: rgba(109,40,217,.05); }
+
+.ai-msg { display: flex; gap: 10px; align-items: flex-start; animation: bildirimGel .3s ease; }
+.ai-msg.user { flex-direction: row-reverse; }
+.ai-avatar {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.ai-avatar.bot { background: linear-gradient(135deg,#6d28d9,#4c1d95); }
+.ai-avatar.user { background: #f5c400; color: #1a1a1a; font-size: 13px; font-weight: 800; }
+.ai-bubble {
+  max-width: 85%; padding: 10px 14px; border-radius: 10px; font-size: 13px;
+  line-height: 1.6; word-break: break-word;
+}
+.ai-bubble.bot { background: #fff; border: 1px solid #e0ddd5; border-radius: 10px 10px 10px 2px; color: #1a1a1a; }
+.ai-bubble.user { background: linear-gradient(135deg,#6d28d9,#4c1d95); color: #fff; border-radius: 10px 10px 2px 10px; }
+.ai-bubble pre { background: #1a1a1a; color: #f5c400; border-radius: 6px; padding: 10px 12px; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 12px; margin: 8px 0; white-space: pre-wrap; }
+.ai-bubble code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: rgba(109,40,217,.1); color: #6d28d9; padding: 1px 5px; border-radius: 3px; }
+.ai-bubble .diff-add { color: #00875a; background: rgba(0,135,90,.08); display: block; padding: 1px 4px; border-radius: 2px; }
+.ai-bubble .diff-rem { color: #d32f2f; background: rgba(211,47,47,.08); display: block; padding: 1px 4px; border-radius: 2px; }
+.ai-typing { display: flex; gap: 4px; align-items: center; padding: 6px 0; }
+.ai-typing span { width: 7px; height: 7px; border-radius: 50%; background: #a78bfa; animation: aiDot 1.2s infinite; }
+.ai-typing span:nth-child(2) { animation-delay: .2s; }
+.ai-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes aiDot { 0%,80%,100%{transform:scale(1);opacity:.4} 40%{transform:scale(1.3);opacity:1} }
+
 .user-chip {
   display:flex; align-items:center; gap:8px;
   background:rgba(245,196,0,.12); border:1px solid rgba(245,196,0,.3);
@@ -588,6 +621,7 @@ tr:last-child td { border-bottom: none; }
   <button class="nav-tab" onclick="goTab('dash',this)">📊 DASHBOARD</button>
   <button class="nav-tab" onclick="goTab('uretim',this)">🏭 ÜRETİM DURUMU</button>
   <button class="nav-tab" id="bildirimTab" onclick="goTab('bildirimler',this)">🔔 BİLDİRİMLER<span class="bildirim-badge" id="bildirimBadge" style="display:none">0</span></button>
+  <button class="nav-tab" onclick="goTab('ai',this)" style="color:#a78bfa">🤖 AI ASİSTAN</button>
 </div>
 
 <div class="main">
@@ -1343,6 +1377,116 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- ── AI ASİSTAN TAB ── -->
+<div class="tab-pane" id="tab-ai">
+
+  <!-- API KEY AYAR BÖLÜMÜ -->
+  <div class="section" id="aiKeySection" style="display:none">
+    <div class="section-head" style="background:linear-gradient(90deg,#4c1d95,#6d28d9)">
+      <div class="dot" style="background:#a78bfa"></div>
+      🔑 GEMİNİ API AYARLARI
+    </div>
+    <div class="section-body">
+      <div class="fg" style="align-items:flex-end">
+        <div class="field">
+          <label>GEMİNİ API KEY</label>
+          <input type="password" id="geminiKeyInput" placeholder="AIzaSy..." autocomplete="off">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="geminiKeySave()" class="btn-gen" style="background:#6d28d9;color:#fff;padding:11px 20px;border-radius:7px;font-size:13px;font-weight:700;border:none;cursor:pointer">💾 Kaydet</button>
+          <button onclick="geminiKeySil()" class="btn-gen" style="background:rgba(211,47,47,.15);color:#d32f2f;border:1px solid rgba(211,47,47,.3);padding:11px 16px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer">Sil</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">🔒 Key sadece bu cihazın localStorage'ında saklanır, sunucuya gönderilmez.</div>
+    </div>
+  </div>
+
+  <!-- ANA CHAT ALANI -->
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start" id="aiMainGrid">
+
+    <!-- SOL: Hızlı Soru Paneli + Bağlam -->
+    <div>
+      <div class="section" style="margin-bottom:12px">
+        <div class="section-head" style="background:linear-gradient(90deg,#4c1d95,#6d28d9)">
+          <div class="dot" style="background:#a78bfa"></div>
+          ⚡ HIZLI SORULAR
+        </div>
+        <div class="section-body" style="display:flex;flex-direction:column;gap:8px;padding:12px">
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">📊 Bugünkü arızaları özetle</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">⚠️ En kritik makineleri göster</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">🔁 Tekrar eden arızalar var mı?</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">💡 Bakım önerileri sun</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">📈 MTTR/MTBF analizi yap</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">💰 Maliyet analizi yap</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">🛠️ Sisteme yeni özellik öner</button>
+          <button class="ai-quick-btn" onclick="aiHizliSoru(this)">🔧 Kod güncellemesi iste</button>
+        </div>
+      </div>
+
+      <div class="section" style="margin-bottom:0">
+        <div class="section-head" style="background:linear-gradient(90deg,#1a1a1a,#333)">
+          <div class="dot"></div>
+          📋 VERİ BAĞLAMI
+        </div>
+        <div class="section-body" style="padding:12px">
+          <div id="aiKontekstInfo" style="font-size:12px;color:var(--muted);line-height:1.7">
+            — veri yükleniyor —
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="aiCtxKayitlar" checked style="accent-color:#6d28d9">
+              <span>Arıza Kayıtları</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="aiCtxPlanlar" checked style="accent-color:#6d28d9">
+              <span>Planlar</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAĞ: Chat Arayüzü -->
+    <div class="section" style="margin-bottom:0">
+      <div class="section-head" style="background:linear-gradient(90deg,#4c1d95,#6d28d9);justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="dot" style="background:#a78bfa"></div>
+          <span>🤖 BURKAB AI — Bakım Asistanı</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="aiModelBadge" style="font-size:10px;background:rgba(167,139,250,.2);color:#a78bfa;padding:2px 8px;border-radius:4px;font-weight:700">gemini-1.5-flash</span>
+          <button onclick="aiSohbetiTemizle()" title="Sohbeti Temizle" style="background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">🗑️</button>
+          <button onclick="toggleAiKey()" title="API Ayarları" style="background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">⚙️</button>
+        </div>
+      </div>
+
+      <!-- Mesaj listesi -->
+      <div id="aiMesajlar" style="min-height:400px;max-height:500px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#fafaf8">
+        <div id="aiHosgeldin" style="text-align:center;padding:40px 20px;color:var(--muted)">
+          <div style="font-size:48px;margin-bottom:12px">🤖</div>
+          <div style="font-size:16px;font-weight:700;color:#4c1d95;margin-bottom:8px">BURKAB AI Asistanı</div>
+          <div style="font-size:13px;line-height:1.6">Arıza kayıtlarını analiz edebilir,<br>bakım önerileri sunabilir,<br>sistem güncellemeleri için kod yazabilirim.</div>
+          <div id="aiKeyUyari" style="margin-top:16px;background:#fde8e8;border:1px solid rgba(211,47,47,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#d32f2f;display:none">
+            ⚠️ API Key girilmedi! Sağ üstteki ⚙️ butonuna tıklayarak Gemini API key'inizi girin.
+          </div>
+        </div>
+      </div>
+
+      <!-- Input alanı -->
+      <div style="padding:12px;border-top:1px solid #e4eaf2;background:#fff">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <textarea id="aiInput" placeholder="Soru sor veya 'sisteme şu özelliği ekle' diyebilirsin..." style="flex:1;min-height:44px;max-height:120px;resize:none;padding:10px 13px;border:1.5px solid #c8d4e3;border-radius:7px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;outline:none;transition:border .15s;background:#f7f5f0" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiGonder()}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+          <button onclick="aiGonder()" id="aiGonderBtn" style="background:linear-gradient(135deg,#6d28d9,#4c1d95);color:#fff;border:none;border-radius:7px;padding:10px 20px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;align-self:stretch">
+            ➤ Gönder
+          </button>
+        </div>
+        <div style="font-size:11px;color:#aaa;margin-top:6px">Enter = gönder · Shift+Enter = yeni satır · Sohbet geçmişi korunur</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <!-- DETAY MODAL -->
@@ -1513,6 +1657,7 @@ function applyRoleUI(role) {
     startLiveDashboard();
     // Eğer veri zaten hazırsa dashboard'u render et
     if (_appReady) setTimeout(renderDash, 100);
+    setTimeout(aiNavBtnEkle, 50);
   } else {
     // Bakım/admin — tüm sekmeler açık
     navTabs.innerHTML = `
@@ -1529,6 +1674,7 @@ function applyRoleUI(role) {
     // Form tabını aktif yap
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-form').classList.add('active');
+    setTimeout(aiNavBtnEkle, 50);
   }
 }
 
@@ -1737,6 +1883,13 @@ function goTab(id, btn) {
   if (id === 'uretim') { if (_appReady) renderUretimDurumu(); }
   if (id === 'bildirimler') { if (_appReady) renderBildirimler(); }
   if (id === 'planlar') { if (_appReady) renderPlanlar(); }
+  if (id === 'ai') {
+    aiKontekstGuncelle();
+    const key = geminiKeyAl();
+    const uyari = document.getElementById('aiKeyUyari');
+    if (uyari) uyari.style.display = key ? 'none' : 'block';
+    setTimeout(() => document.getElementById('aiInput')?.focus(), 100);
+  }
 }
 
 // ── İŞLEM SEÇİMİ ─────────────────────────────
@@ -3120,7 +3273,274 @@ function exportCSV() {
   showToast('📥 CSV dosyası indiriliyor...', 'ok');
 }
 
-// ── TOAST ─────────────────────────────────────
+// ══════════════════════════════════════════════
+// AI ASİSTAN — GEMİNİ ENTEGRASYONU
+// ══════════════════════════════════════════════
+const AI_KEY_STORE = 'burkab_gemini_key';
+const AI_MODEL = 'gemini-1.5-flash';
+let aiSohbet = []; // {role, parts:[{text}]}
+
+function geminiKeyAl() {
+  try { return atob(localStorage.getItem(AI_KEY_STORE) || ''); } catch { return ''; }
+}
+function geminiKeySave() {
+  const v = document.getElementById('geminiKeyInput').value.trim();
+  if (!v) { showToast('❗ Key boş olamaz!', 'err'); return; }
+  localStorage.setItem(AI_KEY_STORE, btoa(v));
+  document.getElementById('geminiKeyInput').value = '';
+  showToast('✅ API Key kaydedildi!', 'ok');
+  document.getElementById('aiKeyUyari').style.display = 'none';
+  document.getElementById('aiKeySection').style.display = 'none';
+}
+function geminiKeySil() {
+  if (!confirm('API Key silinsin mi?')) return;
+  localStorage.removeItem(AI_KEY_STORE);
+  showToast('🗑️ API Key silindi.', 'ok');
+}
+function toggleAiKey() {
+  const s = document.getElementById('aiKeySection');
+  s.style.display = s.style.display === 'none' ? 'block' : 'none';
+  if (s.style.display === 'block') {
+    const k = geminiKeyAl();
+    document.getElementById('geminiKeyInput').value = k ? '••••••••••••' + k.slice(-4) : '';
+    document.getElementById('geminiKeyInput').placeholder = k ? 'Değiştirmek için yeni key gir' : 'AIzaSy...';
+  }
+}
+
+function aiKontekstOlustur() {
+  const satirlar = [];
+  const ctxKayitlar = document.getElementById('aiCtxKayitlar')?.checked;
+  const ctxPlanlar  = document.getElementById('aiCtxPlanlar')?.checked;
+
+  satirlar.push('Sen BURKAB A.Ş. bakım yönetim sisteminin AI asistanısın. Türkçe konuş.');
+  satirlar.push('Fabrika bakım ekibine arıza analizi, bakım önerileri ve teknik destek sağlarsın.');
+  satirlar.push('Ayrıca sistemin geliştirilmesi için kod önerileri yapabilirsin — değişiklikleri MUTLAKA diff formatında göster (- eski satır / + yeni satır).');
+  satirlar.push('');
+
+  if (ctxKayitlar && kayitlar.length > 0) {
+    const son30 = kayitlar.slice(-50);
+    satirlar.push('=== SON 50 KAYIT ===');
+    son30.forEach(k => {
+      satirlar.push(`[${k.tarihBas}] ${k.islem} | ${k.bolum} | ${k.makine} | ${k.arizaTuru||'-'} | Risk:${k.riskSeviye||'-'} | Süre:${k.sure||0}dk | Bakımcı:${k.bakimci} | ${k.konu||''}`);
+    });
+    satirlar.push('');
+    satirlar.push(`Toplam kayıt sayısı: ${kayitlar.length}`);
+
+    // Özet istatistikler
+    const bugun = new Date().toISOString().split('T')[0];
+    const bugunK = kayitlar.filter(k => k.tarihBas === bugun);
+    const arizalar = kayitlar.filter(k => k.islem === 'ARIZA KAYDI');
+    const sureler = arizalar.map(k => parseInt(k.sure)||0).filter(Boolean);
+    const mttr = sureler.length ? Math.round(sureler.reduce((a,b)=>a+b,0)/sureler.length) : 0;
+    satirlar.push(`Bugün: ${bugunK.length} kayıt, ${bugunK.filter(k=>k.islem==='ARIZA KAYDI').length} arıza`);
+    satirlar.push(`Genel MTTR: ${mttr} dakika`);
+  }
+
+  if (ctxPlanlar) {
+    const planlar = planlarYukle();
+    const aktif = planlar.filter(p => p.durum !== 'tamamlandi');
+    if (aktif.length > 0) {
+      satirlar.push('');
+      satirlar.push('=== AKTİF PLANLI BAKIMLAR ===');
+      aktif.forEach(p => {
+        satirlar.push(`[${p.tarih}] ${p.makine} | ${p.bolum} | ${p.gorev} | Bakımcı:${p.bakimci}`);
+      });
+    }
+  }
+
+  return satirlar.join('\n');
+}
+
+function aiKontekstGuncelle() {
+  const el = document.getElementById('aiKontekstInfo');
+  if (!el) return;
+  const bugun = new Date().toISOString().split('T')[0];
+  const bugunK = kayitlar.filter(k => k.tarihBas === bugun).length;
+  const arizaK = kayitlar.filter(k => k.islem === 'ARIZA KAYDI').length;
+  const planlar = planlarYukle().filter(p => p.durum !== 'tamamlandi').length;
+  el.innerHTML =
+    `📦 Toplam kayıt: <b>${kayitlar.length}</b><br>` +
+    `🚨 Arıza kaydı: <b>${arizaK}</b><br>` +
+    `📅 Bugün: <b>${bugunK}</b> kayıt<br>` +
+    `🔧 Aktif plan: <b>${planlar}</b>`;
+}
+
+function aiMesajEkle(rol, metin) {
+  const hosgeldin = document.getElementById('aiHosgeldin');
+  if (hosgeldin) hosgeldin.style.display = 'none';
+
+  const kont = document.getElementById('aiMesajlar');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + rol;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'ai-avatar ' + rol;
+  avatar.textContent = rol === 'bot' ? '🤖' : (currentUser ? currentUser.name[0] : 'M');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'ai-bubble ' + rol;
+
+  if (rol === 'bot') {
+    // Markdown benzeri basit render: ```code```, diff satırları
+    bubble.innerHTML = aiMdRender(metin);
+  } else {
+    bubble.textContent = metin;
+  }
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  kont.appendChild(div);
+  kont.scrollTop = kont.scrollHeight;
+  return div;
+}
+
+function aiMdRender(text) {
+  // Kod blokları
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    // Diff formatı
+    if (lang === 'diff' || code.match(/^[+-]/m)) {
+      const lines = code.split('\n').map(l => {
+        if (l.startsWith('+')) return `<span class="diff-add">+ ${l.slice(1)}</span>`;
+        if (l.startsWith('-')) return `<span class="diff-rem">- ${l.slice(1)}</span>`;
+        return `<span style="color:#888">${l}</span>`;
+      }).join('\n');
+      return `<pre><div style="font-size:10px;color:#a78bfa;margin-bottom:6px;font-weight:700">DIFF — Değişiklik</div>${lines}</pre>`;
+    }
+    return `<pre><div style="font-size:10px;color:#f5c400;margin-bottom:4px">${lang||'kod'}</div>${code.replace(/</g,'&lt;')}</pre>`;
+  });
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Yeni satır
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+function aiTypingEkle() {
+  const kont = document.getElementById('aiMesajlar');
+  const div = document.createElement('div');
+  div.className = 'ai-msg bot';
+  div.id = 'aiTyping';
+  div.innerHTML = `
+    <div class="ai-avatar bot">🤖</div>
+    <div class="ai-bubble bot">
+      <div class="ai-typing"><span></span><span></span><span></span></div>
+    </div>`;
+  kont.appendChild(div);
+  kont.scrollTop = kont.scrollHeight;
+}
+
+function aiTypingKaldir() {
+  document.getElementById('aiTyping')?.remove();
+}
+
+async function aiGonder() {
+  const input = document.getElementById('aiInput');
+  const metin = input.value.trim();
+  if (!metin) return;
+
+  const key = geminiKeyAl();
+  if (!key) {
+    document.getElementById('aiKeyUyari').style.display = 'block';
+    document.getElementById('aiKeySection').style.display = 'block';
+    showToast('⚠️ Önce API Key girin! (⚙️ butonu)', 'err');
+    return;
+  }
+
+  input.value = '';
+  input.style.height = '44px';
+  document.getElementById('aiGonderBtn').disabled = true;
+
+  aiMesajEkle('user', metin);
+  aiTypingEkle();
+
+  // Sohbet geçmişine kullanıcı mesajı ekle
+  aiSohbet.push({ role: 'user', parts: [{ text: metin }] });
+
+  try {
+    const sistem = aiKontekstOlustur();
+    const mesajlar = [
+      { role: 'user', parts: [{ text: sistem + '\n\nKullanıcı: ' + metin }] }
+    ];
+    // Geçmiş varsa ekle (son 8 mesaj)
+    if (aiSohbet.length > 2) {
+      const gecmis = aiSohbet.slice(-8, -1);
+      mesajlar.splice(0, 0, ...gecmis);
+    }
+
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: sistem }] }, ...aiSohbet],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        })
+      }
+    );
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || 'API hatası: ' + resp.status);
+    }
+
+    const data = await resp.json();
+    const cevap = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı.';
+
+    aiTypingKaldir();
+    aiMesajEkle('bot', cevap);
+    aiSohbet.push({ role: 'model', parts: [{ text: cevap }] });
+
+    // Sohbet çok uzarsa kırp
+    if (aiSohbet.length > 20) aiSohbet = aiSohbet.slice(-16);
+
+  } catch(e) {
+    aiTypingKaldir();
+    let hataMsg = '❌ Hata: ' + e.message;
+    if (e.message.includes('API_KEY_INVALID') || e.message.includes('400')) {
+      hataMsg = '❌ API Key geçersiz! Lütfen ⚙️ butonundan doğru key\'i girin.';
+    } else if (e.message.includes('429')) {
+      hataMsg = '⚠️ Kota aşıldı. Biraz bekleyip tekrar deneyin.';
+    }
+    aiMesajEkle('bot', hataMsg);
+  } finally {
+    document.getElementById('aiGonderBtn').disabled = false;
+    document.getElementById('aiInput').focus();
+  }
+}
+
+function aiHizliSoru(btn) {
+  const soru = btn.textContent.trim();
+  document.getElementById('aiInput').value = soru;
+  aiGonder();
+}
+
+function aiSohbetiTemizle() {
+  aiSohbet = [];
+  const kont = document.getElementById('aiMesajlar');
+  kont.innerHTML = `<div id="aiHosgeldin" style="text-align:center;padding:40px 20px;color:var(--muted)">
+    <div style="font-size:48px;margin-bottom:12px">🤖</div>
+    <div style="font-size:16px;font-weight:700;color:#4c1d95;margin-bottom:8px">BURKAB AI Asistanı</div>
+    <div style="font-size:13px;line-height:1.6">Arıza kayıtlarını analiz edebilir,<br>bakım önerileri sunabilir,<br>sistem güncellemeleri için kod yazabilirim.</div>
+    <div id="aiKeyUyari" style="display:none"></div>
+  </div>`;
+  showToast('🗑️ Sohbet temizlendi.', 'ok');
+}
+
+function aiNavBtnEkle() {
+  const nav = document.getElementById('navTabs');
+  if (nav && !nav.querySelector('.ai-nav-btn')) {
+    const btn = document.createElement('button');
+    btn.className = 'nav-tab ai-nav-btn';
+    btn.setAttribute('onclick', "goTab('ai',this)");
+    btn.style.color = '#a78bfa';
+    btn.textContent = '🤖 AI ASİSTAN';
+    nav.appendChild(btn);
+  }
+}
+
 function showToast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
