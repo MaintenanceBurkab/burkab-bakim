@@ -5100,14 +5100,14 @@ const YM_VARSAYILAN = {
               kalibrasyon:true,  rca_doldur:true,  risk_aksiyon:true,  bildirim_yonet:true },
   bakim:    { kayit_olustur:true,  kayit_sil:false, kayit_goruntule:true,  kayit_export:false,
               plan_olustur:false,  plan_tamamla:true,  ariza_kapat:true,  bakimci_ata:false,
-              dashboard_goruntule:false, uretim_durumu:false, kpi_goruntule:false, raporla:false,
+              dashboard_goruntule:true, uretim_durumu:true, kpi_goruntule:true, raporla:false,
               admin_panel:false, kullanici_yonet:false, ayar_degistir:false, yetki_duzenle:false, log_goruntule:false,
               kalibrasyon:true,  rca_doldur:true,  risk_aksiyon:true,  bildirim_yonet:true },
   yonetici: { kayit_olustur:false, kayit_sil:false, kayit_goruntule:true,  kayit_export:true,
               plan_olustur:false,  plan_tamamla:false, ariza_kapat:false, bakimci_ata:false,
               dashboard_goruntule:true, uretim_durumu:true, kpi_goruntule:true, raporla:true,
               admin_panel:false, kullanici_yonet:false, ayar_degistir:false, yetki_duzenle:false, log_goruntule:false,
-              kalibrasyon:false, rca_doldur:false, risk_aksiyon:false, bildirim_yonet:false },
+              kalibrasyon:false, rca_doldur:false, risk_aksiyon:true, bildirim_yonet:false },
 };
 
 let yetkiMatrisi = ymYukle() || JSON.parse(JSON.stringify(YM_VARSAYILAN));
