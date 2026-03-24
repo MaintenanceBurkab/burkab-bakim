@@ -1899,7 +1899,7 @@ const USERS = [
   { username:'YUNUS',    password:'7777', name:'YUNUS DİKGÖZ',        role:'yonetici'  },
   { username:'URETIM',   password:'8888', name:'ÜRETİM',              role:'uretim'    },
   { username:'PLANLAMA', password:'9999', name:'PLANLAMA',            role:'uretim'    },
-  { username:'kalite', password:'1616', name:'KALİTE',                role:'uretim'    },
+  { username:'kalite', password:'1616', name:'KALİTE',                role:'kalite'    },
 ];
 
 let currentUser = null;
@@ -2014,31 +2014,40 @@ function doLogin() {
 }
 
 // ══════════════════════════════════════════════
-// ROL BAZLI GÖRÜNÜM — DÜZELTİLMİŞ VERSİYON
+// ROL BAZLI GÖRÜNÜM — KALİTE ROLÜ EKLENDİ
 // Yönetici/üretim: SADECE dashboard + üretim durumu
 // Bakım/admin: Tüm sekmeler
+// Kalite: SADECE kalibrasyon sekmesi
 // ══════════════════════════════════════════════
 function applyRoleUI(role) {
   const navTabs = document.getElementById('navTabs');
 
-  if (role === 'yonetici' || role === 'uretim') {
-    // Nav tabları güncelle — sadece 2 sekme
+  if (role === 'kalite') {
+    // Nav tabları güncelle — sadece kalibrasyon
+    navTabs.innerHTML = `
+      <button class="nav-tab active" onclick="goTab('kalibrasyon',this)">⚖️ KALİBRASYON</button>
+    `;
+    // Diğer sekmeleri gizle
+    document.getElementById('tab-form').style.display = 'none';
+    document.getElementById('tab-list').style.display = 'none';
+    // Kalibrasyon tabını aktif yap
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-kalibrasyon').classList.add('active');
+
+  } else if (role === 'yonetici' || role === 'uretim') {
     navTabs.innerHTML = `
       <button class="nav-tab active" onclick="goTab('dash',this)">📊 DASHBOARD</button>
       <button class="nav-tab" onclick="goTab('planlar',this)">📅 PLANLI BAKIM<span class="bildirim-badge" id="planBadge" style="display:none;background:#e65100">0</span></button>
       <button class="nav-tab" onclick="goTab('uretim',this)">🏭 ÜRETİM DURUMU</button>
       <button class="nav-tab" id="bildirimTab" onclick="goTab('bildirimler',this)">🔔 BİLDİRİMLER<span class="bildirim-badge" id="bildirimBadge" style="display:none">0</span></button>
     `;
-    // Form ve liste sekmelerini TAMAMEN gizle
     document.getElementById('tab-form').style.display = 'none';
     document.getElementById('tab-list').style.display = 'none';
-    // Dashboard'u aktif yap
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-dash').classList.add('active');
-    // Canlı veri çekmeyi başlat
     startLiveDashboard();
-    // Eğer veri zaten hazırsa dashboard'u render et
     if (_appReady) setTimeout(renderDash, 100);
+
   } else {
     // Bakım/admin — tüm sekmeler açık
     navTabs.innerHTML = `
@@ -2050,10 +2059,8 @@ function applyRoleUI(role) {
       <button class="nav-tab" id="bildirimTab" onclick="goTab('bildirimler',this)">🔔 BİLDİRİMLER<span class="bildirim-badge" id="bildirimBadge" style="display:none">0</span></button>
       ${role === 'admin' ? '<button class="nav-tab" onclick="goTab(\'ai\',this)">🤖 AI ASİSTAN</button><button class="nav-tab" onclick="goTab(\'kalibrasyon\',this)">⚖️ KALİBRASYON</button><button class="nav-tab" onclick="goTab(\'ekipman\',this)">🏭 EKİPMAN KARTLARI</button><button class="nav-tab" onclick="goTab(\'admin\',this)">🔐 ADMİN</button>' : ''}
     `;
-    // Form ve liste sekmelerini göster
     document.getElementById('tab-form').style.display = '';
     document.getElementById('tab-list').style.display = '';
-    // Form tabını aktif yap
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-form').classList.add('active');
   }
@@ -2063,7 +2070,6 @@ function cikisYap() {
   if (!confirm('Çıkış yapmak istiyor musunuz?')) return;
   currentUser = null;
   sessionStorage.removeItem('burkab_user');
-  // Nav tabları sıfırla
   document.getElementById('navTabs').innerHTML = `
     <button class="nav-tab active" onclick="goTab('form',this)">📝 YENİ KAYIT</button>
     <button class="nav-tab" onclick="goTab('list',this)">📋 KAYITLAR</button>
@@ -2083,8 +2089,6 @@ function cikisYap() {
   document.getElementById('loginErr').style.display = 'none';
 }
 
-// ── TEK DOMContentLoaded — Session restore ────
-// (Eski çift listener kaldırıldı, bu tek versiyon applyRoleUI çağırıyor)
 window.addEventListener('DOMContentLoaded', () => {
   const saved = sessionStorage.getItem('burkab_user');
   if (saved) {
@@ -2093,7 +2097,6 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('userAv').textContent = currentUser.name[0];
       document.getElementById('userNm').textContent = currentUser.name;
-      // ROL BAZLI GÖRÜNÜMÜ UYGULA
       applyRoleUI(currentUser.role);
       idbOpen().then(() => {
         syncPending();
@@ -2112,7 +2115,7 @@ window.addEventListener('beforeunload', e => {
     e.preventDefault(); e.returnValue = '';
   }
 });
-
+  
 // ══════════════════════════════════════════════
 // VERİ KATMANI — Google Sheets
 // ══════════════════════════════════════════════
