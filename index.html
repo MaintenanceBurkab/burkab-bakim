@@ -3865,13 +3865,14 @@ function planModalAc() {
   document.getElementById('planSure').value = '';
   document.getElementById('planNotlar').value = '';
   document.getElementById('planModal').classList.add('open');
+  document.getElementById('planModal').addEventListener('click', function(e) {
+  if (e.target === this) planModalKapat();
+});
+
 }
 function planModalKapat() {
   document.getElementById('planModal').classList.remove('open');
 }
-document.getElementById('planModal').addEventListener('click', function(e) {
-  if (e.target === this) planModalKapat();
-});
 
 function planBolumDegis() {
   const v = document.getElementById('planBolum').value;
