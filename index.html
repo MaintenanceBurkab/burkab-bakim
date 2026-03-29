@@ -827,7 +827,6 @@ tr:last-child td { border-bottom: none; }
             </div>
             <div class="bakimci-dropdown" id="bakimciDropdown">
               <label class="bakimci-item"><input type="checkbox" value="MEHMET ERTÜRK" onchange="updateBakimci()"><span>MEHMET ERTÜRK</span></label>
-              <label class="bakimci-item"><input type="checkbox" value="ABDURRAHİM YILMAZ" onchange="updateBakimci()"><span>ABDURRAHİM YILMAZ</span></label>
               <label class="bakimci-item"><input type="checkbox" value="FERHAT OKTAY" onchange="updateBakimci()"><span>FERHAT OKTAY</span></label>
               <label class="bakimci-item"><input type="checkbox" value="SUNAY AVCI" onchange="updateBakimci()"><span>SUNAY AVCI</span></label>
               <label class="bakimci-item"><input type="checkbox" value="ENES BALKAN" onchange="updateBakimci()"><span>ENES BALKAN</span></label>
@@ -1482,7 +1481,6 @@ tr:last-child td { border-bottom: none; }
           <select id="planBakimci">
             <option value="">— Seçiniz —</option>
             <option>MEHMET ERTÜRK</option>
-            <option>ABDURRAHİM YILMAZ</option>
             <option>FERHAT OKTAY</option>
             <option>SUNAY AVCI</option>
             <option>ENES BALKAN</option>
@@ -1740,8 +1738,7 @@ tr:last-child td { border-bottom: none; }
         <div class="field"><label>Sorumlu Bakımcı</label>
           <select id="em-sorumlubakimci">
             <option value="">— Seçiniz —</option>
-            <option>MEHMET ERTÜRK</option><option>ABDURRAHİM YILMAZ</option>
-            <option>FERHAT OKTAY</option><option>SUNAY AVCI</option><option>ENES BALKAN</option>
+            <option>MEHMET ERTÜRK</option><option>FERHAT OKTAY</option><option>SUNAY AVCI</option><option>ENES BALKAN</option>
           </select></div>
         <div class="field"><label>Hurdaya Ayırma Tarihi</label>
           <input type="date" id="em-hurda" style="background:#fff3f3"></div>
@@ -3544,7 +3541,7 @@ function _renderUretim() {
   // ── ⑨ BAKIMCI PERFORMANS ──
   const bakimciEl = document.getElementById('bakimciPerformansGrid');
   if (bakimciEl) {
-    const bakimciList = ['MEHMET ERTÜRK','ABDURRAHİM YILMAZ','FERHAT OKTAY','SUNAY AVCI','ENES BALKAN'];
+    const bakimciList = ['MEHMET ERTÜRK','FERHAT OKTAY','SUNAY AVCI','ENES BALKAN'];
     const son30 = kayitlar.filter(k=>(new Date()-new Date(k.tarihBas))<=30*86400000);
     bakimciEl.innerHTML = bakimciList.map(b => {
       const bKayit   = son30.filter(k=>k.bakimci&&k.bakimci.includes(b));
@@ -4286,7 +4283,7 @@ function aiRenderMd(text) {
 const AI_SYS = `Sen BURKAB A.Ş. fabrikasının bakım yönetim sisteminin AI analistisin.
 Türkçe, teknik ve özlü yanıt ver. Markdown kullan (##, ###, -, **kalın**).
 Fabrika bölümleri: TEST, KESİM, ÜRETİM HATLARI, TESİS, HAZIRLIK, KALIPLAR, ALT MONTAJ, DEPO & SEVKİYAT, ÜRETİM BORDLARI.
-Bakım ekibi: MEHMET ERTÜRK, ABDURRAHİM YILMAZ, FERHAT OKTAY, SUNAY AVCI, ENES BALKAN.
+Bakım ekibi: MEHMET ERTÜRK, FERHAT OKTAY, SUNAY AVCI, ENES BALKAN.
 Tek vardiya: 07:00–17:00, Pazartesi–Cuma.`;
 
 async function aiRunAnalysis(tip) {
