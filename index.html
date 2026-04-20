@@ -1145,7 +1145,7 @@ tr:last-child td { border-bottom: none; }
       <div class="df-group-label">🕐 ZAMAN</div>
       <div class="df-select-wrap">
         <select id="dashZamanSelect" class="df-select" onchange="dashZamanDegis(this)">
-          <option value="bugun">Bugün</option>
+          <option value="hepsi" selected>Hepsi</option>
           <option value="bu_hafta">Bu Hafta</option>
           <option value="bu_ay">Bu Ay</option>
           <option value="gecen_ay">Geçen Ay</option>
@@ -2373,7 +2373,9 @@ function applyRoleUI(role) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-dash').classList.add('active');
     startLiveDashboard();
-    if (_appReady) setTimeout(renderDash, 100);
+    if (_appdashZamanFiltre = 'hepsi';
+document.getElementById('dashZamanSelect')?.value && (document.getElementById('dashZamanSelect').value = 'hepsi');
+if (_appReady) setTimeout(renderDash, 100);Ready) setTimeout(renderDash, 100);
 
   } else {
     // Bakım/admin — tüm sekmeler açık
@@ -3132,7 +3134,7 @@ function ensureChartJs(cb) {
 }
 
 // ── DASHBOARD ZAMAN FİLTRESİ ──────────────────────
-let dashZamanFiltre = 'bugun';
+let dashZamanFiltre = 'hepsi';
 
 function dashZamanDegis(sel) {
   dashZamanFiltre = sel.value;
@@ -3141,7 +3143,7 @@ function dashZamanDegis(sel) {
 
 function dashFiltreTemizle() {
   dashZamanFiltre = 'bugun';
-  document.getElementById('dashZamanSelect').value = 'bugun';
+  document.getElementById('dashZamanSelect').value = 'hepsi';
   document.getElementById('dashBolumSelect').value = '';
   document.getElementById('dashIslemSelect').value = '';
   document.getElementById('dashRiskSelect').value = '';
