@@ -2373,10 +2373,9 @@ function applyRoleUI(role) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-dash').classList.add('active');
     startLiveDashboard();
-    if (_appdashZamanFiltre = 'hepsi';
-document.getElementById('dashZamanSelect')?.value && (document.getElementById('dashZamanSelect').value = 'hepsi');
-if (_appReady) setTimeout(renderDash, 100);Ready) setTimeout(renderDash, 100);
-
+    dashZamanFiltre = 'hepsi';
+    if (document.getElementById('dashZamanSelect')) document.getElementById('dashZamanSelect').value = 'hepsi';
+    if (_appReady) setTimeout(renderDash, 100);
   } else {
     // Bakım/admin — tüm sekmeler açık
     navTabs.innerHTML = `
