@@ -5273,75 +5273,122 @@ Türkçe, teknik, kısa ve net yanıt ver. Markdown kullan.`;
 }
 
 // ══════════════════════════════════════════════
-// BİLDİRİM → YENİ KAYIT OTOMATİK DOLDURMA
+// BİLDİRİM → İŞLEME AL (Checkbox'lı Modal ile)
 // ══════════════════════════════════════════════
 function islemAl(id) {
   const k = kayitlar.find(x => String(x.id) === String(id));
   if (!k) return;
 
-  // Bildirimi "görüldü" say
-  const g = goruldulerYukle(); g.add(String(id)); goruldulerKaydet(g);
+  // Eski modal varsa temizle
+  const eskiModal = document.getElementById('islemAlModal');
+  if (eskiModal) eskiModal.remove();
 
-  // Kaydet() sonrası bu bildirimden üretilen yeni kaydı tekrar bildirimi düşürmesin diye işaretle
+  const modal = document.createElement('div');
+  modal.id = 'islemAlModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px 22px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+      
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:17px;font-weight:800">▶ Bildirimi İşleme Al</div>
+        <button onclick="document.getElementById('islemAlModal').remove()" 
+                style="font-size:24px;background:none;border:none;color:#888;cursor:pointer">×</button>
+      </div>
+
+      <div style="background:#f8f6f0;border:1px solid #e6e2d8;border-radius:8px;padding:12px 14px;margin-bottom:16px">
+        <div style="font-weight:700">${k.arizaTuru || 'ARIZA'} — ${k.makine || ''}</div>
+        <div style="font-size:13px;color:#555;margin-top:3px">${k.bolum || ''} / ${k.bildiren || ''}</div>
+      </div>
+
+      <!-- CHECKBOX -->
+      <div style="margin:14px 0 18px 0">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="durusOlusturCheckbox" checked 
+                 style="width:19px;height:19px;accent-color:#f5c400">
+          <span style="font-size:14.5px;font-weight:600">
+            Bu bildirimi kapatırken <strong style="color:#d97706">Duruş kaydı</strong> da oluşturulsun
+          </span>
+        </label>
+        <div style="font-size:12px;color:#777;margin-left:28px;margin-top:3px">Opsiyonel — İstersen kaldırabilirsin</div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="islemAlOnayla('${id}')" 
+                style="flex:1;background:#0a7d4f;color:#fff;border:none;border-radius:8px;padding:13px;font-size:15px;font-weight:700;cursor:pointer">
+          ✅ İşleme Al
+        </button>
+        <button onclick="document.getElementById('islemAlModal').remove()" 
+                style="background:#f0efea;color:#444;border:none;border-radius:8px;padding:13px 18px;font-size:14px;font-weight:600;cursor:pointer">
+          İptal
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+  function islemAlOnayla(id) {
+  const modal = document.getElementById('islemAlModal');
+  if (modal) modal.remove();
+
+  const k = kayitlar.find(x => String(x.id) === String(id));
+  if (!k) return;
+
+  const durusOlustur = document.getElementById('durusOlusturCheckbox')?.checked ?? false;
+
+  // Bildirimi "görüldü" say
+  const g = goruldulerYukle();
+  g.add(String(id));
+  goruldulerKaydet(g);
+
   _aktifBildirimKaynakId = String(id);
 
-  // Formu doldur
-  // İşlem türü
+  // Formu doldur (mevcut mantık)
   const islemBtns = document.querySelectorAll('.islem-btn');
   islemBtns.forEach(btn => {
-    if (btn.dataset.v === 'ARIZA KAYDI') {
-      btn.click(); // pickIslem tetikle
-    }
+    if (btn.dataset.v === 'ARIZA KAYDI') btn.click();
   });
 
-  // Bölüm
   const bolumSel = document.getElementById('bolum');
   if (bolumSel && k.bolum) {
     bolumSel.value = k.bolum;
     onBolum();
   }
 
-  // Makine
   setTimeout(() => {
     const makineInp = document.getElementById('makine');
     if (makineInp && k.makine) makineInp.value = k.makine;
 
-    // Bildiren
     const bildirenInp = document.getElementById('bildiren');
     if (bildirenInp && k.bildiren) bildirenInp.value = k.bildiren;
 
-    // Arıza açıklaması
     const konuInp = document.getElementById('konu');
     if (konuInp && k.konu) {
       konuInp.value = k.konu;
       aiCheckArizaBtn();
     }
 
-    // Tarih
     const tarihBasInp = document.getElementById('tarihBas');
     if (tarihBasInp && k.tarihBas) tarihBasInp.value = k.tarihBas;
 
-    // Arıza başlama saati
     const arizaBasInp = document.getElementById('arizaBas');
     if (arizaBasInp && k.arizaBas) arizaBasInp.value = k.arizaBas;
 
-    // Arıza türü
     if (k.arizaTuru) {
       const aturBtn = [...document.querySelectorAll('.atur-btn')].find(b => b.dataset.v === k.arizaTuru);
       if (aturBtn) aturBtn.click();
     }
 
-    // Duruş etkisi
     const durusInp = document.getElementById('durusEtkisi');
     if (durusInp && k.durusEtkisi) durusInp.value = k.durusEtkisi;
 
-    // Risk seviyesi
     if (k.riskSeviye) {
       const riskBtn = [...document.querySelectorAll('.risk-btn')].find(b => b.dataset.v === k.riskSeviye);
       if (riskBtn) riskBtn.click();
     }
 
-    // Prefill banner göster
+    // Prefill banner
     let banner = document.getElementById('prefill-banner');
     if (!banner) {
       banner = document.createElement('div');
@@ -5353,16 +5400,40 @@ function islemAl(id) {
     banner.innerHTML = `🔔 <strong>${k.formNo || ('#' + k.id)}</strong> numaralı bildirimden otomatik dolduruldu — Makine: <strong>${k.makine || '?'}</strong> · Bölüm: <strong>${k.bolum || '?'}</strong>
       <button onclick="this.parentNode.style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:16px;color:#7a5c00">✕</button>`;
     banner.style.display = 'flex';
+
+    // === DURUŞ OLUŞTURMA ===
+    if (durusOlustur) {
+      setTimeout(() => {
+        goTab('durus', null);
+        setTimeout(() => {
+          // Duruş formunu önceden doldur
+          const bolumEl = document.getElementById('durusBolum');
+          if (bolumEl) bolumEl.value = k.bolum || '';
+
+          setTimeout(() => {
+            const makineEl = document.getElementById('durusMakine');
+            if (makineEl) makineEl.value = k.makine || '';
+          }, 80);
+
+          const bildirenEl = document.getElementById('durusBildiren');
+          if (bildirenEl) bildirenEl.value = (k.bildiren || '').replace(' (FR-40)', '');
+
+          const aciklamaEl = document.getElementById('durusAciklama');
+          if (aciklamaEl) aciklamaEl.value = k.konu || '';
+
+          showToast('✅ Bildirim işleme alındı. Duruş formu hazır.', 'ok');
+        }, 300);
+      }, 600);
+    } else {
+      // Sadece YENİ KAYIT sekmesine geç
+      const formBtn = [...document.querySelectorAll('.nav-tab')].find(b => b.textContent.includes('YENİ KAYIT'));
+      goTab('form', formBtn || null);
+      showToast('▶ İşleme alındı — Form dolduruldu!', 'ok');
+    }
+
+    renderBildirimler();
   }, 120);
-
-  // YENİ KAYIT sekmesine geç
-  const formBtn = [...document.querySelectorAll('.nav-tab')].find(b => b.textContent.includes('YENİ KAYIT'));
-  goTab('form', formBtn || null);
-
-  renderBildirimler();
-  showToast('▶ İşleme alındı — Form dolduruldu!', 'ok');
 }
-
 // ══════════════════════════════════════════════
 // KALİBRASYON SİSTEMİ
 // ══════════════════════════════════════════════
