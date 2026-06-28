@@ -4881,8 +4881,6 @@ function renderPlanlar() {
   // Sadece aktif planları göster (tamamlananları gizle)
   const aktifler = planlar.filter(p => p.durum !== 'tamamlandi')
     .sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
-  const planlar = planlarYukle();
-  const aktifler = planlar.filter(p => p.durum !== 'tamamlandi').sort((a,b) => new Date(a.tarih) - new Date(b.tarih));
   const tamamlananlar = planlar.filter(p => p.durum === 'tamamlandi').sort((a,b) => new Date(b.tamamlamaTarih||b.tarih) - new Date(a.tamamlamaTarih||a.tarih));
 
   // Özet bar
