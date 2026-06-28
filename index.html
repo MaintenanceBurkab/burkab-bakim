@@ -4783,7 +4783,8 @@ function planKaydet() {
   renderPlanlar();
   planUyariKontrol();
   showToast('✅ Plan kaydedildi! Makine: ' + makine + ' · Tarih: ' + tarih, 'ok');
-}function planTamamla(id) {
+}
+  function planTamamla(id) {
   const planlar = planlarYukle();
   const planIndex = planlar.findIndex(p => p.id === id);
   if (planIndex === -1) return;
