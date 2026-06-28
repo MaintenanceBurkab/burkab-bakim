@@ -4882,10 +4882,9 @@ function planSil(id) {
 
 // ─────────────────────────────────────────────
 function renderPlanlar() {
-  // Sadece localStorage'dan veri çek (Sheets'e güvenme)
+  // Sadece localStorage'dan veri çekiyoruz (Sheets'e güvenmiyoruz)
   const planlar = planlarYukle();
 
-  // Sadece aktif planları al
   const aktifler = planlar
     .filter(p => p.durum !== 'tamamlandi')
     .sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
