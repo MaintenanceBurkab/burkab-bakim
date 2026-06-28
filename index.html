@@ -4785,7 +4785,7 @@ function planKaydet() {
   showToast('✅ Plan kaydedildi! Makine: ' + makine + ' · Tarih: ' + tarih, 'ok');
 }
 
-asyncfunction planTamamla(id) {
+async function planTamamla(id) {
   const planlar = planlarYukle();
   const planIndex = planlar.findIndex(p => p.id === id);
   if (planIndex === -1) return;
