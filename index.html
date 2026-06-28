@@ -4785,7 +4785,7 @@ function planKaydet() {
   showToast('✅ Plan kaydedildi! Makine: ' + makine + ' · Tarih: ' + tarih, 'ok');
 }
 
- async function planTamamla(id) {
+ function planTamamla(id) {
   const planlar = planlarYukle();
   const planIndex = planlar.findIndex(p => p.id === id);
   if (planIndex === -1) return;
@@ -4797,7 +4797,7 @@ function planKaydet() {
   plan.tamamlayanKisi = currentUser ? currentUser.name : '—';
   plan.tamamlamaTarih = new Date().toISOString().split('T')[0];
 
-  // 2. Periyodik plan oluştur
+  // 2. Periyodik yeni plan oluştur
   const periyotGun = {
     'gunluk': 1,
     'haftalik': 7,
@@ -4823,10 +4823,63 @@ function planKaydet() {
     };
 
     planlar.push(yeniPlan);
-    showToast('Plan tamamlandı. Yeni plan: ' + yeniPlan.tarih, 'ok');
+  }
+
+  // 3. Kaydet
+  planlarKaydet(planlar);
+
+  // 4. Listeyi yenile
+  renderPlanlar();
+  planUyariKontrol();
+
+  // 5. Form açma sorusu
+  if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
+    setTimeout(() => {
+      if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
+        goTab('form', document.querySelector('.nav-tab[onclick*="form"]'));
+
+        setTimeout(() => {
+          const planliBtn = document.querySelector('.islem-btn[data-v="PLANLI BAKIM"]');
+          if (planliBtn) pickIslem(planliBtn);
+
+          const bolumEl = document.getElementById('bolum');
+          if (bolumEl) {
+            bolumEl.value = plan.bolum;
+            if (typeof onBolum === 'function') onBolum();
+          }
+
+          const makineEl = document.getElementById('makine');
+          if (makineEl) makineEl.value = plan.makine;
+
+          const konuEl = document.getElementById('konu');
+          if (konuEl) konuEl.value = plan.gorev;
+
+          const yapilanEl = document.getElementById('yapilan');
+          if (yapilanEl && plan.notlar) yapilanEl.value = plan.notlar;
+
+          setTimeout(() => {
+            const bakimciCb = document.querySelectorAll('#bakimciDropdown input[type="checkbox"]');
+            bakimciCb.forEach(cb => {
+              if (cb.value === currentUser.name) cb.checked = true;
+            });
+            if (typeof updateBakimci === 'function') updateBakimci();
+          }, 100);
+
+          const tarihEl = document.getElementById('tarihBas');
+          if (tarihEl) tarihEl.value = new Date().toISOString().split('T')[0];
+
+          if (typeof genFormNo === 'function') genFormNo();
+
+          showToast('Plan bilgileri forma aktarıldı.', 'ok');
+        }, 300);
+      } else {
+        showToast('Plan tamamlandı ve yeni periyodik plan oluşturuldu.', 'ok');
+      }
+    }, 100);
   } else {
     showToast('Plan tamamlandı.', 'ok');
   }
+}
 
   planlarKaydet(planlar);
   renderPlanlar();
