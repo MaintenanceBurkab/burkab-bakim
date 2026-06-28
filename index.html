@@ -7930,62 +7930,7 @@ function aiRaporKopyala() {
 var _origApplyRoleUI = typeof applyRoleUI === 'function' ? applyRoleUI : null;
 // liveVeriCek override: üretim tab aktif değilse renderUretimDurumu çağrılmasın
 var _origLiveVeriCek = typeof liveVeriCek === 'function' ? liveVeriCek : null;
-// ══════════════════════════════════════════════
-// LOGIN FONKSİYONU
-// ══════════════════════════════════════════════
 
-function doLogin() {
-  try {
-    const u = document.getElementById('loginUser').value.trim().toLowerCase();
-    const p = document.getElementById('loginPass').value.trim();
-
-    const found = USERS.find(x => 
-      x.username.toLowerCase() === u && x.password === p
-    );
-
-    if (!found) {
-      document.getElementById('loginErr').style.display = 'block';
-      return;
-    }
-
-    document.getElementById('loginErr').style.display = 'none';
-    currentUser = found;
-    sessionStorage.setItem('burkab_user', JSON.stringify(found));
-
-    // Login ekranını kapat
-    document.getElementById('loginScreen').style.display = 'none';
-
-    // Kullanıcı bilgilerini göster
-    const av = document.getElementById('userAv');
-    const nm = document.getElementById('userNm');
-    if (av) av.textContent = found.name[0];
-    if (nm) nm.textContent = found.name;
-
-    // Rol bazlı arayüzü uygula
-    try {
-      applyRoleUI(found.role);
-    } catch (roleErr) {
-      console.error('applyRoleUI hatası:', roleErr);
-      // En azından form sekmesini aç
-      const tf = document.getElementById('tab-form');
-      if (tf) {
-        tf.style.display = '';
-        tf.classList.add('active');
-      }
-    }
-
-    // IndexedDB ve sync başlat
-    idbOpen().then(() => {
-      syncPending();
-    }).catch(e => console.warn('idbOpen hatası:', e));
-
-  } catch (err) {
-    console.error('doLogin hatası:', err);
-    // En kötü durumda login ekranını kapat
-    const ls = document.getElementById('loginScreen');
-    if (ls) ls.style.display = 'none';
-  }
-}
 </script>
 </body>
 </html>
