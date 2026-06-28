@@ -4895,9 +4895,10 @@ function planSil(id) {
 
 // ─────────────────────────────────────────────
 function renderPlanlar() {
+  // Sadece localStorage'dan veri çek (Sheets'e güvenme)
   const planlar = planlarYukle();
 
-  // Sadece aktif planları al (tamamlananları gizle)
+  // Sadece aktif planları al
   const aktifler = planlar
     .filter(p => p.durum !== 'tamamlandi')
     .sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
@@ -4936,7 +4937,7 @@ function renderPlanlar() {
   // Plan kartları
   const liste = document.getElementById('planListe');
   if (!aktifler.length) {
-    liste.innerHTML = '<div class="empty" style="padding:30px">📅 Aktif plan bulunmuyor. "Yeni Plan Ekle" butonuna tıklayın.</div>';
+    liste.innerHTML = '<div class="empty" style="padding:30px">📅 Aktif plan bulunmuyor.</div>';
   } else {
     liste.innerHTML = aktifler.map(p => {
       const fark = gunFarki(p.tarih);
@@ -5006,26 +5007,6 @@ function renderPlanlar() {
 
   renderTakvim();
 }
-  // Tamamlananlar tablosu
-  const tb = document.getElementById('planTamamlananBody');
-  if (!tamamlananlar.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="empty">Henüz tamamlanan plan yok</td></tr>';
-  } else {
-    tb.innerHTML = tamamlananlar.slice(0, 20).map(p =>
-      `<tr>
-        <td><strong>${p.makine}</strong></td>
-        <td>${p.bolum}</td>
-        <td style="font-size:12px">${p.gorev}</td>
-        <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${p.tarih}</td>
-        <td style="font-size:12px">${p.tamamlayanKisi || '—'}</td>
-        <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b8900a">${p.tamamlamaTarih || '—'}</td>
-      </tr>`
-    ).join('');
-  }
-
-  renderTakvim();
-
-
 function renderTakvim() {
   const planlar = planlarYukle();
   const ilkGun = new Date(takvimYil, takvimAy, 1);
