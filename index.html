@@ -4783,9 +4783,7 @@ function planKaydet() {
   renderPlanlar();
   planUyariKontrol();
   showToast('✅ Plan kaydedildi! Makine: ' + makine + ' · Tarih: ' + tarih, 'ok');
-}
-
- function planTamamla(id) {
+}function planTamamla(id) {
   const planlar = planlarYukle();
   const planIndex = planlar.findIndex(p => p.id === id);
   if (planIndex === -1) return;
@@ -4823,16 +4821,19 @@ function planKaydet() {
     };
 
     planlar.push(yeniPlan);
+    showToast('Plan tamamlandı. Yeni plan: ' + yeniPlan.tarih, 'ok');
+  } else {
+    showToast('Plan tamamlandı.', 'ok');
   }
 
-  // 3. Kaydet
+  // 3. Kaydet (Local + Sheets)
   planlarKaydet(planlar);
 
   // 4. Listeyi yenile
   renderPlanlar();
   planUyariKontrol();
 
-  // 5. Form açma sorusu
+  // 5. Kullanıcıya soru sor (form açma)
   if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
     setTimeout(() => {
       if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
@@ -4872,15 +4873,10 @@ function planKaydet() {
 
           showToast('Plan bilgileri forma aktarıldı.', 'ok');
         }, 300);
-      } else {
-        showToast('Plan tamamlandı ve yeni periyodik plan oluşturuldu.', 'ok');
       }
     }, 100);
-  } else {
-    showToast('Plan tamamlandı.', 'ok');
   }
 }
-
   planlarKaydet(planlar);
   renderPlanlar();
   planUyariKontrol();
