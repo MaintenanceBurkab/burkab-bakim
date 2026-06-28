@@ -4785,20 +4785,20 @@ function planKaydet() {
   showToast('✅ Plan kaydedildi! Makine: ' + makine + ' · Tarih: ' + tarih, 'ok');
 }
 
-async function planTamamla(id) {
+asyncfunction planTamamla(id) {
   const planlar = planlarYukle();
   const planIndex = planlar.findIndex(p => p.id === id);
   if (planIndex === -1) return;
 
   const plan = planlar[planIndex];
 
-  // 1. Mevcut planı tamamla
+  // 1. Planı tamamla
   plan.durum = 'tamamlandi';
   plan.tamamlayanKisi = currentUser ? currentUser.name : '—';
   plan.tamamlamaTarih = new Date().toISOString().split('T')[0];
 
-  // 2. Periyodik plan oluştur (eğer periyot tanımlıysa)
-  const periyotMap = {
+  // 2. Periyodik plan oluştur (yeni tarihli)
+  const periyotGun = {
     'gunluk': 1,
     'haftalik': 7,
     '2haftalik': 14,
@@ -4806,15 +4806,15 @@ async function planTamamla(id) {
     '3ay': 90
   };
 
-  const gun = periyotMap[plan.periyot];
+  const gun = periyotGun[plan.periyot];
   if (gun) {
-    const sonrakiTarih = new Date(plan.tarih);
-    sonrakiTarih.setDate(sonrakiTarih.getDate() + gun);
+    const sonraki = new Date(plan.tarih);
+    sonraki.setDate(sonraki.getDate() + gun);
 
     const yeniPlan = {
       ...plan,
       id: Date.now(),
-      tarih: sonrakiTarih.toISOString().split('T')[0],
+      tarih: sonraki.toISOString().split('T')[0],
       durum: 'aktif',
       tamamlayanKisi: '',
       tamamlamaTarih: '',
@@ -4823,18 +4823,62 @@ async function planTamamla(id) {
     };
 
     planlar.push(yeniPlan);
-    showToast(`✅ Plan tamamlandı. Yeni plan: ${yeniPlan.tarih}`, 'ok');
-  } else {
-    showToast('✅ Plan tamamlandı olarak işaretlendi.', 'ok');
   }
 
-  // 3. Kaydet (Local + Sheets)
   planlarKaydet(planlar);
-
-  // 4. Listeyi yenile
   renderPlanlar();
   planUyariKontrol();
-}
+
+  // 3. Kullanıcıya form açma sorusu sor (eski davranış)
+  if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
+    if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
+      // Form sekmesine geç
+      goTab('form', document.querySelector('.nav-tab[onclick*="form"]'));
+
+      setTimeout(() => {
+        // İşlem türü = PLANLI BAKIM
+        const planliBtn = document.querySelector('.islem-btn[data-v="PLANLI BAKIM"]');
+        if (planliBtn) pickIslem(planliBtn);
+
+        // Formu doldur
+        const bolumEl = document.getElementById('bolum');
+        if (bolumEl) {
+          bolumEl.value = plan.bolum;
+          if (typeof onBolum === 'function') onBolum();
+        }
+
+        const makineEl = document.getElementById('makine');
+        if (makineEl) makineEl.value = plan.makine;
+
+        const konuEl = document.getElementById('konu');
+        if (konuEl) konuEl.value = plan.gorev;
+
+        const yapilanEl = document.getElementById('yapilan');
+        if (yapilanEl && plan.notlar) yapilanEl.value = plan.notlar;
+
+        // Bakımcıyı işaretle
+        setTimeout(() => {
+          const bakimciCb = document.querySelectorAll('#bakimciDropdown input[type="checkbox"]');
+          bakimciCb.forEach(cb => {
+            if (cb.value === currentUser.name) cb.checked = true;
+          });
+          if (typeof updateBakimci === 'function') updateBakimci();
+        }, 100);
+
+        const tarihEl = document.getElementById('tarihBas');
+        if (tarihEl) tarihEl.value = new Date().toISOString().split('T')[0];
+
+        if (typeof genFormNo === 'function') genFormNo();
+
+        showToast('Plan bilgileri forma aktarıldı.', 'ok');
+      }, 250);
+    } else {
+      showToast('Plan tamamlandı ve yeni periyodik plan oluşturuldu.', 'ok');
+    }
+  } else {
+    showToast('Plan tamamlandı.', 'ok');
+  }
+
   // YENİ KAYIT formuna aktar
   if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
     if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
