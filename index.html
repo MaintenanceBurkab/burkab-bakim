@@ -4797,7 +4797,7 @@ function planKaydet() {
   plan.tamamlayanKisi = currentUser ? currentUser.name : '—';
   plan.tamamlamaTarih = new Date().toISOString().split('T')[0];
 
-  // 2. Periyodik plan oluştur (yeni tarihli)
+  // 2. Periyodik plan oluştur
   const periyotGun = {
     'gunluk': 1,
     'haftalik': 7,
@@ -4823,93 +4823,17 @@ function planKaydet() {
     };
 
     planlar.push(yeniPlan);
+    showToast('Plan tamamlandı. Yeni plan: ' + yeniPlan.tarih, 'ok');
+  } else {
+    showToast('Plan tamamlandı.', 'ok');
   }
 
   planlarKaydet(planlar);
   renderPlanlar();
   planUyariKontrol();
-
-  // 3. Kullanıcıya form açma sorusu sor (eski davranış)
-  if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
-    if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
-      // Form sekmesine geç
-      goTab('form', document.querySelector('.nav-tab[onclick*="form"]'));
-
-      setTimeout(() => {
-        // İşlem türü = PLANLI BAKIM
-        const planliBtn = document.querySelector('.islem-btn[data-v="PLANLI BAKIM"]');
-        if (planliBtn) pickIslem(planliBtn);
-
-        // Formu doldur
-        const bolumEl = document.getElementById('bolum');
-        if (bolumEl) {
-          bolumEl.value = plan.bolum;
-          if (typeof onBolum === 'function') onBolum();
-        }
-
-        const makineEl = document.getElementById('makine');
-        if (makineEl) makineEl.value = plan.makine;
-
-        const konuEl = document.getElementById('konu');
-        if (konuEl) konuEl.value = plan.gorev;
-
-        const yapilanEl = document.getElementById('yapilan');
-        if (yapilanEl && plan.notlar) yapilanEl.value = plan.notlar;
-
-        // Bakımcıyı işaretle
-        setTimeout(() => {
-          const bakimciCb = document.querySelectorAll('#bakimciDropdown input[type="checkbox"]');
-          bakimciCb.forEach(cb => {
-            if (cb.value === currentUser.name) cb.checked = true;
-          });
-          if (typeof updateBakimci === 'function') updateBakimci();
-        }, 100);
-
-        const tarihEl = document.getElementById('tarihBas');
-        if (tarihEl) tarihEl.value = new Date().toISOString().split('T')[0];
-
-        if (typeof genFormNo === 'function') genFormNo();
-
-        showToast('Plan bilgileri forma aktarıldı.', 'ok');
-      }, 250);
-    } else {
-      showToast('Plan tamamlandı ve yeni periyodik plan oluşturuldu.', 'ok');
-    }
-  } else {
-    showToast('Plan tamamlandı.', 'ok');
-  }
-
-  // YENİ KAYIT formuna aktar
-  if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
-    if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
-      const formTabBtn = document.querySelector('.nav-tab[*="\'form\'"]');
-      goTab('form', formTabBtn);
-      setTimeout(() => {
-        // İşlem türü → PLANLI BAKIM
-        const planliBtn = document.querySelector('.islem-btn[data-v="PLANLI BAKIM"]');
-        if (planliBtn) pickIslem(planliBtn);
-        const bolumEl = document.getElementById('bolum');
-        if (bolumEl) { bolumEl.value = plan.bolum; onBolum(); }
-        const makineEl = document.getElementById('makine');
-        if (makineEl) makineEl.value = plan.makine;
-        const bakimciCb = document.querySelectorAll('#bakimciDropdown input[type=checkbox]');
-        bakimciCb.forEach(cb => { cb.checked = cb.value === (currentUser.name); });
-        updateBakimci();
-        const tarihEl = document.getElementById('tarihBas');
-        if (tarihEl) tarihEl.value = new Date().toISOString().split('T')[0];
-        const konuEl = document.getElementById('konu');
-        if (konuEl) konuEl.value = plan.gorev;
-        const yapilanEl = document.getElementById('yapilan');
-        if (yapilanEl && plan.notlar) yapilanEl.value = plan.notlar;
-        genFormNo();
-        showToast('📋 Plan bilgileri forma aktarıldı!', 'ok');
-      }, 200);
-    }
-  } else {
-    showToast('✅ Plan tamamlandı olarak işaretlendi.', 'ok');
-  }
 }
 
+// ─────────────────────────────────────────────
 function planSil(id) {
   if (!confirm('Bu planı silmek istediğinizden emin misiniz?')) return;
   const planlar = planlarYukle().filter(p => p.id !== id);
@@ -4919,31 +4843,37 @@ function planSil(id) {
   showToast('🗑️ Plan silindi.', 'ok');
 }
 
+// ─────────────────────────────────────────────
 function renderPlanlar() {
-  let planlar = planlarYukle();
+  const planlar = planlarYukle();
 
-  // Sadece aktif planları göster (tamamlananları gizle)
-  const aktifler = planlar.filter(p => p.durum !== 'tamamlandi')
+  const aktifler = planlar
+    .filter(p => p.durum !== 'tamamlandi')
     .sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
-  const tamamlananlar = planlar.filter(p => p.durum === 'tamamlandi').sort((a,b) => new Date(b.tamamlamaTarih||b.tarih) - new Date(a.tamamlamaTarih||a.tarih));
+
+  const tamamlananlar = planlar
+    .filter(p => p.durum === 'tamamlandi')
+    .sort((a, b) => new Date(b.tamamlamaTarih || b.tarih) - new Date(a.tamamlamaTarih || a.tarih));
 
   // Özet bar
-  const gecmis  = aktifler.filter(p => gunFarki(p.tarih) < 0).length;
-  const bugun1  = aktifler.filter(p => gunFarki(p.tarih) <= 1 && gunFarki(p.tarih) >= 0).length;
-  const hafta   = aktifler.filter(p => gunFarki(p.tarih) > 1 && gunFarki(p.tarih) <= 7).length;
-  const diger   = aktifler.filter(p => gunFarki(p.tarih) > 7).length;
+  const gecmis = aktifler.filter(p => gunFarki(p.tarih) < 0).length;
+  const bugun1 = aktifler.filter(p => gunFarki(p.tarih) <= 1 && gunFarki(p.tarih) >= 0).length;
+  const hafta = aktifler.filter(p => gunFarki(p.tarih) > 1 && gunFarki(p.tarih) <= 7).length;
+  const diger = aktifler.filter(p => gunFarki(p.tarih) > 7).length;
+
   document.getElementById('planOzetBar').innerHTML =
-    (gecmis  ? `<span style="background:#fde8e8;color:#d32f2f;border:1px solid #d32f2f;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">⛔ ${gecmis} Gecikmiş</span>` : '') +
-    (bugun1  ? `<span style="background:#fff3e0;color:#e65100;border:1px solid #e65100;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">🔔 ${bugun1} Bugün/Yarın</span>` : '') +
-    (hafta   ? `<span style="background:#fffbe6;color:#b8900a;border:1px solid #f5c400;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">⏳ ${hafta} Bu Hafta</span>` : '') +
-    (diger   ? `<span style="background:#e3f2fd;color:#0277bd;border:1px solid #0277bd;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">📅 ${diger} Planlanan</span>` : '') +
+    (gecmis ? `<span style="background:#fde8e8;color:#d32f2f;border:1px solid #d32f2f;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">⛔ ${gecmis} Gecikmiş</span>` : '') +
+    (bugun1 ? `<span style="background:#fff3e0;color:#e65100;border:1px solid #e65100;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">🔔 ${bugun1} Bugün/Yarın</span>` : '') +
+    (hafta ? `<span style="background:#fffbe6;color:#b8900a;border:1px solid #f5c400;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">⏳ ${hafta} Bu Hafta</span>` : '') +
+    (diger ? `<span style="background:#e3f2fd;color:#0277bd;border:1px solid #0277bd;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">📅 ${diger} Planlanan</span>` : '') +
     `<span style="background:#e3f7ee;color:#00875a;border:1px solid #00875a;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">✅ ${tamamlananlar.length} Tamamlandı</span>`;
 
   // Uyarı bandı
   const uyariBand = document.getElementById('planUyarilar');
   let uyariHtml = '';
   const acilGecmis = aktifler.filter(p => gunFarki(p.tarih) < 0);
-  const acilYakin  = aktifler.filter(p => gunFarki(p.tarih) >= 0 && gunFarki(p.tarih) <= 1);
+  const acilYakin = aktifler.filter(p => gunFarki(p.tarih) >= 0 && gunFarki(p.tarih) <= 1);
+
   if (acilGecmis.length) {
     uyariHtml += `<div class="plan-gecmis-band">🚨 <strong>${acilGecmis.length} plan gecikmiş!</strong> → ${acilGecmis.map(p => p.makine).join(', ')}</div>`;
   }
@@ -4960,15 +4890,16 @@ function renderPlanlar() {
     liste.innerHTML = aktifler.map(p => {
       const fark = gunFarki(p.tarih);
       let renk = '#0277bd', durumTxt = '', durumBg = '#e3f2fd', durumColor = '#0277bd';
-      if (fark < 0)      { renk='#d32f2f'; durumTxt='⛔ GECİKMİŞ (' + Math.abs(fark) + ' gün)'; durumBg='#fde8e8'; durumColor='#d32f2f'; }
-      else if (fark===0) { renk='#d32f2f'; durumTxt='🔴 BUGÜN!'; durumBg='#fde8e8'; durumColor='#d32f2f'; }
-      else if (fark===1) { renk='#e65100'; durumTxt='🟠 YARIN'; durumBg='#fff3e0'; durumColor='#e65100'; }
-      else if (fark<=3)  { renk='#e65100'; durumTxt='⏳ ' + fark + ' gün kaldı'; durumBg='#fff3e0'; durumColor='#e65100'; }
-      else if (fark<=7)  { renk='#b8900a'; durumTxt='⏳ ' + fark + ' gün kaldı'; durumBg='#fffbe6'; durumColor='#b8900a'; }
-      else               { renk='#0277bd'; durumTxt='📅 ' + fark + ' gün kaldı'; durumBg='#e3f2fd'; durumColor='#0277bd'; }
 
-      const _pEtiketler = {'gunluk':'🔁 GÜNLÜK','haftalik':'🔁 HAFTALIK','2haftalik':'🔁 2 HAFTALIK','aylik':'🔁 AYLIK','3ay':'🔁 3 AYLIK'};
-      const periyotEtiket = (p.periyot && _pEtiketler[p.periyot]) ? '<span style="background:#e3f2fd;color:#0277bd;border-radius:3px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px">' + _pEtiketler[p.periyot] + '</span>' : '';
+      if (fark < 0) { renk = '#d32f2f'; durumTxt = '⛔ GECİKMİŞ (' + Math.abs(fark) + ' gün)'; durumBg = '#fde8e8'; durumColor = '#d32f2f'; }
+      else if (fark === 0) { renk = '#d32f2f'; durumTxt = '🔴 BUGÜN!'; durumBg = '#fde8e8'; durumColor = '#d32f2f'; }
+      else if (fark === 1) { renk = '#e65100'; durumTxt = '🟠 YARIN'; durumBg = '#fff3e0'; durumColor = '#e65100'; }
+      else if (fark <= 3) { renk = '#e65100'; durumTxt = '⏳ ' + fark + ' gün kaldı'; durumBg = '#fff3e0'; durumColor = '#e65100'; }
+      else if (fark <= 7) { renk = '#b8900a'; durumTxt = '⏳ ' + fark + ' gün kaldı'; durumBg = '#fffbe6'; durumColor = '#b8900a'; }
+      else { renk = '#0277bd'; durumTxt = '📅 ' + fark + ' gün kaldı'; durumBg = '#e3f2fd'; durumColor = '#0277bd'; }
+
+      const _pEtiketler = { 'gunluk': '🔁 GÜNLÜK', 'haftalik': '🔁 HAFTALIK', '2haftalik': '🔁 2 HAFTALIK', 'aylik': '🔁 AYLIK', '3ay': '🔁 3 AYLIK' };
+      const periyotEtiket = (p.periyot && _pEtiketler[p.periyot]) ? `<span style="background:#e3f2fd;color:#0277bd;border-radius:3px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px">${_pEtiketler[p.periyot]}</span>` : '';
 
       return `<div class="plan-kart" style="--pk-renk:${renk}">
         <div class="plan-kart-ust">
@@ -4984,10 +4915,19 @@ function renderPlanlar() {
         <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:8px">📋 ${p.gorev}</div>
         ${p.notlar ? '<div style="font-size:12px;color:#666;background:#f7f5f0;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-style:italic">' + p.notlar + '</div>' : ''}
         <div class="plan-aksiyonlar">
-          <span class="plan-sonraki">${(() => { if (!p.periyot) return ''; const _pc={'gunluk':{gun:1},'haftalik':{gun:7},'2haftalik':{gun:14},'aylik':{ay:1},'3ay':{ay:3}}; const c=_pc[p.periyot]; if(!c) return ''; const d=new Date(p.tarih); if(c.ay) d.setMonth(d.getMonth()+c.ay); else d.setDate(d.getDate()+c.gun); return '🔄 Sonraki: '+d.toISOString().split('T')[0]; })()}</span>
+          <span class="plan-sonraki">${(() => {
+            if (!p.periyot) return '';
+            const _pc = { 'gunluk': { gun: 1 }, 'haftalik': { gun: 7 }, '2haftalik': { gun: 14 }, 'aylik': { ay: 1 }, '3ay': { ay: 3 } };
+            const c = _pc[p.periyot];
+            if (!c) return '';
+            const d = new Date(p.tarih);
+            if (c.ay) d.setMonth(d.getMonth() + c.ay);
+            else d.setDate(d.getDate() + c.gun);
+            return '🔄 Sonraki: ' + d.toISOString().split('T')[0];
+          })()}</span>
           <div style="display:flex;gap:8px">
-            <button class="btn-plan-tamamla" ="planTamamla(${p.id})">✓ Tamamlandı</button>
-            <button class="btn-plan-sil" ="planSil(${p.id})">🗑️</button>
+            <button class="btn-plan-tamamla" onclick="planTamamla(${p.id})">✓ Tamamlandı</button>
+            <button class="btn-plan-sil" onclick="planSil(${p.id})">🗑️</button>
           </div>
         </div>
       </div>`;
@@ -4999,19 +4939,18 @@ function renderPlanlar() {
   if (!tamamlananlar.length) {
     tb.innerHTML = '<tr><td colspan="6" class="empty">Henüz tamamlanan plan yok</td></tr>';
   } else {
-    tb.innerHTML = tamamlananlar.slice(0,20).map(p =>
+    tb.innerHTML = tamamlananlar.slice(0, 20).map(p =>
       `<tr>
         <td><strong>${p.makine}</strong></td>
         <td>${p.bolum}</td>
         <td style="font-size:12px">${p.gorev}</td>
         <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${p.tarih}</td>
-        <td style="font-size:12px">${p.tamamlayanKisi||'—'}</td>
-        <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b8900a">${p.tamamlamaTarih||'—'}</td>
+        <td style="font-size:12px">${p.tamamlayanKisi || '—'}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#b8900a">${p.tamamlamaTarih || '—'}</td>
       </tr>`
     ).join('');
   }
 
-  // Takvimi render et
   renderTakvim();
 }
 
