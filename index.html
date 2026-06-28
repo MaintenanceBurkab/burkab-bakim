@@ -4785,44 +4785,56 @@ function planKaydet() {
   showToast('✅ Plan kaydedildi! Makine: ' + makine + ' · Tarih: ' + tarih, 'ok');
 }
 
-function planTamamla(id) {
+async function planTamamla(id) {
   const planlar = planlarYukle();
-  const plan = planlar.find(p => p.id === id);
-  if (!plan) return;
+  const planIndex = planlar.findIndex(p => p.id === id);
+  if (planIndex === -1) return;
+
+  const plan = planlar[planIndex];
+
+  // 1. Mevcut planı tamamla
   plan.durum = 'tamamlandi';
   plan.tamamlayanKisi = currentUser ? currentUser.name : '—';
   plan.tamamlamaTarih = new Date().toISOString().split('T')[0];
 
-  // Periyodik plan ise sonraki tarihi hesapla ve yeni plan oluştur
-  const _periyotCfg = {
-    'gunluk':    { gun: 1,  etiket: 'Günlük' },
-    'haftalik':  { gun: 7,  etiket: 'Haftalık' },
-    '2haftalik': { gun: 14, etiket: '2 Haftalık' },
-    'aylik':     { ay: 1,   etiket: 'Aylık' },
-    '3ay':       { ay: 3,   etiket: '3 Aylık' }
+  // 2. Periyodik plan oluştur (eğer periyot tanımlıysa)
+  const periyotMap = {
+    'gunluk': 1,
+    'haftalik': 7,
+    '2haftalik': 14,
+    'aylik': 30,
+    '3ay': 90
   };
-  const _pc = _periyotCfg[plan.periyot];
-  if (_pc) {
-    const sonraki = new Date(plan.tarih);
-    if (_pc.ay) { sonraki.setMonth(sonraki.getMonth() + _pc.ay); }
-    else        { sonraki.setDate(sonraki.getDate() + _pc.gun); }
+
+  const gun = periyotMap[plan.periyot];
+  if (gun) {
+    const sonrakiTarih = new Date(plan.tarih);
+    sonrakiTarih.setDate(sonrakiTarih.getDate() + gun);
+
     const yeniPlan = {
       ...plan,
-      id: Date.now() + 1,
-      tarih: sonraki.toISOString().split('T')[0],
+      id: Date.now(),
+      tarih: sonrakiTarih.toISOString().split('T')[0],
       durum: 'aktif',
       tamamlayanKisi: '',
       tamamlamaTarih: '',
+      olusturan: currentUser ? currentUser.name : '—',
       olusturmaTarih: new Date().toISOString().split('T')[0]
     };
+
     planlar.push(yeniPlan);
-    showToast('🔄 ' + _pc.etiket + ' periyot: Sonraki plan oluşturuldu → ' + yeniPlan.tarih, 'ok');
+    showToast(`✅ Plan tamamlandı. Yeni plan: ${yeniPlan.tarih}`, 'ok');
+  } else {
+    showToast('✅ Plan tamamlandı olarak işaretlendi.', 'ok');
   }
 
+  // 3. Kaydet (Local + Sheets)
   planlarKaydet(planlar);
+
+  // 4. Listeyi yenile
   renderPlanlar();
   planUyariKontrol();
-
+}
   // YENİ KAYIT formuna aktar
   if (currentUser && (currentUser.role === 'bakim' || currentUser.role === 'admin')) {
     if (confirm('Plan tamamlandı! Bakım kaydı formu otomatik açılsın mı?')) {
@@ -4864,6 +4876,11 @@ function planSil(id) {
 }
 
 function renderPlanlar() {
+  let planlar = planlarYukle();
+
+  // Sadece aktif planları göster (tamamlananları gizle)
+  const aktifler = planlar.filter(p => p.durum !== 'tamamlandi')
+    .sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
   const planlar = planlarYukle();
   const aktifler = planlar.filter(p => p.durum !== 'tamamlandi').sort((a,b) => new Date(a.tarih) - new Date(b.tarih));
   const tamamlananlar = planlar.filter(p => p.durum === 'tamamlandi').sort((a,b) => new Date(b.tamamlamaTarih||b.tarih) - new Date(a.tamamlamaTarih||a.tarih));
