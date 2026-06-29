@@ -2673,7 +2673,7 @@ window.addEventListener('beforeunload', e => {
 // ══════════════════════════════════════════════
 // VERİ KATMANI — Google Sheets
 // ══════════════════════════════════════════════
-const GS_URL = 'https://script.google.com/macros/s/AKfycbziQIL_Zxqh4X1bv_hQhmTOUCXqc00rEIEcowfD6ST8GSoiVrgp0kTVqBn19nFCGy4C/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzat_rsst1LGK-nTYplkByyeSy-KxZBP_lgYyjpCpLZIun8kMP_ypcT_k0pkwUS9Hq3/exec';
 
 const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje',
               'mdNo','revNo',
@@ -5471,7 +5471,7 @@ function islemAl(id) {
 // KALİBRASYON SİSTEMİ
 // ══════════════════════════════════════════════
 const KAL_KEY = 'burkab_kalibrasyon_v1';
-const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwaGfRZ7UudfRqdC0xmgqiG-zlAxicPRIuEotj5ZX8-T330FNqbhfIEiJZ0Og5UgTYs/exec';
+const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzat_rsst1LGK-nTYplkByyeSy-KxZBP_lgYyjpCpLZIun8kMP_ypcT_k0pkwUS9Hq3/exec';
 
 function kalYukle() { try { return JSON.parse(localStorage.getItem(KAL_KEY) || '[]'); } catch { return []; } }
 function kalKaydet(list) { try { localStorage.setItem(KAL_KEY, JSON.stringify(list)); } catch {} }
