@@ -4471,7 +4471,7 @@ function renderBildirimler() {
       <div class="bk-alt">
         <span class="bk-zaman">🕐 ${k.tarihBas||''} ${k.arizaBas||''}</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-goruldu" onclick="gorulduYap('${k.id}')" style="background:#00875a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">▶ İşleme Al</button>
+          <button class="btn-goruldu" onclick="islemAl('${k.id}')" style="background:#00875a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">▶ İşleme Al</button>
         </div>
       </div>
     </div>`;
@@ -5325,8 +5325,8 @@ function islemAl(id) {
       
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div style="font-size:17px;font-weight:800">▶ Bildirimi İşleme Al</div>
-        <button ="document.getElementById('islemAlModal').remove()" 
-                style="font-size:24px;background:none;border:none;color:#888;cursor:pointer">×</button>
+        <button onclick="document.getElementById('islemAlModal').remove()" 
+            style="font-size:24px;background:none;border:none;color:#888;cursor:pointer">×</button>
       </div>
 
       <div style="background:#f8f6f0;border:1px solid #e6e2d8;border-radius:8px;padding:12px 14px;margin-bottom:16px">
