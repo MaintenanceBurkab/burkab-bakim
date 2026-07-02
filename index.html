@@ -1216,7 +1216,7 @@ tr:last-child td { border-bottom: none; }
     <div class="section-head"><div class="dot"></div>🔩 YEDEK PARÇA TAKİBİ</div>
     <div class="section-body">
       <div id="parcaListesi" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
-      <button class="btn-parca-ekle" ="parcaEkle()">＋ Yedek Parça Ekle</button>
+      <button class="btn-parca-ekle" onclick="parcaEkle()">＋ Yedek Parça Ekle</button>
       <div style="margin-top:14px" class="fg">
         <div class="field">
           <label>TOPLAM PARÇA MALİYETİ (₺)</label>
@@ -3510,31 +3510,48 @@ function dashFiltreTemizle() {
 }
 
 function filtreliVeri() {
-  const now   = new Date();
+  const now = new Date();
   const today = now.toISOString().split('T')[0];
-
   let baslangic = null, bitis = null;
 
   if (dashZamanFiltre === 'bugun') {
-    baslangic = today; bitis = today;
-  } else if (dashZamanFiltre === 'bu_hafta') {
+    baslangic = today; 
+    bitis = today;
+  } 
+  else if (dashZamanFiltre === 'bu_hafta') {
     const paz = new Date(now);
     paz.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     baslangic = paz.toISOString().split('T')[0];
     bitis = today;
-  } else if (dashZamanFiltre === 'bu_ay') {
+  } 
+  else if (dashZamanFiltre === 'bu_ay') {
     baslangic = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
     bitis = today;
-  } else if (dashZamanFiltre === 'gecen_ay') {
-    const gm = new Date(now.getFullYear(), now.getMonth()-1, 1);
-    const gmSon = new Date(now.getFullYear(), now.getMonth(), 0);
-    baslangic = gm.toISOString().split('T')[0];
-    bitis = gmSon.toISOString().split('T')[0];
-  } else if (dashZamanFiltre === 'gecen_yil') {
+  } 
+  else if (dashZamanFiltre === 'gecen_ay') {
+    // DÜZELTİLMİŞ KISIM
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    baslangic = prevMonth.toISOString().split('T')[0];
+    bitis = lastDayOfPrevMonth.toISOString().split('T')[0];
+  } 
+  else if (dashZamanFiltre === 'gecen_yil') {
     const gy = now.getFullYear() - 1;
-    baslangic = gy + '-01-01'; bitis = gy + '-12-31';
+    baslangic = gy + '-01-01'; 
+    bitis = gy + '-12-31';
+  } 
+  else {
+    // Hepsi
+    return kayitlar;
   }
 
+  // Filtre uygula
+  return kayitlar.filter(k => {
+    if (!k.tarihBas) return false;
+    return k.tarihBas >= baslangic && k.tarihBas <= bitis;
+  });
+}
   const secBolum = (document.getElementById('dashBolumSelect')?.value || '').trim();
   const secIslem = (document.getElementById('dashIslemSelect')?.value || '').trim();
   const secRisk  = (document.getElementById('dashRiskSelect')?.value  || '').trim();
@@ -3565,7 +3582,31 @@ function filtreliVeri() {
   return sonuc;
 }
 
-function renderDash() { ensureChartJs(() => { buildDash(); }); }
+function renderDash() {
+  ensureChartJs(() => {
+    const filtered = filtreliVeri();   // <-- önemli: filtreliVeri() çağırılıyor
+    
+    // KPI'ları güncelle
+    buildKpiCards(filtered);
+    
+    // Grafikleri çiz
+    buildTrendChart(filtered);
+    buildIslemDagilimChart(filtered);
+    buildMttrChart(filtered);
+    buildBolumChart(filtered);
+    buildRiskChart(filtered);
+    buildMaliyetChart(filtered);
+    
+    // Makine kartları
+    renderMakineKartlari(filtered);
+    
+    // Risk aksiyon özeti
+    renderRiskAksiyonOzet(filtered);
+    
+    // Filtre bilgi metni
+    updateDashFiltreBilgi(filtered);
+  });
+}
 
 function parseTutar(str) {
   if (!str) return 0;
