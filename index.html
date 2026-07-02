@@ -4556,12 +4556,11 @@ function gsGetOtonom() {
   return new Promise((resolve, reject) => {
     const cb = 'otonom_cb_' + Date.now();
     const script = document.createElement('script');
-    window[cb] = (data) => { delete window[cb]; script.remove(); resolve(data); };
-    script.onerror = () => { delete window[cb]; script.remove(); resolve(null); };
-    // Apps Script'ten OtonomBakim_Arizalar tab'ını oku
+    window[cb] = (data) => { script.remove(); resolve(data); };
+    script.onerror = () => { script.remove(); resolve(null); };
     script.src = GS_URL + '?callback=' + cb + '&action=getOtonomArizalar';
     document.head.appendChild(script);
-    setTimeout(() => { delete window[cb]; script.remove(); resolve(null); }, 8000);
+    setTimeout(() => { script.remove(); resolve(null); }, 12000); // 8000 → 12000: GAS'a biraz daha nefes payı
   });
 }
 
