@@ -939,18 +939,18 @@ tr:last-child td { border-bottom: none; }
     <div class="section-head"><div class="dot"></div>İŞLEM TÜRÜ SEÇİNİZ <span style="color:#ff6b6b;margin-left:4px">*</span></div>
     <div class="section-body">
       <div class="islem-grid" id="islemGrid">
-        <div class="islem-btn" data-v="ARIZA KAYDI"    data-c="#d32f2f" data-bg="rgba(211,47,47,.07)"   data-sh="rgba(211,47,47,.2)"   ="pickIslem(this)"><span class="islem-emoji">
+        <div class="islem-btn" data-v="ARIZA KAYDI"    data-c="#d32f2f" data-bg="rgba(211,47,47,.07)"   data-sh="rgba(211,47,47,.2)"  onclick="pickIslem(this)"><span class="islem-emoji">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26">
   <circle cx="12" cy="12" r="3"/>
   <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
   <line x1="4" y1="20" x2="20" y2="4" stroke-width="2.5" stroke="currentColor"/>
 </svg></span><span class="islem-label">ARIZA KAYDI</span></div>
-        <div class="islem-btn" data-v="BAKIM KAYDI"    data-c="#00875a" data-bg="rgba(0,135,90,.07)"    data-sh="rgba(0,135,90,.2)"    ="pickIslem(this)"><span class="islem-emoji">
+        <div class="islem-btn" data-v="BAKIM KAYDI"    data-c="#00875a" data-bg="rgba(0,135,90,.07)"    data-sh="rgba(0,135,90,.2)"   onclick="pickIslem(this)"><span class="islem-emoji">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26">
   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
   <line x1="2" y1="22" x2="7" y2="17" stroke-width="2"/>
 </svg></span><span class="islem-label">BAKIM KAYDI</span></div>
-        <div class="islem-btn" data-v="MONTAJ"         data-c="#e65100" data-bg="rgba(230,81,0,.07)"    data-sh="rgba(230,81,0,.2)"    ="pickIslem(this)"><span class="islem-emoji">
+        <div class="islem-btn" data-v="MONTAJ"         data-c="#e65100" data-bg="rgba(230,81,0,.07)"    data-sh="rgba(230,81,0,.2)"   onclick="pickIslem(this)"><span class="islem-emoji">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26">
   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
   <polyline points="7.5 4.21 12 6.81 16.5 4.21"/>
@@ -959,13 +959,13 @@ tr:last-child td { border-bottom: none; }
   <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
   <line x1="12" y1="22.08" x2="12" y2="12"/>
 </svg></span><span class="islem-label">MONTAJ / DEMONTAJ</span></div>
-        <div class="islem-btn" data-v="REVİZYON"       data-c="#6a1b9a" data-bg="rgba(106,27,154,.07)"  data-sh="rgba(106,27,154,.2)"  ="pickIslem(this)"><span class="islem-emoji">
+        <div class="islem-btn" data-v="REVİZYON"       data-c="#6a1b9a" data-bg="rgba(106,27,154,.07)"  data-sh="rgba(106,27,154,.2)"  onclick="pickIslem(this)"><span class="islem-emoji">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26">
   <polyline points="23 4 23 10 17 10"/>
   <polyline points="1 20 1 14 7 14"/>
   <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
 </svg></span><span class="islem-label">REVİZYON</span></div>
-        <div class="islem-btn" data-v="PLANLI BAKIM"   data-c="#0277bd" data-bg="rgba(2,119,189,.07)"   data-sh="rgba(2,119,189,.2)"   ="pickIslem(this)"><span class="islem-emoji">
+        <div class="islem-btn" data-v="PLANLI BAKIM"   data-c="#0277bd" data-bg="rgba(2,119,189,.07)"   data-sh="rgba(2,119,189,.2)"  onclick="pickIslem(this)"><span class="islem-emoji">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26">
   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
   <line x1="16" y1="2" x2="16" y2="6"/>
@@ -973,7 +973,7 @@ tr:last-child td { border-bottom: none; }
   <line x1="3" y1="10" x2="21" y2="10"/>
   <path d="M14.7 14.3a1 1 0 0 0 0 1.4l.9.9a1 1 0 0 0 1.4 0l1.8-1.8a3 3 0 0 1-4-4l-1.8 1.8z" stroke-width="1.5"/>
 </svg></span><span class="islem-label">PLANLI BAKIM</span></div>
-        <div class="islem-btn" data-v="SERVİS BAKIM"   data-c="#00695c" data-bg="rgba(0,105,92,.07)"    data-sh="rgba(0,105,92,.2)"    ="pickIslem(this)"><span class="islem-emoji">
+        <div class="islem-btn" data-v="SERVİS BAKIM"   data-c="#00695c" data-bg="rgba(0,105,92,.07)"    data-sh="rgba(0,105,92,.2)"    onclick="pickIslem(this)"><span class="islem-emoji">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26">
   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
   <circle cx="12" cy="7" r="4"/>
@@ -1024,10 +1024,10 @@ tr:last-child td { border-bottom: none; }
         <div class="field">
           <label>BAKIM OPERATÖRÜ <span class="req">*</span></label>
           <div class="bakimci-wrap" id="bakimciWrap">
-            <div class="bakimci-selected" id="bakimciSelected" ="toggleBakimciDropdown()">
+            <div class="bakimci-selected" id="bakimciSelected" onclick="toggleBakimciDropdown()">
               <span id="bakimciDisplay">— Seçiniz —</span>
-              <span class="combo-arrow" style="position:static;transform:none;margin-left:auto">▼</span>
-            </div>
+               <span class="combo-arrow" style="position:static;transform:none;margin-left:auto">▼</span>
+              </div>
             <div class="bakimci-dropdown" id="bakimciDropdown">
               <label class="bakimci-item"><input type="checkbox" value="MEHMET ERTÜRK" onchange="updateBakimci()"><span>MEHMET ERTÜRK</span></label>
               <label class="bakimci-item"><input type="checkbox" value="FERHAT OKTAY" onchange="updateBakimci()"><span>FERHAT OKTAY</span></label>
