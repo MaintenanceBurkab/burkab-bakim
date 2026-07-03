@@ -1882,7 +1882,7 @@ tr:last-child td { border-bottom: none; }
             </tr>
           </thead>
           <tbody id="kal-tbody">
-            <tr><td colspan="10" class="empty">Henüz cihaz kaydı yok</td></tr>
+            <tr><td pan="10" class="empty">Henüz cihaz kaydı yok</td></tr>
           </tbody>
         </table>
       </div>
@@ -2680,8 +2680,9 @@ const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje',
               'arizaTuru','arizaKodu','konu','tarihBas','tarihBit',
               'arizaBas','onarimBas','onarimBit','arizaBit','sure',
               'bakimci','kalite','yapilan','riskSeviye',
+              'cozumSure',
               'durusEtkisi','parcalar','toplamMaliyet','teminDurumu',
-              'riskAksiyon'  /* IATF 4.4 — Risk bazlı düşünme (JSON) */];
+              'riskAksiyon'  /* IATF 4.4 — Risk bazlı düşünme (JSON) */]
 
 let kayitlar = [];
 let sayac = {};
