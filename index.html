@@ -3513,7 +3513,6 @@ function filtreliVeri() {
   const now = new Date();
   const today = now.toISOString().split('T')[0];
   let baslangic = null, bitis = null;
-
   if (dashZamanFiltre === 'bugun') {
     baslangic = today; 
     bitis = today;
@@ -3529,10 +3528,8 @@ function filtreliVeri() {
     bitis = today;
   } 
   else if (dashZamanFiltre === 'gecen_ay') {
-    // DÜZELTİLMİŞ KISIM
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    
     baslangic = prevMonth.toISOString().split('T')[0];
     bitis = lastDayOfPrevMonth.toISOString().split('T')[0];
   } 
@@ -3540,24 +3537,12 @@ function filtreliVeri() {
     const gy = now.getFullYear() - 1;
     baslangic = gy + '-01-01'; 
     bitis = gy + '-12-31';
-  } 
-  else {
-    // Hepsi
-    return kayitlar;
   }
 
-  // Filtre uygula
-  return kayitlar.filter(k => {
-    if (!k.tarihBas) return false;
-    return k.tarihBas >= baslangic && k.tarihBas <= bitis;
-  });
-}
   const secBolum = (document.getElementById('dashBolumSelect')?.value || '').trim();
   const secIslem = (document.getElementById('dashIslemSelect')?.value || '').trim();
   const secRisk  = (document.getElementById('dashRiskSelect')?.value  || '').trim();
-
   let sonuc = kayitlar.slice();
-
   if (baslangic && bitis) {
     sonuc = sonuc.filter(k => k.tarihBas && k.tarihBas >= baslangic && k.tarihBas <= bitis);
   }
@@ -3570,7 +3555,6 @@ function filtreliVeri() {
   if (secRisk) {
     sonuc = sonuc.filter(k => k.riskSeviye === secRisk);
   }
-
   const el = document.getElementById('dashFiltreBilgi');
   if (el) {
     const zamanEtiket = {
