@@ -3543,8 +3543,14 @@ function filtreliVeri() {
   const secIslem = (document.getElementById('dashIslemSelect')?.value || '').trim();
   const secRisk  = (document.getElementById('dashRiskSelect')?.value  || '').trim();
   let sonuc = kayitlar.slice();
-  if (baslangic && bitis) {
-    sonuc = sonuc.filter(k => k.tarihBas && k.tarihBas >= baslangic && k.tarihBas <= bitis);
+ if (baslangic && bitis) {
+    sonuc = sonuc.filter(k => {
+      if (!k.tarihBas) return false;
+      const d = k.tarihBas instanceof Date ? k.tarihBas : new Date(k.tarihBas);
+      if (isNaN(d)) return false;
+      const dStr = d.toISOString().split('T')[0];
+      return dStr >= baslangic && dStr <= bitis;
+    });
   }
   if (secBolum) {
     sonuc = sonuc.filter(k => k.bolum === secBolum);
