@@ -5862,6 +5862,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('loginBtn');
   if (loginBtn) {
     loginBtn.addEventListener('click', () => {
+      doLogin();
       setTimeout(() => {
         if (currentUser) adminLogEkle(`Sisteme giriş yapıldı`);
       }, 300);
