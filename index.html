@@ -2750,8 +2750,9 @@ async function loadData() {
 }
 
 async function gsKaydet(kayit) {
-  const row = COLS.map(c => kayit[c] !== undefined ? kayit[c] : '');
-  await gsRequest({ action: 'save', headers: COLS, row });
+  const sonuc = await gsRequest({ action: 'saveKayit', kayit });
+  if (!sonuc || !sonuc.ok) throw new Error(sonuc?.error || 'Kayıt başarısız');
+  return sonuc;
 }
 
 async function gsSil(id) {
