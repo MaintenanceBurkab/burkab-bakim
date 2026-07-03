@@ -3567,27 +3567,8 @@ function filtreliVeri() {
 
 function renderDash() {
   ensureChartJs(() => {
-    const filtered = filtreliVeri();   // <-- önemli: filtreliVeri() çağırılıyor
-    
-    // KPI'ları güncelle
-    buildKpiCards(filtered);
-    
-    // Grafikleri çiz
-    buildTrendChart(filtered);
-    buildIslemDagilimChart(filtered);
-    buildMttrChart(filtered);
-    buildBolumChart(filtered);
-    buildRiskChart(filtered);
-    buildMaliyetChart(filtered);
-    
-    // Makine kartları
-    renderMakineKartlari(filtered);
-    
-    // Risk aksiyon özeti
-    renderRiskAksiyonOzet(filtered);
-    
-    // Filtre bilgi metni
-    updateDashFiltreBilgi(filtered);
+    buildDash();
+    renderRiskAksiyonOzet(filtreliVeri());
   });
 }
 
