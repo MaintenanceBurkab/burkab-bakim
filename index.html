@@ -7961,7 +7961,71 @@ function aiRaporKopyala() {
 var _origApplyRoleUI = typeof applyRoleUI === 'function' ? applyRoleUI : null;
 // liveVeriCek override: üretim tab aktif değilse renderUretimDurumu çağrılmasın
 var _origLiveVeriCek = typeof liveVeriCek === 'function' ? liveVeriCek : null;
+<!-- ══ AI RAPOR MODAL ══ -->
+<div id="aiRaporModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#1c1c1c;color:#eee;border-radius:14px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.5)">
 
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #333;position:sticky;top:0;background:#1c1c1c;z-index:2">
+      <div id="aiRaporModalBaslik" style="font-size:16px;font-weight:800">📊 AI Rapor</div>
+      <button onclick="aiRaporModalKapat()" style="background:none;border:none;color:#999;font-size:22px;cursor:pointer">×</button>
+    </div>
+
+    <div style="padding:18px 20px">
+      <!-- API KEY -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;letter-spacing:.6px;color:#999;text-transform:uppercase">Anthropic API Key</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <input type="password" id="aiRaporKeyInput" placeholder="sk-ant-..." style="flex:1;background:#111;border:1px solid #333;border-radius:8px;padding:9px 12px;color:#eee;font-size:13px">
+          <button onclick="aiRaporKeySave()" style="background:#f5c400;color:#1c1c1c;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">Kaydet</button>
+        </div>
+        <div id="aiRaporKeyStatus" class="ai-rapor-key-status" style="font-size:12px;margin-top:6px"></div>
+      </div>
+
+      <!-- RAPOR TİPİ SEÇİMİ -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;font-weight:700;letter-spacing:.6px;color:#999;text-transform:uppercase">Rapor Türü</label>
+        <div id="aiRaporTypeGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"></div>
+      </div>
+
+      <button id="aiRaporRunBtn" onclick="aiRaporCalistir()" style="width:100%;background:#0a7d4f;color:#fff;border:none;border-radius:9px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer">
+        🤖 Rapor Oluştur
+      </button>
+
+      <!-- LOADING -->
+      <div id="aiRaporLoading" class="ai-rapor-loading" style="display:none;text-align:center;padding:26px 10px;color:#aaa">
+        <div style="font-size:13px" id="aiRaporLoadingDetail">Analiz ediliyor...</div>
+      </div>
+
+      <!-- SONUÇ -->
+      <div id="aiRaporResult" class="ai-rapor-result" style="display:none;margin-top:18px;border-top:1px solid #333;padding-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div id="aiRaporResultTitle" style="font-weight:800;font-size:14px"></div>
+          <button onclick="aiRaporKopyala()" style="background:#2a2a2a;color:#ccc;border:1px solid #3a3a3a;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer">📋 Kopyala</button>
+        </div>
+        <div id="aiRaporResultContent" style="font-size:13.5px;line-height:1.75;color:#ddd"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #aiRaporModalOverlay.open{ display:flex !important; }
+  #aiRaporLoading.visible{ display:block !important; }
+  #aiRaporResult.visible{ display:block !important; }
+  .ai-rapor-type-btn{ border:1px solid #333; border-radius:9px; padding:10px; cursor:pointer; background:#151515; transition:.15s; }
+  .ai-rapor-type-btn:hover{ border-color:#f5c400; }
+  .ai-rapor-type-btn.selected{ border-color:#f5c400; background:#2a2410; }
+  .ai-rapor-type-icon{ display:block; font-size:18px; margin-bottom:3px; }
+  .ai-rapor-type-label{ display:block; font-size:12.5px; font-weight:700; color:#eee; }
+  .ai-rapor-type-desc{ display:block; font-size:10.5px; color:#888; margin-top:2px; line-height:1.3; }
+  .ai-rapor-key-status.ai-rapor-key-ok{ color:#00c853; }
+  .ai-rapor-key-status.ai-rapor-key-err{ color:#ff6060; }
+  .rbold{ font-weight:700; color:#f5c400; }
+  .rh2{ display:block; font-weight:800; font-size:14px; color:#f5c400; margin:14px 0 6px; }
+  .rh3{ display:block; font-weight:700; font-size:13px; color:#ddd; margin:10px 0 4px; }
+  .rli{ display:block; margin:3px 0; padding-left:4px; }
+  .rnum{ color:#f5c400; font-weight:700; }
+</style>
  </script>
 </body>
 </html>
