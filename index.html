@@ -2883,9 +2883,15 @@ function konuListesiDoldur(atur) {
   datalist.innerHTML = '';
   if (!atur) return;
 
+  const bolum = document.getElementById('bolum').value;
+
   const konular = [...new Set(
     kayitlar
-      .filter(k => k.arizaTuru && k.arizaTuru.trim().toUpperCase() === atur && k.konu)
+      .filter(k =>
+        k.arizaTuru && k.arizaTuru.trim().toUpperCase() === atur &&
+        k.bolum && k.bolum.trim() === bolum &&
+        k.konu
+      )
       .map(k => k.konu.trim().toUpperCase())
   )];
 
