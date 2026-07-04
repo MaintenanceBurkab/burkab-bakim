@@ -2993,7 +2993,7 @@ function parcaEkle() {
     '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center">' +
     '<option value="₺">₺</option><option value="$">$</option><option value="€">€</option>' +
     '</select>' +
-    '<button class="btn-parca-sil" ="parcaSil(\'parca-' + id + '\')">✕</button>';
+    '<button class="btn-parca-sil" onclick="parcaSil(\'parca-' + id + '\')">✕</button>';
   document.getElementById('parcaListesi').appendChild(div);
 }
 function parcaSil(id) { document.getElementById(id)&&document.getElementById(id).remove(); hesaplaMaliyet(); }
