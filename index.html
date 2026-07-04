@@ -1095,7 +1095,8 @@ tr:last-child td { border-bottom: none; }
         </div>
         <div class="field">
           <label id="konuLabel">AÇIKLAMA</label>
-          <input type="text" id="konu" placeholder="Kısa açıklama" oninput="this.value=this.value.toUpperCase(); onKonuInput(); aiCheckArizaBtn();" autocomplete="off">
+          <input type="text" id="konu" placeholder="Kısa açıklama" oninput="this.value=this.value.toUpperCase(); onKonuInput(); aiCheckArizaBtn();" autocomplete="off" list="konuList">
+<datalist id="konuList"></datalist>
           <div id="ai-ariza-analiz-blok" style="display:none">
             <button class="ai-inline-btn" type="button" onclick="aiAnalizAriza()">🤖 AI ile Kök Neden &amp; Çözüm Öner</button>
             <div class="ai-inline-result" id="ai-ariza-result"></div>
@@ -2876,7 +2877,24 @@ function checkMdRevBoxes() {
     document.getElementById('revNo').value = '';
   }
 }
+function konuListesiDoldur(atur) {
+  const datalist = document.getElementById('konuList');
+  if (!datalist) return;
+  datalist.innerHTML = '';
+  if (!atur) return;
 
+  const konular = [...new Set(
+    kayitlar
+      .filter(k => k.arizaTuru && k.arizaTuru.trim().toUpperCase() === atur && k.konu)
+      .map(k => k.konu.trim().toUpperCase())
+  )];
+
+  konular.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    datalist.appendChild(opt);
+  });
+}
 // ── ARIZA TÜRÜ ────────────────────────────────
 function pickAtur(el) {
   document.querySelectorAll('.atur-btn').forEach(b => b.classList.remove('active'));
@@ -2887,6 +2905,7 @@ function pickAtur(el) {
   document.getElementById('konu').readOnly = false;
   document.getElementById('konu').style.background = '';
   document.getElementById('konu').style.color = '';
+  konuListesiDoldur(el.dataset.v);
   onKonuInput();
 }
 
