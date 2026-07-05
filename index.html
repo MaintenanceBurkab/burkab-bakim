@@ -85,7 +85,7 @@ body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: v
 input, select, textarea { background: var(--bg); border: 1.5px solid #c8d4e3; border-radius: 7px; color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 15px; padding: 11px 13px; width: 100%; outline: none; transition: border .15s, box-shadow .15s; -webkit-appearance: none; }
 input:focus, select:focus, textarea:focus { border-color: #f5c400; background: #fff; box-shadow: 0 0 0 3px rgba(245,196,0,.18); }
 input[readonly] { color: #b8900a; font-family: 'IBM Plex Mono', monospace; cursor: default; }
-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a7090' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
+select { cursor: pointer; background-image: ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a7090' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
 select option { background: #fff; font-size: 15px; }
 textarea { resize: vertical; min-height: 90px; }
 
@@ -2673,7 +2673,7 @@ window.addEventListener('beforeunload', e => {
 // ══════════════════════════════════════════════
 // VERİ KATMANI — Google Sheets
 // ══════════════════════════════════════════════
-const GS_URL = 'https://script.google.com/macros/s/AKfycbwo-DHkN0wAaFv3i2x219USs_FXVXP-frPDKgGAeqEhp1u2ZrkzDauKq8LqCkijc0fq/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzttM9KPHbURUnw3ERJR-KqcadCwgClLFAF0qLE2EVaR8qFPm-EuaDW4NWpGCYqoWGN/exec';
 
 const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje',
               'mdNo','revNo',
