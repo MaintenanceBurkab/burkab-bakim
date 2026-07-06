@@ -2262,7 +2262,7 @@ tr:last-child td { border-bottom: none; }
           <label>Tedarik Kategorisi <span class="req">*</span></label>
           <select id="ted-kategori">
             <option value="">— Seçiniz —</option>
-            <option>YEDEK PARÇA</option><option>SARF MALZEME</option>
+            <option></option><option>SARF MALZEME</option>
             <option>SERVİS / BAKIM</option><option>ELEKTRİK / ELEKTRONİK</option>
             <option>HİDROLİK / PNÖMATİK</option><option>KABLO / KONNEKTÖR</option>
             <option>ÖLÇÜM EKİPMANI</option><option>DİĞER</option>
@@ -2997,6 +2997,7 @@ function parcaEkle() {
   document.getElementById('parcaListesi').appendChild(div);
 }
 function parcaSil(id) { document.getElementById(id)&&document.getElementById(id).remove(); hesaplaMaliyet(); }
+  
 function hesaplaMaliyet() {
   const ozet = { '₺': 0, '$': 0, '€': 0 };
   document.querySelectorAll('.parca-row').forEach(row => {
@@ -3006,6 +3007,7 @@ function hesaplaMaliyet() {
     if (ozet[para] !== undefined) ozet[para] += a * f;
   });
   document.getElementById('toplamMaliyet').value = ozet['₺'].toFixed(2);
+  
   const parcalar = [];
   if (ozet['₺'] > 0) parcalar.push(ozet['₺'].toFixed(2) + ' ₺');
   if (ozet['$'] > 0) parcalar.push(ozet['$'].toFixed(2) + ' $');
