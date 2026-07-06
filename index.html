@@ -3005,6 +3005,7 @@ function hesaplaMaliyet() {
     const para = row.querySelector('.parca-para')?.value || '₺';
     if (ozet[para] !== undefined) ozet[para] += a * f;
   });
+  document.getElementById('toplamMaliyet').value = ozet['₺'].toFixed(2);
   const parcalar = [];
   if (ozet['₺'] > 0) parcalar.push(ozet['₺'].toFixed(2) + ' ₺');
   if (ozet['$'] > 0) parcalar.push(ozet['$'].toFixed(2) + ' $');
