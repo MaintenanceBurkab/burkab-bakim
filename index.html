@@ -3162,7 +3162,6 @@ async function kaydet() {
     }
     genFormNo();
   }
-
   const req = [
     ['islem','İşlem Türü'],['formNo','Form No'],['bolum','Bölüm'],
     ['makine','Makine'],['bildiren','Bildiren'],['arizaKodu','Arıza Kodu'],
@@ -3171,16 +3170,17 @@ async function kaydet() {
   ];
   const eksik = req.filter(([id]) => !document.getElementById(id)?.value?.trim()).map(([,l]) => l);
   if (eksik.length) { showToast('❗ Eksik alan: ' + eksik.join(', '), 'err'); return; }
-
   if (!riskAksiyonZorunluKontrol()) return; /* IATF 4.4 */
-
   const g = id => document.getElementById(id)?.value?.trim() || '';
   const pre = {'ARIZA KAYDI':'A','BAKIM KAYDI':'B','MONTAJ':'M','REVİZYON':'R','PLANLI BAKIM':'P','SERVİS BAKIM':'S'};
   const p = pre[g('islem')] || 'X';
   sayac[p] = (sayac[p] || 0) + 1;
 
   const yeniKayit = {
-    id: Date.now(),
+    // ★ DEĞİŞTİ: Bildirimden geliniyorsa (_aktifBildirimKaynakId doluysa) o ID kullanılır.
+    // Böylece Sheets'te YENİ satır değil, VAR OLAN satır güncellenir.
+    id: _aktifBildirimKaynakId ? _aktifBildirimKaynakId : Date.now(),
+
     formNo: g('formNo'), islem: g('islem'),
     bolum: g('bolum'), makine: g('makine'), bildiren: g('bildiren'),
     proje: g('proje'), mdNo: g('mdNo'), revNo: g('revNo'),
@@ -3195,10 +3195,19 @@ async function kaydet() {
     teminDurumu: g('teminDurumu'),
     riskAksiyon: getRiskAksiyonData(), /* IATF 4.4 */
     kayitYapan: currentUser ? currentUser.name : 'Bilinmiyor',
-    kayitZaman: new Date().toISOString()
+    kayitZaman: new Date().toISOString(),
+
+    // ★ YENİ: Bildirimden geliyorsa TAMAMLANDI, yeni bildirimse BEKLIYOR yazılır
+    durum: _aktifBildirimKaynakId ? 'TAMAMLANDI' : (g('islem') === 'ARIZA KAYDI' ? 'BEKLIYOR' : '')
   };
 
-  kayitlar.push(yeniKayit);
+  // ★ DEĞİŞTİ: push yerine — aynı ID varsa güncelle, yoksa ekle
+  const mevcutIndex = kayitlar.findIndex(x => String(x.id) === String(yeniKayit.id));
+  if (mevcutIndex >= 0) {
+    kayitlar[mevcutIndex] = yeniKayit;
+  } else {
+    kayitlar.push(yeniKayit);
+  }
 
   if (!isOnline) {
     if (idbDB) { await idbPut(yeniKayit); pendingCount++; setSyncUI('offline', 'İnternet yok — ' + pendingCount + ' kayıt bekliyor'); }
@@ -3219,15 +3228,12 @@ async function kaydet() {
       showLoading(false);
     }
   }
+
   refreshAllDatalist();
 
-  // FIX-1: Bildirimden işleme alınan kayıt — yeni id'yi gorulduler'e ekle
-  // Böylece ARIZA KAYDI olarak kaydedilen bu kayıt tekrar bildirim listesine düşmez
+  // Bildirimden işleme alınan kayıt — kaynak referansını temizle
+  // (aynı ID kullanıldığı için ayrıca goruldulere eklemeye gerek kalmadı)
   if (_aktifBildirimKaynakId !== null) {
-    const g = goruldulerYukle();
-    g.add(String(yeniKayit.id));   // yeni oluşan kaydın id'si
-    goruldulerKaydet(g);
-    ilkYuklemeIDs.add(String(yeniKayit.id)); // polling'de de gizle
     _aktifBildirimKaynakId = null;
   }
 
@@ -3235,7 +3241,6 @@ async function kaydet() {
   temizle();
   renderBildirimler(); // badge sayısını güncelle
 }
-
 // ── SİL ──────────────────────────────────────
 async function kayitSil(id) {
   if (!confirm('Bu kaydı silmek istediğinizden emin misiniz?')) return;
@@ -4467,28 +4472,34 @@ function bildirimSesi() {
 
 function renderBildirimler() {
   const gorulduler = goruldulerYukle();
-  const arizalar = kayitlar.filter(k => k.islem === 'ARIZA KAYDI' && !gorulduler.has(String(k.id)));
+
+  // ★ DEĞİŞTİ: durum === 'BEKLIYOR' kontrolü eklendi (normal arızalar için)
+  // Otonom kaynaklı kayıtlar zaten otonomArizaKontrolEt() tarafından
+  // sadece AÇIK durumdayken kayitlar dizisine ekleniyor, bu yüzden onlara
+  // ayrıca durum kontrolü uygulamıyoruz.
+  const arizalar = kayitlar.filter(k =>
+    k.islem === 'ARIZA KAYDI' &&
+    !gorulduler.has(String(k.id)) &&
+    (k.kayitKaynagi === 'OTONOM' || k.durum === 'BEKLIYOR')
+  );
+
   const badge = document.getElementById('bildirimBadge');
   const liste = document.getElementById('bildirimListe');
   const baslik = document.getElementById('bildirimSayiBaslik');
   if (!liste) return;
-
   if (badge) {
     badge.style.display = arizalar.length ? 'inline-flex' : 'none';
     badge.textContent = arizalar.length;
   }
   if (baslik) baslik.textContent = arizalar.length ? arizalar.length + ' bekleyen arıza bildirimi' : 'Bekleyen bildirim yok';
-
   if (!arizalar.length) {
     liste.innerHTML = '<div class="bildirim-bos"><div class="bos-ikon">✅</div><p>Bekleyen arıza bildirimi yok.</p></div>';
     return;
   }
-
   const sirali = [...arizalar].sort((a, b) => {
     const p = k => k.durusEtkisi === 'TAM DURUŞ' ? 0 : k.durusEtkisi === 'KISMİ DURUŞ' ? 1 : 2;
     return p(a) - p(b) || (b.id || 0) - (a.id || 0);
   });
-
   liste.innerHTML = sirali.map(k => {
     const acil = k.durusEtkisi === 'TAM DURUŞ' || k.durusEtkisi === 'KISMİ DURUŞ';
     const renk = acil ? '#d32f2f' : '#e65100';
@@ -4496,6 +4507,12 @@ function renderBildirimler() {
     const otonomBadge = k.kayitKaynagi === 'OTONOM'
       ? `<span style="background:#7b1fa2;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:.5px;">📋 FR-40 OTONOM</span>`
       : '';
+
+    // ★ DEĞİŞTİ: kaynak OTONOM ise farklı fonksiyon çağrılıyor
+    const islemAlCagrisi = k.kayitKaynagi === 'OTONOM'
+      ? `otonomBildirimIslemeAl('${k.otonomFormNo}', currentUser)`
+      : `islemAl('${k.id}')`;
+
     return `<div class="bildirim-karti" id="bk-${k.id}" style="--bk-renk:${renk}">
       <div class="bk-ust">
         <span class="bk-islem">⚡ ${k.arizaTuru||'ARIZA'} — ${k.makine||'—'}</span>
@@ -4511,13 +4528,12 @@ function renderBildirimler() {
       <div class="bk-alt">
         <span class="bk-zaman">🕐 ${k.tarihBas||''} ${k.arizaBas||''}</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-goruldu" onclick="islemAl('${k.id}')" style="background:#00875a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">▶ İşleme Al</button>
+          <button class="btn-goruldu" onclick="${islemAlCagrisi}" style="background:#00875a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">▶ İşleme Al</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
-
 function gorulduYap(id) {
   const el = document.getElementById('bk-' + id);
   if (el) { el.classList.add('okunuyor'); }
@@ -4577,10 +4593,11 @@ function bildirimleriBaslat() {
 }
 
 // ══════════════════════════════════════════════
-// OTONOM BAKIM → BİLDİRİM ENTEGRASYONU (FIX-2)
+// OTONOM BAKIM → BİLDİRİM ENTEGRASYONU (FIX-3)
 // FR-40'tan gelen arızaları Bakım Yönetim bildirimine çeker
+// Artık localStorage değil, sunucudaki Durum alanı esas alınır
 // ══════════════════════════════════════════════
-const OTONOM_GORULDU_KEY = 'burkab_otonom_goruldu_ids';
+const OTONOM_GORULDU_KEY = 'burkab_otonom_goruldu_ids'; // sadece ses/toast tekrarını önlemek için kullanılır
 let otonomIlkYukleme = new Set();
 
 function otonomGorulduYukle() {
@@ -4598,7 +4615,7 @@ function gsGetOtonom() {
     script.onerror = () => { script.remove(); resolve(null); };
     script.src = GS_URL + '?callback=' + cb + '&action=getOtonomArizalar';
     document.head.appendChild(script);
-    setTimeout(() => { script.remove(); resolve(null); }, 12000); // 8000 → 12000: GAS'a biraz daha nefes payı
+    setTimeout(() => { script.remove(); resolve(null); }, 12000);
   });
 }
 
@@ -4608,30 +4625,41 @@ async function otonomArizaKontrolEt() {
     if (!json || !json.ok || !Array.isArray(json.data)) return;
 
     const gorulduler = otonomGorulduYukle();
-    const yeniArizalar = json.data.filter(row => {
+
+    // ★ DEĞİŞTİ: artık sadece "daha önce görülmemiş" değil,
+    // sunucuda hâlâ AÇIK maddesi olan formları bildirime aday sayıyoruz
+    const acikFormlar = json.data.filter(row => {
+      const maddeler = [...(row.arizalar || []), ...(row.uyarilar || [])];
+      return maddeler.some(m => (m.durum || 'AÇIK') === 'AÇIK');
+    });
+
+    // Önce: bildirim listesinden KAPALI olan otonom kayıtları temizle
+    // (bakım ekibi başka bir cihazdan işleme almış olabilir)
+    const acikFormNolar = new Set(acikFormlar.map(r => String(r.formNo || r.id || '')));
+    kayitlar = kayitlar.filter(k => !(k.kayitKaynagi === 'OTONOM' && !acikFormNolar.has(k.otonomFormNo)));
+
+    const yeniArizalar = acikFormlar.filter(row => {
       const uid = String(row.formNo || row.id || '');
       return uid && !gorulduler.has(uid) && !otonomIlkYukleme.has(uid);
     });
 
     if (yeniArizalar.length === 0) {
-      // İlk yükleme: mevcut kayıtları baseline olarak işaretle
-      json.data.forEach(row => {
+      acikFormlar.forEach(row => {
         const uid = String(row.formNo || row.id || '');
         if (uid) otonomIlkYukleme.add(uid);
       });
+      renderBildirimler(); // temizlenen kayıtlar varsa listeyi güncelle
       return;
     }
 
-    // Yeni otonom arızaları Bildirimler listesine ARIZA KAYDI olarak ekle
     let eklenen = 0;
     yeniArizalar.forEach(row => {
       const uid = String(row.formNo || row.id || '');
-      // Daha önce aynı otonom arıza kayıtlara eklenmemişse ekle
       const zatenVar = kayitlar.some(k => k.kayitKaynagi === 'OTONOM' && k.otonomFormNo === uid);
       if (!zatenVar) {
         const arizaKayit = {
           id: Date.now() + Math.floor(Math.random() * 9999),
-          formNo: '',        // Bakım modülü kayıt alırken kendi formNo'sunu üretecek
+          formNo: '',
           islem: 'ARIZA KAYDI',
           bolum: row.bolum || row.makine || '—',
           makine: row.makine || '—',
@@ -4647,8 +4675,8 @@ async function otonomArizaKontrolEt() {
           riskSeviye: 'ORTA',
           yapilan: '',
           bakimci: '',
-          kayitKaynagi: 'OTONOM',   // kaynak işareti
-          otonomFormNo: uid,         // duplicate kontrolü için
+          kayitKaynagi: 'OTONOM',
+          otonomFormNo: uid,
           kayitZaman: new Date().toISOString()
         };
         kayitlar.push(arizaKayit);
@@ -4666,6 +4694,8 @@ async function otonomArizaKontrolEt() {
       if (tab) { tab.classList.add('zil-animasyon'); setTimeout(() => tab.classList.remove('zil-animasyon'), 1500); }
       renderBildirimler();
       showToast('🔴 ' + eklenen + ' yeni Otonom Bakım arızası bildirildi!', 'err');
+    } else {
+      renderBildirimler();
     }
   } catch(e) { console.warn('Otonom arıza kontrol hatası:', e); }
 }
@@ -4679,6 +4709,17 @@ function otonomArizaOzeti(row) {
   return ozet;
 }
 
+// ── YENİ: Otonom bildirimi işleme alma / kapatma ─────────────
+async function otonomBildirimIslemeAl(formNo, personel) {
+  await gsRequest({ action: 'otonomFormKapat', formNo: formNo, personel: personel || '' });
+  // gsRequest no-cors olduğu için sonucu doğrulayamıyoruz, iyimser güncelleme yapıyoruz
+  kayitlar = kayitlar.filter(k => !(k.kayitKaynagi === 'OTONOM' && k.otonomFormNo === formNo));
+  const gorulduler = otonomGorulduYukle();
+  gorulduler.add(formNo);
+  otonomGorulduKaydet(gorulduler);
+  renderBildirimler();
+  showToast('✓ Otonom bakım bildirimi işleme alındı', 'ok');
+}
 // ══════════════════════════════════════════════
 // PLANLI BAKIM SİSTEMİ
 // ══════════════════════════════════════════════
@@ -5413,7 +5454,12 @@ function islemAl(id) {
   goruldulerKaydet(g);
 
   _aktifBildirimKaynakId = String(id);
-
+    
+if (k.kayitKaynagi === 'OTONOM') {
+    gsRequest({ action: 'otonomFormKapat', formNo: k.otonomFormNo, personel: currentUser });
+  } else {
+    gsRequest({ action: 'islemeAl', arizaId: k.id, personel: currentUser });
+  }
   // Formu doldur (mevcut mantık)
   const islemBtns = document.querySelectorAll('.islem-btn');
   islemBtns.forEach(btn => {
