@@ -4529,12 +4529,11 @@ function gorulduYap(id) {
 
 function tumunuGorulduYap() {
   const g = goruldulerYukle();
-  kayitlar.filter(k => k.islem === 'ARIZA KAYDI').forEach(k => g.add(String(k.id)));
+  kayitlar.filter(k => k.islem === 'ARIZA KAYDI' && k.durum === 'BEKLIYOR').forEach(k => g.add(String(k.id)));
   goruldulerKaydet(g);
   renderBildirimler();
   showToast('✓ Tüm bildirimler okundu sayıldı.', 'ok');
 }
-
 async function bildirimKontrolEt() {
   try {
     const json = await gsGet();
@@ -4564,17 +4563,16 @@ async function bildirimKontrolEt() {
       kayitlar = yeniKayitlar;
       renderBildirimler();
     }
-    yeniKayitlar.filter(k => k.islem === 'ARIZA KAYDI').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+    yeniKayitlar.filter(k => k.islem === 'ARIZA KAYDI' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   } catch(e) {}
 }
 
 function bildirimleriBaslat() {
-  kayitlar.filter(k => k.islem === 'ARIZA KAYDI').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+  kayitlar.filter(k => k.islem === 'ARIZA KAYDI' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   renderBildirimler();
   if (bildirimInterval) clearInterval(bildirimInterval);
   bildirimInterval = setInterval(bildirimKontrolEt, 30000);
-  // Otonom bakım arızalarını da 45 sn'de bir kontrol et
-  otonomArizaKontrolEt(); // ilk çekimi hemen yap
+  otonomArizaKontrolEt();
   setInterval(otonomArizaKontrolEt, 45000);
 }
 
