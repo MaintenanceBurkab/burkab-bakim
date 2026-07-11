@@ -3848,10 +3848,13 @@ let liveInterval = null;
 
 function startLiveDashboard() {
   liveVeriCek();
-  if (liveInterval) clearInterval(liveInterval);
+
+  if (liveInterval) {
+    clearInterval(liveInterval);
+  }
+
   liveInterval = setInterval(liveVeriCek, 5 * 60 * 1000);
 }
-
 async function liveVeriCek() {
   try {
     const json = await gsGet();
