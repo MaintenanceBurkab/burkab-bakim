@@ -4921,7 +4921,11 @@ function planKaydet() {
         // Makine
         const makineEl = document.getElementById('makine');
         if (makineEl) makineEl.value = plan.makine;
-
+        
+        // formNo'yu da koru
+        const formNoInp = document.getElementById('formNo');
+        if (formNoInp && k.formNo) formNoInp.value = k.formNo;
+        
         // Konu
         const konuEl = document.getElementById('konu');
         if (konuEl) konuEl.value = plan.gorev;
@@ -5431,7 +5435,26 @@ function islemAl(id) {
 
   document.body.appendChild(modal);
 }
-  function islemAlOnayla(id) {
+  function tarihSaatAyir(isoString) {
+  if (!isoString) return { tarih: '', saat: '' };
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return { tarih: '', saat: '' };
+    const opts = { timeZone: 'Europe/Istanbul' };
+    const gun = new Intl.DateTimeFormat('en-CA', {...opts, year:'numeric', month:'2-digit', day:'2-digit'}).format(d); // YYYY-MM-DD
+    const saat = new Intl.DateTimeFormat('tr-TR', {...opts, hour:'2-digit', minute:'2-digit', hour12:false}).format(d); // HH:MM
+    return { tarih: gun, saat: saat };
+  } catch(e) {
+    return { tarih: '', saat: '' };
+  }
+}
+
+function suankiSaat() {
+  const opts = { timeZone: 'Europe/Istanbul', hour:'2-digit', minute:'2-digit', hour12:false };
+  return new Intl.DateTimeFormat('tr-TR', opts).format(new Date());
+}
+
+function islemAlOnayla(id) {
   const modal = document.getElementById('islemAlModal');
   if (modal) modal.remove();
 
@@ -5446,12 +5469,13 @@ function islemAl(id) {
   goruldulerKaydet(g);
 
   _aktifBildirimKaynakId = String(id);
-    
-if (k.kayitKaynagi === 'OTONOM') {
+
+  if (k.kayitKaynagi === 'OTONOM') {
     gsRequest({ action: 'otonomFormKapat', formNo: k.otonomFormNo, personel: currentUser });
   } else {
     gsRequest({ action: 'islemeAl', arizaId: k.id, personel: currentUser });
   }
+
   // Formu doldur (mevcut mantık)
   const islemBtns = document.querySelectorAll('.islem-btn');
   islemBtns.forEach(btn => {
@@ -5468,6 +5492,10 @@ if (k.kayitKaynagi === 'OTONOM') {
     const makineInp = document.getElementById('makine');
     if (makineInp && k.makine) makineInp.value = k.makine;
 
+    // ★ YENİ: formNo'yu koru — yeni formNo üretilmesin
+    const formNoInp = document.getElementById('formNo');
+    if (formNoInp && k.formNo) formNoInp.value = k.formNo;
+
     const bildirenInp = document.getElementById('bildiren');
     if (bildirenInp && k.bildiren) bildirenInp.value = k.bildiren;
 
@@ -5477,11 +5505,18 @@ if (k.kayitKaynagi === 'OTONOM') {
       aiCheckArizaBtn();
     }
 
+    // ★ DEĞİŞTİ: tarihBas ve arizaBas artık bildirimin geldiği zamandan otomatik geliyor
+    const bildirimZaman = tarihSaatAyir(k.kayitZaman);
+
     const tarihBasInp = document.getElementById('tarihBas');
-    if (tarihBasInp && k.tarihBas) tarihBasInp.value = k.tarihBas;
+    if (tarihBasInp && bildirimZaman.tarih) tarihBasInp.value = bildirimZaman.tarih;
 
     const arizaBasInp = document.getElementById('arizaBas');
-    if (arizaBasInp && k.arizaBas) arizaBasInp.value = k.arizaBas;
+    if (arizaBasInp && bildirimZaman.saat) arizaBasInp.value = bildirimZaman.saat;
+
+    // ★ YENİ: onarimBas = şu anki saat (bildirim bakım kaydına dönüştürülme anı)
+    const onarimBasInp = document.getElementById('onarimBas');
+    if (onarimBasInp) onarimBasInp.value = suankiSaat();
 
     if (k.arizaTuru) {
       const aturBtn = [...document.querySelectorAll('.atur-btn')].find(b => b.dataset.v === k.arizaTuru);
