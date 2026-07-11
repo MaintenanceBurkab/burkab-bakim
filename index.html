@@ -3652,7 +3652,7 @@ function buildDash() {
       if (c) { const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }
     });
     document.getElementById('makineKartGrid').innerHTML = '<div class="empty">Henüz veri yok</div>';
-    document.getElementById('makineTableBody').innerHTML = '<tr><td colspan="8" class="empty">Henüz veri yok</td></tr>';
+    document.getElementById('makineTableBody').innerHTML = '<tr><td colspan="9" class="empty">Henüz veri yok</td></tr>';
     return;
   }
 
@@ -4060,7 +4060,7 @@ function _renderUretim() {
   if (arizaBody) {
     const gorunen = bugunKayit.filter(k=>k.islem==='ARIZA KAYDI'||k.durusEtkisi==='TAM DURUŞ'||k.durusEtkisi==='KISMİ DURUŞ');
     if (!gorunen.length) {
-      arizaBody.innerHTML = '<tr><td colspan="8" class="empty">🎉 Bugün arıza / duruş kaydı yok!</td></tr>';
+      arizaBody.innerHTML = '<tr><td colspan="9" class="empty">🎉 Bugün arıza / duruş kaydı yok!</td></tr>';
     } else {
       arizaBody.innerHTML = gorunen.map(k => {
         const durusRenk = k.durusEtkisi==='TAM DURUŞ'?'#d32f2f':k.durusEtkisi==='KISMİ DURUŞ'?'#e65100':'#00875a';
