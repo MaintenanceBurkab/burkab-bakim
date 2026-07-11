@@ -3838,6 +3838,11 @@ if (islem === 'ARIZA KAYDI') {
       '<td><span class="durum-badge ' + durumClass + '">' + durumText + '</span></td>' +
       '<td><button onclick="ekipmanKartModalAcDashboard(\'' +String(mak).replace(/'/g, "\\'") +'\',\'' +String(bolum).replace(/'/g, "\\'") +'\')" style="background:rgba(0,77,64,.1);border:1px solid rgba(0,77,64,.3);border-radius:5px;color:#004d40;cursor:pointer;padding:4px 10px;font-size:11px;font-weight:700">📋 Kart</button></td>' +
 
+  '</tr>';
+
+  }).join('') ||
+    '<tr><td colspan="9" class="empty">Henüz makine kaydı yok</td></tr>';
+
   renderRiskAksiyonOzet(veri); /* IATF 4.4 */
 }
 
