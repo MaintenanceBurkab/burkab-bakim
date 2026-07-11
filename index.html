@@ -3612,7 +3612,9 @@ function parseTutar(str) {
 function buildDash() {
   const veri   = filtreliVeri();
   const total  = veri.length;
-  const arizaV = veri.filter(k => uretimTalebiMi(k) &&);
+  const arizaV = veri.filter(k =>
+  String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
+);
   const sureler = veri.map(k => {
     const m = typeof k.sure === 'number' ? k.sure : parseInt(k.sure);
     return isNaN(m) ? 0 : m;
@@ -3660,11 +3662,15 @@ function buildDash() {
   veri.forEach(k => {
     if (!k.tarihBas) return;
     const d = new Date(k.tarihBas);
-    const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    if (!ayMap[ay]) ayMap[ay] = {ariza:0, bakim:0};
-    if (uretimTalebiMi(k) &&) ayMap[ay].ariza++;
-    else ayMap[ay].bakim++;
-  });
+    if (!ayMap[ay]) ayMap[ay] = { ariza: 0, bakim: 0 };
+
+const islem = String(k.islem || '').trim().toUpperCase();
+
+if (islem === 'ARIZA KAYDI') {
+  ayMap[ay].ariza++;
+} else if (islem.includes('BAKIM')) {
+  ayMap[ay].bakim++;
+}
   const aylar = Object.keys(ayMap).sort();
   const ctx1 = document.getElementById('chartTrend')?.getContext('2d');
   if (ctx1 && aylar.length) {
@@ -3884,7 +3890,9 @@ function _renderUretim() {
   const simdi      = new Date();
   const bugun      = simdi.toISOString().split('T')[0];
   const bugunKayit = kayitlar.filter(k => k.tarihBas === bugun);
-  const arizali    = bugunKayit.filter(k => uretimTalebiMi(k) &&);
+  const arizali = bugunKayit.filter(k =>
+  String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
+);
   const kritik     = arizali.filter(k => k.riskSeviye === 'KRİTİK' || k.riskSeviye === 'YÜKSEK');
   const duran      = bugunKayit.filter(k => k.durusEtkisi === 'TAM DURUŞ');
   const toplamSure = bugunKayit.reduce((a,k)=>a+(parseInt(k.sure)||0),0);
@@ -4119,12 +4127,16 @@ function _renderUretim() {
       if (!k.makine) return;
       if (!tumMakMap[k.makine]) tumMakMap[k.makine] = { bolum: k.bolum||'—', arizalar:[], sureler:[], kayitlar:[] };
       tumMakMap[k.makine].kayitlar.push(k);
-      if (uretimTalebiMi(k) &&) {
-        tumMakMap[k.makine].arizalar.push(k);
-        const s = parseInt(k.sure)||0;
-        if (s) tumMakMap[k.makine].sureler.push(s);
-      }
-    });
+      const islem = String(k.islem || '').trim().toUpperCase();
+
+if (islem === 'ARIZA KAYDI') {
+  tumMakMap[k.makine].arizalar.push(k);
+
+  const s = parseInt(k.sure, 10) || 0;
+  if (s > 0) {
+    tumMakMap[k.makine].sureler.push(s);
+  }
+}
 
     const makList = Object.entries(tumMakMap)
       .map(([mak, d]) => {
@@ -4550,9 +4562,14 @@ function gorulduYap(id) {
 
 function tumunuGorulduYap() {
   const g = goruldulerYukle();
-  kayitlar.filter(k => uretimTalebiMi(k) && k.durum === 'BEKLIYOR').forEach(k => g.add(String(k.id)));
+
+  kayitlar
+    .filter(k => uretimTalebiMi(k))
+    .forEach(k => g.add(String(k.id)));
+
   goruldulerKaydet(g);
   renderBildirimler();
+
   showToast('✓ Tüm bildirimler okundu sayıldı.', 'ok');
 }
 async function bildirimKontrolEt() {
@@ -7881,7 +7898,11 @@ function aiRaporGetKey() {
 function aiRaporVeriOzetle() {
   var veri = (typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []);
   var total = veri.length;
-  var arizaV = veri.filter(function(k){ return uretimTalebiMi(k) &&; });
+  var arizaV = veri.filter(function(k) {
+  return String(k.islem || '')
+    .trim()
+    .toUpperCase() === 'ARIZA KAYDI';
+});
   var sureler = veri.map(function(k){ return parseInt(k.sure)||0; }).filter(function(s){ return s>0; });
   var mttr = sureler.length ? Math.round(sureler.reduce(function(a,b){return a+b;},0)/sureler.length) : 0;
   var bolumC = {};
