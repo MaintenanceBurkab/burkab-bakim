@@ -2674,14 +2674,7 @@ window.addEventListener('beforeunload', e => {
 // ══════════════════════════════════════════════
 const GS_URL = 'https://script.google.com/macros/s/AKfycbxMvsbGS0IrqJo4xScv7BoQRIXUt19gXVX-SqAwoczq0FkPc8gt6M-tqHCBn06N9ms/exec';
 
-const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje',
-              'mdNo','revNo',
-              'arizaTuru','arizaKodu','konu','tarihBas','tarihBit',
-              'arizaBas','onarimBas','onarimBit','arizaBit','sure',
-              'bakimci','kalite','yapilan','riskSeviye',
-              'cozumSure',
-              'durusEtkisi','parcalar','toplamMaliyet','teminDurumu',
-              'riskAksiyon'  /* IATF 4.4 — Risk bazlı düşünme (JSON) */]
+const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje','mdNo','revNo','arizaTuru','arizaKodu','konu','tarihBas','tarihBit','arizaBas','onarimBas','onarimBit','arizaBit','sure','bakimci','kalite','yapilan','riskSeviye','cozumSure','durusEtkisi','parcalar','toplamMaliyet','teminDurumu','riskAksiyon','kayitYapan','kayitZaman','durum','islemeAlan','islemeAlmaZamani'];
 
 let kayitlar = [];
 let sayac = {};
