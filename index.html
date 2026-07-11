@@ -3662,7 +3662,7 @@ function buildDash() {
     const d = new Date(k.tarihBas);
     const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     if (!ayMap[ay]) ayMap[ay] = {ariza:0, bakim:0};
-    if (uretimTalebiMi(k) &&') ayMap[ay].ariza++;
+    if (uretimTalebiMi(k) &&) ayMap[ay].ariza++;
     else ayMap[ay].bakim++;
   });
   const aylar = Object.keys(ayMap).sort();
@@ -3884,7 +3884,7 @@ function _renderUretim() {
   const simdi      = new Date();
   const bugun      = simdi.toISOString().split('T')[0];
   const bugunKayit = kayitlar.filter(k => k.tarihBas === bugun);
-  const arizali    = bugunKayit.filter(k => uretimTalebiMi(k) &&');
+  const arizali    = bugunKayit.filter(k => uretimTalebiMi(k) &&);
   const kritik     = arizali.filter(k => k.riskSeviye === 'KRİTİK' || k.riskSeviye === 'YÜKSEK');
   const duran      = bugunKayit.filter(k => k.durusEtkisi === 'TAM DURUŞ');
   const toplamSure = bugunKayit.reduce((a,k)=>a+(parseInt(k.sure)||0),0);
@@ -4119,7 +4119,7 @@ function _renderUretim() {
       if (!k.makine) return;
       if (!tumMakMap[k.makine]) tumMakMap[k.makine] = { bolum: k.bolum||'—', arizalar:[], sureler:[], kayitlar:[] };
       tumMakMap[k.makine].kayitlar.push(k);
-      if (uretimTalebiMi(k) &&') {
+      if (uretimTalebiMi(k) &&) {
         tumMakMap[k.makine].arizalar.push(k);
         const s = parseInt(k.sure)||0;
         if (s) tumMakMap[k.makine].sureler.push(s);
