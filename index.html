@@ -3612,7 +3612,7 @@ function parseTutar(str) {
 function buildDash() {
   const veri   = filtreliVeri();
   const total  = veri.length;
-  const arizaV = veri.filter(k => k.islem === 'ARIZA KAYDI');
+  const arizaV = veri.filter(k => uretimTalebiMi(k) &&);
   const sureler = veri.map(k => {
     const m = typeof k.sure === 'number' ? k.sure : parseInt(k.sure);
     return isNaN(m) ? 0 : m;
@@ -3662,7 +3662,7 @@ function buildDash() {
     const d = new Date(k.tarihBas);
     const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     if (!ayMap[ay]) ayMap[ay] = {ariza:0, bakim:0};
-    if (k.islem === 'ARIZA KAYDI') ayMap[ay].ariza++;
+    if (uretimTalebiMi(k) &&') ayMap[ay].ariza++;
     else ayMap[ay].bakim++;
   });
   const aylar = Object.keys(ayMap).sort();
@@ -3884,7 +3884,7 @@ function _renderUretim() {
   const simdi      = new Date();
   const bugun      = simdi.toISOString().split('T')[0];
   const bugunKayit = kayitlar.filter(k => k.tarihBas === bugun);
-  const arizali    = bugunKayit.filter(k => k.islem === 'ARIZA KAYDI');
+  const arizali    = bugunKayit.filter(k => uretimTalebiMi(k) &&');
   const kritik     = arizali.filter(k => k.riskSeviye === 'KRİTİK' || k.riskSeviye === 'YÜKSEK');
   const duran      = bugunKayit.filter(k => k.durusEtkisi === 'TAM DURUŞ');
   const toplamSure = bugunKayit.reduce((a,k)=>a+(parseInt(k.sure)||0),0);
@@ -4119,7 +4119,7 @@ function _renderUretim() {
       if (!k.makine) return;
       if (!tumMakMap[k.makine]) tumMakMap[k.makine] = { bolum: k.bolum||'—', arizalar:[], sureler:[], kayitlar:[] };
       tumMakMap[k.makine].kayitlar.push(k);
-      if (k.islem === 'ARIZA KAYDI') {
+      if (uretimTalebiMi(k) &&') {
         tumMakMap[k.makine].arizalar.push(k);
         const s = parseInt(k.sure)||0;
         if (s) tumMakMap[k.makine].sureler.push(s);
@@ -4439,7 +4439,20 @@ let bildirimInterval = null;
 let ilkYuklemeIDs = new Set();
 // Bildirimden işleme alınan kaydın orijinal id'si — kaydet() sonrası duplicate bildirimi engeller
 let _aktifBildirimKaynakId = null;
+const BILDIRIM_ISLEMLERI = new Set([
+  'ARIZA KAYDI',
+  'BAKIM KAYDI',
+  'REVİZYON',
+  'MONTAJ'
+]);
 
+function uretimTalebiMi(k) {
+  return BILDIRIM_ISLEMLERI.has(
+    String(k.islem || '').trim().toUpperCase()
+  ) &&
+  String(k.bildiren || '').toUpperCase().includes('(ÜRETİM)') &&
+  String(k.durum || 'BEKLIYOR').trim().toUpperCase() === 'BEKLIYOR';
+}
 function goruldulerYukle() {
   try { return new Set(JSON.parse(localStorage.getItem(BILDIRIM_KEY) || '[]')); } catch { return new Set(); }
 }
@@ -4470,7 +4483,7 @@ function renderBildirimler() {
   // sadece AÇIK durumdayken kayitlar dizisine ekleniyor, bu yüzden onlara
   // ayrıca durum kontrolü uygulamıyoruz.
   const arizalar = kayitlar.filter(k =>
-    k.islem === 'ARIZA KAYDI' &&
+   uretimTalebiMi(k) &&
     !gorulduler.has(String(k.id)) &&
     (k.kayitKaynagi === 'OTONOM' || k.durum === 'BEKLIYOR')
   );
@@ -4537,7 +4550,7 @@ function gorulduYap(id) {
 
 function tumunuGorulduYap() {
   const g = goruldulerYukle();
-  kayitlar.filter(k => k.islem === 'ARIZA KAYDI' && k.durum === 'BEKLIYOR').forEach(k => g.add(String(k.id)));
+  kayitlar.filter(k => uretimTalebiMi(k) && k.durum === 'BEKLIYOR').forEach(k => g.add(String(k.id)));
   goruldulerKaydet(g);
   renderBildirimler();
   showToast('✓ Tüm bildirimler okundu sayıldı.', 'ok');
@@ -4555,7 +4568,7 @@ async function bildirimKontrolEt() {
     });
     const gorulduler = goruldulerYukle();
     const yeniArizalar = yeniKayitlar.filter(k =>
-      k.islem === 'ARIZA KAYDI' &&
+      uretimTalebiMi(k) &&
       !gorulduler.has(String(k.id)) &&
       !ilkYuklemeIDs.has(String(k.id))
     );
@@ -4571,12 +4584,12 @@ async function bildirimKontrolEt() {
       kayitlar = yeniKayitlar;
       renderBildirimler();
     }
-    yeniKayitlar.filter(k => k.islem === 'ARIZA KAYDI' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+    yeniKayitlar.filter(k => uretimTalebiMi(k) &&' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   } catch(e) {}
 }
 
 function bildirimleriBaslat() {
-  kayitlar.filter(k => k.islem === 'ARIZA KAYDI' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+  kayitlar.filter(k => uretimTalebiMi(k) &&' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   renderBildirimler();
   if (bildirimInterval) clearInterval(bildirimInterval);
   bildirimInterval = setInterval(bildirimKontrolEt, 30000);
@@ -7868,7 +7881,7 @@ function aiRaporGetKey() {
 function aiRaporVeriOzetle() {
   var veri = (typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []);
   var total = veri.length;
-  var arizaV = veri.filter(function(k){ return k.islem === 'ARIZA KAYDI'; });
+  var arizaV = veri.filter(function(k){ return uretimTalebiMi(k) &&; });
   var sureler = veri.map(function(k){ return parseInt(k.sure)||0; }).filter(function(s){ return s>0; });
   var mttr = sureler.length ? Math.round(sureler.reduce(function(a,b){return a+b;},0)/sureler.length) : 0;
   var bolumC = {};
