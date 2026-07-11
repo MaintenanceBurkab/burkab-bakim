@@ -3662,15 +3662,17 @@ function buildDash() {
   veri.forEach(k => {
     if (!k.tarihBas) return;
     const d = new Date(k.tarihBas);
+    const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');   // ★ GERİ EKLENDİ
     if (!ayMap[ay]) ayMap[ay] = { ariza: 0, bakim: 0 };
 
-const islem = String(k.islem || '').trim().toUpperCase();
+    const islem = String(k.islem || '').trim().toUpperCase();
 
-if (islem === 'ARIZA KAYDI') {
-  ayMap[ay].ariza++;
-} else if (islem.includes('BAKIM')) {
-  ayMap[ay].bakim++;
-}
+    if (islem === 'ARIZA KAYDI') {
+      ayMap[ay].ariza++;
+    } else if (islem.includes('BAKIM')) {
+      ayMap[ay].bakim++;
+    }
+  });   // ★ GERİ EKLENDİ — forEach'i kapatıyor
   const aylar = Object.keys(ayMap).sort();
   const ctx1 = document.getElementById('chartTrend')?.getContext('2d');
   if (ctx1 && aylar.length) {
