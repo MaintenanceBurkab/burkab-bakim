@@ -3836,9 +3836,7 @@ if (islem === 'ARIZA KAYDI') {
       '<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px"><div class="avail-bar" style="flex:1"><div class="avail-fill" style="width:' + mAvail + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div><span style="font-weight:700;color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + ';min-width:42px">%' + mAvail + '</span></div></td>' +
       '<td style="font-family:\'IBM Plex Mono\',monospace;font-size:12px">' + sonAriza + '</td>' +
       '<td><span class="durum-badge ' + durumClass + '">' + durumText + '</span></td>' +
-      '<td><button ="ekipmanKartModalAcDashboard(\'' + mak.replace(/'/g,"\\'") + '\',\'' + bolum.replace(/'/g,"\\'") + '\')" style="background:rgba(0,77,64,.1);border:1px solid rgba(0,77,64,.3);border-radius:5px;color:#004d40;cursor:pointer;padding:4px 10px;font-size:11px;font-weight:700">📋 Kart</button></td>' +
-      '</tr>';
-  }).join('') || '<tr><td colspan="8" class="empty">Henüz makine kaydı yok</td></tr>';
+      '<td><button onclick="ekipmanKartModalAcDashboard(\'' +String(mak).replace(/'/g, "\\'") +'\',\'' +String(bolum).replace(/'/g, "\\'") +'\')" style="background:rgba(0,77,64,.1);border:1px solid rgba(0,77,64,.3);border-radius:5px;color:#004d40;cursor:pointer;padding:4px 10px;font-size:11px;font-weight:700">📋 Kart</button></td>' +
 
   renderRiskAksiyonOzet(veri); /* IATF 4.4 */
 }
