@@ -4544,12 +4544,14 @@ function renderBildirimler() {
         <span class="bk-oncelik ${acil?'acil':'normal'}">${etiket}</span>
       </div>
       ${otonomBadge ? `<div style="margin-bottom:8px;">${otonomBadge}</div>` : ''}
-      <div class="bk-detaylar">
+      
         <span>📍 ${k.bolum||'—'}</span>
         <span>👤 ${k.bildiren||'—'}</span>
         <span>📋 ${k.formNo||k.otonomFormNo||'—'}</span>
+        
       </div>
-      ${k.konu ? `<div class="bk-aciklama">"${k.konu}"</div>` : ''}
+     
+      ${k.konu ? `<div class="bk-aciklama">"${k.konu}"</div>` : ''} 
       <div class="bk-alt">
         <span class="bk-zaman">🕐 ${k.tarihBas||''} ${k.arizaBas||''}</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
