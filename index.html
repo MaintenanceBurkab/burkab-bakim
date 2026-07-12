@@ -4609,12 +4609,12 @@ async function bildirimKontrolEt() {
       kayitlar = yeniKayitlar;
       renderBildirimler();
     }
-    yeniKayitlar.filter(k => uretimTalebiMi(k) &&' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+    yeniKayitlar.filter(k => uretimTalebiMi(k) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   } catch(e) {}
 }
 
 function bildirimleriBaslat() {
-  kayitlar.filter(k => uretimTalebiMi(k) &&' && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+  kayitlar.filter(k => uretimTalebiMi(k) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   renderBildirimler();
   if (bildirimInterval) clearInterval(bildirimInterval);
   bildirimInterval = setInterval(bildirimKontrolEt, 30000);
