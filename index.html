@@ -4503,11 +4503,12 @@ function renderBildirimler() {
   // sadece AÇIK durumdayken kayitlar dizisine ekleniyor, bu yüzden onlara
   // ayrıca durum kontrolü uygulamıyoruz.
   const arizalar = kayitlar.filter(k =>
-   uretimTalebiMi(k) &&
-    !gorulduler.has(String(k.id)) &&
-    (k.kayitKaynagi === 'OTONOM' || k.durum === 'BEKLIYOR')
-  );
-
+  !gorulduler.has(String(k.id)) &&
+  (
+    k.kayitKaynagi === 'OTONOM' ||
+    (BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR')
+  )
+);
   const badge = document.getElementById('bildirimBadge');
   const liste = document.getElementById('bildirimListe');
   const baslik = document.getElementById('bildirimSayiBaslik');
@@ -4544,11 +4545,11 @@ function renderBildirimler() {
         <span class="bk-oncelik ${acil?'acil':'normal'}">${etiket}</span>
       </div>
       ${otonomBadge ? `<div style="margin-bottom:8px;">${otonomBadge}</div>` : ''}
-      
+      <div class="bk-detaylar">
         <span>📍 ${k.bolum||'—'}</span>
         <span>👤 ${k.bildiren||'—'}</span>
         <span>📋 ${k.formNo||k.otonomFormNo||'—'}</span>
-        
+        <span>🏷️ ${k.proje||'—'}</span>
       </div>
      
       ${k.konu ? `<div class="bk-aciklama">"${k.konu}"</div>` : ''} 
@@ -4574,8 +4575,8 @@ function tumunuGorulduYap() {
   const g = goruldulerYukle();
 
   kayitlar
-    .filter(k => uretimTalebiMi(k))
-    .forEach(k => g.add(String(k.id)));
+  .filter(k => BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR')
+  .forEach(k => g.add(String(k.id)));
 
   goruldulerKaydet(g);
   renderBildirimler();
@@ -4594,11 +4595,12 @@ async function bildirimKontrolEt() {
       return obj;
     });
     const gorulduler = goruldulerYukle();
-    const yeniArizalar = yeniKayitlar.filter(k =>
-      uretimTalebiMi(k) &&
-      !gorulduler.has(String(k.id)) &&
-      !ilkYuklemeIDs.has(String(k.id))
-    );
+   const yeniArizalar = yeniKayitlar.filter(k =>
+  BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) &&
+  k.durum === 'BEKLIYOR' &&
+  !gorulduler.has(String(k.id)) &&
+  !ilkYuklemeIDs.has(String(k.id))
+ );
     if (yeniArizalar.length > 0) {
       bildirimSesi();
       const tab = document.getElementById('bildirimTab');
@@ -4611,13 +4613,12 @@ async function bildirimKontrolEt() {
       kayitlar = yeniKayitlar;
       renderBildirimler();
     }
-    yeniKayitlar.filter(k => uretimTalebiMi(k) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
+    yeniKayitlar.filter(k => BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   } catch(e) {}
 }
 
 function bildirimleriBaslat() {
-  kayitlar.filter(k => uretimTalebiMi(k) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
-  renderBildirimler();
+  kayitlar.filter(k => BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
   if (bildirimInterval) clearInterval(bildirimInterval);
   bildirimInterval = setInterval(bildirimKontrolEt, 30000);
   otonomArizaKontrolEt();
