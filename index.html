@@ -3262,36 +3262,70 @@ if (!_aktifBildirimKaynakId) {
   sayac[p] = Math.max(sayac[p] || 0, no);
 }
 
-  const yeniKayit = {
-    // ★ DEĞİŞTİ: Bildirimden geliniyorsa (_aktifBildirimKaynakId doluysa) o ID kullanılır.
-    // Böylece Sheets'te YENİ satır değil, VAR OLAN satır güncellenir.
-    id: _aktifBildirimKaynakId ? _aktifBildirimKaynakId : Date.now(),
+ const yeniKayit = {
+  id: _aktifBildirimKaynakId
+    ? _aktifBildirimKaynakId
+    : Date.now(),
 
-    formNo: g('formNo'), islem: g('islem'),
-    bolum: g('bolum'), makine: g('makine'), bildiren: g('bildiren'),
-    proje: g('proje'), mdNo: g('mdNo'), revNo: g('revNo'),
-    arizaTuru: g('arizaTuru'), arizaKodu: g('arizaKodu'), konu: g('konu'),
-    tarihBas: g('tarihBas'), tarihBit: g('tarihBit'),
-    arizaBas: g('arizaBas'), onarimBas: g('onarimBas'),
-    onarimBit: g('onarimBit'), arizaBit: g('arizaBit'),
-    sure: parseInt(document.getElementById('sureBadge').dataset.dk || '0') || 0,
-    bakimci: g('bakimci'), kalite: g('kalite'), yapilan: g('yapilan'),
-    riskSeviye: g('riskSeviye'), durusEtkisi: g('durusEtkisi'),
-    parcalar: getParcaListesi(), toplamMaliyet: g('toplamMaliyet'),
-    teminDurumu: g('teminDurumu'),
-    riskAksiyon: getRiskAksiyonData(), /* IATF 4.4 */
-    kayitYapan: currentUser ? currentUser.name : 'Bilinmiyor',
-    kayitZaman: new Date().toISOString(),
+  formNo: g('formNo'),
+  islem: g('islem'),
+  bolum: g('bolum'),
+  makine: g('makine'),
+  bildiren: g('bildiren'),
+  proje: g('proje'),
+  mdNo: g('mdNo'),
+  revNo: g('revNo'),
+  arizaTuru: g('arizaTuru'),
+  arizaKodu: g('arizaKodu'),
+  konu: g('konu'),
+  tarihBas: g('tarihBas'),
+  tarihBit: g('tarihBit'),
+  arizaBas: g('arizaBas'),
+  onarimBas: g('onarimBas'),
+  onarimBit: g('onarimBit'),
+  arizaBit: g('arizaBit'),
 
-    // ★ YENİ: Bildirimden geliyorsa TAMAMLANDI, yeni bildirimse BEKLIYOR yazılır
-    durum: _aktifBildirimKaynakId
-  ? 'TAMAMLANDI'
-  : 'TAMAMLANDI',
+  sure:
+    parseInt(
+      document.getElementById('sureBadge')?.dataset?.dk || '0',
+      10
+    ) || 0,
 
-kayitKaynagi: _aktifBildirimKaynakId
-  ? 'URETIM_BILDIRIMI'
-  : 'MANUEL_BAKIM'
+  bakimci: g('bakimci'),
+  kalite: g('kalite'),
+  yapilan: g('yapilan'),
+  riskSeviye: g('riskSeviye'),
+  durusEtkisi: g('durusEtkisi'),
+  parcalar: getParcaListesi(),
+  toplamMaliyet: g('toplamMaliyet'),
+  teminDurumu: g('teminDurumu'),
+  riskAksiyon: getRiskAksiyonData(),
 
+  kayitYapan: currentUser
+    ? currentUser.name
+    : 'Bilinmiyor',
+
+  kayitZaman: new Date().toISOString(),
+
+  // Manuel bakım kaydı da, bildirimden tamamlanan kayıt da
+  // tekrar bildirim oluşturmamalı.
+  durum: 'TAMAMLANDI',
+
+  kayitKaynagi: _aktifBildirimKaynakId
+    ? 'URETIM_BILDIRIMI'
+    : 'MANUEL_BAKIM'
+}; // ← NESNE BURADA KAPANMALI
+
+// Aynı ID varsa güncelle, yoksa ekle
+const mevcutIndex = kayitlar.findIndex(
+  x => String(x.id) === String(yeniKayit.id)
+);
+
+if (mevcutIndex >= 0) {
+  kayitlar[mevcutIndex] = yeniKayit;
+} else {
+  kayitlar.push(yeniKayit);
+}
   // ★ DEĞİŞTİ: push yerine — aynı ID varsa güncelle, yoksa ekle
   const mevcutIndex = kayitlar.findIndex(x => String(x.id) === String(yeniKayit.id));
   if (mevcutIndex >= 0) {
