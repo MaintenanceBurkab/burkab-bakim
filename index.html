@@ -3284,8 +3284,13 @@ if (!_aktifBildirimKaynakId) {
     kayitZaman: new Date().toISOString(),
 
     // ★ YENİ: Bildirimden geliyorsa TAMAMLANDI, yeni bildirimse BEKLIYOR yazılır
-    durum: _aktifBildirimKaynakId ? 'TAMAMLANDI' : (g('islem') === 'ARIZA KAYDI' ? 'BEKLIYOR' : '')
-  };
+    durum: _aktifBildirimKaynakId
+  ? 'TAMAMLANDI'
+  : 'TAMAMLANDI',
+
+kayitKaynagi: _aktifBildirimKaynakId
+  ? 'URETIM_BILDIRIMI'
+  : 'MANUEL_BAKIM'
 
   // ★ DEĞİŞTİ: push yerine — aynı ID varsa güncelle, yoksa ekle
   const mevcutIndex = kayitlar.findIndex(x => String(x.id) === String(yeniKayit.id));
