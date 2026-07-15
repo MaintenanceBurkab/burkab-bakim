@@ -4801,7 +4801,7 @@ async function gsPlanlarYukle() {
       gorev: row.gorev || '',
       bakimci: row.bakimci || '',
       tarih: row.tarih || '',
-      periyot: row.periyod || row.periyot || '',
+      periyot: row.periyot || row.periyod || '',
       sure: parseInt(row.sure, 10) || 0,
       notlar: row.notlar || '',
       durum: row.durum || 'aktif',
@@ -4819,10 +4819,15 @@ async function gsPlanlarYukle() {
   }
 }
 
-function planiariBastalt() { /* alias */ }
-function planlariBastalt() {
+async function planlariBaslat() {
+  await gsPlanlarYukle();
+  renderPlanlar();
   planUyariKontrol();
 }
+
+// Eski yanlış çağrılar varsa sistemi bozmadan doğru fonksiyona yönlendir.
+function planiariBastalt() { return planlariBaslat(); }
+function planlariBastalt() { return planlariBaslat(); }
 
 function gunFarki(tarihStr) {
   const t = new Date(tarihStr); t.setHours(0,0,0,0);
@@ -4859,9 +4864,12 @@ function planModalAc() {
 function planModalKapat() {
   document.getElementById('planModal').classList.remove('open');
 }
-document.getElementById('planModal').addEventListener('click', function(e) {
-  if (e.target === this) planModalKapat();
-});
+const planModalEl = document.getElementById('planModal');
+if (planModalEl) {
+  planModalEl.addEventListener('click', function(e) {
+    if (e.target === this) planModalKapat();
+  });
+}
 
 function planBolumDegis() {
   const v = document.getElementById('planBolum').value;
@@ -4893,7 +4901,7 @@ async function planKaydet() {
     gorev,
     bakimci,
     tarih,
-    periyod: document.getElementById('planPeriyot').value || '',
+    periyot: document.getElementById('planPeriyot').value || '',
     sure: parseInt(document.getElementById('planSure').value, 10) || 0,
     notlar: document.getElementById('planNotlar').value.trim(),
     durum: 'aktif',
@@ -4909,7 +4917,7 @@ async function planKaydet() {
     if (sonuc?.id) yeni.id = String(sonuc.id);
 
     const planlar = planlarYukle();
-    planlar.push({ ...yeni, periyot: yeni.periyod });
+    planlar.push(yeni);
     planlarKaydet(planlar);
 
     planModalKapat();
@@ -4933,26 +4941,31 @@ async function planKaydet() {
   plan.tamamlayanKisi = currentUser ? currentUser.name : '—';
   plan.tamamlamaTarih = yerelYMD();
 
-  const periyotGun = {
-    gunluk: 1,
-    haftalik: 7,
-    '2haftalik': 14,
-    aylik: 30,
-    '3ay': 90
+  const periyotAyar = {
+    gunluk:     { gun: 1 },
+    haftalik:   { gun: 7 },
+    '2haftalik':{ gun: 14 },
+    aylik:      { ay: 1 },
+    '3ay':      { ay: 3 },
+    '6ay':      { ay: 6 },
+    yillik:     { yil: 1 }
   };
 
   try {
     showLoading(true);
-    await gsPlanlarKaydet({ ...plan, periyod: plan.periyot || plan.periyod || '' });
+    await gsPlanlarKaydet({ ...plan, periyod: plan.periyot || '' });
 
-    const gun = periyotGun[plan.periyot || plan.periyod];
-    if (gun) {
+    const ayar = periyotAyar[plan.periyot || plan.periyod || ''];
+    if (ayar) {
       const sonraki = new Date(plan.tarih + 'T00:00:00');
-      sonraki.setDate(sonraki.getDate() + gun);
+
+      if (ayar.yil) sonraki.setFullYear(sonraki.getFullYear() + ayar.yil);
+      else if (ayar.ay) sonraki.setMonth(sonraki.getMonth() + ayar.ay);
+      else if (ayar.gun) sonraki.setDate(sonraki.getDate() + ayar.gun);
 
       const yeniPlan = {
         ...plan,
-        id: String(Date.now()),
+        id: String(Date.now()) + '-P',
         tarih: yerelYMD(sonraki),
         durum: 'aktif',
         tamamlayanKisi: '',
@@ -4961,7 +4974,7 @@ async function planKaydet() {
         olusturmaTarih: yerelYMD()
       };
 
-      await gsPlanlarKaydet({ ...yeniPlan, periyod: yeniPlan.periyot || yeniPlan.periyod || '' });
+      await gsPlanlarKaydet({ ...yeniPlan, periyod: yeniPlan.periyot || '' });
       planlar.push(yeniPlan);
     }
 
@@ -5087,7 +5100,15 @@ function renderPlanlar() {
       else if (fark<=7)  { renk='#b8900a'; durumTxt='⏳ ' + fark + ' gün kaldı'; durumBg='#fffbe6'; durumColor='#b8900a'; }
       else               { renk='#0277bd'; durumTxt='📅 ' + fark + ' gün kaldı'; durumBg='#e3f2fd'; durumColor='#0277bd'; }
 
-      const _pEtiketler = {'gunluk':'🔁 GÜNLÜK','haftalik':'🔁 HAFTALIK','2haftalik':'🔁 2 HAFTALIK','aylik':'🔁 AYLIK','3ay':'🔁 3 AYLIK'};
+      const _pEtiketler = {
+        'gunluk':'🔁 GÜNLÜK',
+        'haftalik':'🔁 HAFTALIK',
+        '2haftalik':'🔁 2 HAFTALIK',
+        'aylik':'🔁 AYLIK',
+        '3ay':'🔁 3 AYLIK',
+        '6ay':'🔁 6 AYLIK',
+        'yillik':'🔁 YILLIK'
+      };
       const periyotEtiket = (p.periyot && _pEtiketler[p.periyot]) ? '<span style="background:#e3f2fd;color:#0277bd;border-radius:3px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px">' + _pEtiketler[p.periyot] + '</span>' : '';
 
       return `<div class="plan-kart" style="--pk-renk:${renk}">
@@ -5104,10 +5125,23 @@ function renderPlanlar() {
         <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:8px">📋 ${p.gorev}</div>
         ${p.notlar ? '<div style="font-size:12px;color:#666;background:#f7f5f0;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-style:italic">' + p.notlar + '</div>' : ''}
         <div class="plan-aksiyonlar">
-          <span class="plan-sonraki">${(() => { if (!p.periyot) return ''; const _pc={'gunluk':{gun:1},'haftalik':{gun:7},'2haftalik':{gun:14},'aylik':{ay:1},'3ay':{ay:3}}; const c=_pc[p.periyot]; if(!c) return ''; const d=new Date(p.tarih); if(c.ay) d.setMonth(d.getMonth()+c.ay); else d.setDate(d.getDate()+c.gun); return '🔄 Sonraki: '+d.toISOString().split('T')[0]; })()}</span>
+          <span class="plan-sonraki">${(() => {
+            if (!p.periyot) return '';
+            const _pc = {
+              gunluk:{gun:1}, haftalik:{gun:7}, '2haftalik':{gun:14},
+              aylik:{ay:1}, '3ay':{ay:3}, '6ay':{ay:6}, yillik:{yil:1}
+            };
+            const c = _pc[p.periyot];
+            if (!c) return '';
+            const d = new Date(p.tarih + 'T00:00:00');
+            if (c.yil) d.setFullYear(d.getFullYear() + c.yil);
+            else if (c.ay) d.setMonth(d.getMonth() + c.ay);
+            else d.setDate(d.getDate() + c.gun);
+            return '🔄 Sonraki: ' + yerelYMD(d);
+          })()}</span>
           <div style="display:flex;gap:8px">
-            <button class="btn-plan-tamamla" ="planTamamla(${p.id})">✓ Tamamlandı</button>
-            <button class="btn-plan-sil" ="planSil(${p.id})">🗑️</button>
+            <button class="btn-plan-tamamla" onclick="planTamamla(${JSON.stringify(String(p.id))})">✓ Tamamlandı</button>
+            <button class="btn-plan-sil" onclick="planSil(${JSON.stringify(String(p.id))})">🗑️</button>
           </div>
         </div>
       </div>`;
@@ -5169,7 +5203,7 @@ function renderTakvim() {
       else if (fark <= 7)         cls += ' uyari-7';
       else                        cls += ' plan-var';
     }
-    if (!aktif.length && fark < 0 && gunPlanlar.filter(p=>p.durum!=='tamamlandi').length) cls += ' gecmis-plan';
+    if (aktif.length && fark < 0) cls += ' gecmis-plan';
 
     const tooltip = gunPlanlar.length ? gunPlanlar.map(p => p.makine + ': ' + p.gorev).join('\n') : '';
     html += `<div class="${cls}" title="${tooltip}">
@@ -5187,7 +5221,6 @@ function takvimAyDegis(yon) {
   if (takvimAy < 0)  { takvimAy = 11; takvimYil--; }
   renderTakvim();
 }
-
 // ══════════════════════════════════════════════
 // BURKAB — AI ASİSTAN MODÜLÜ
 // ══════════════════════════════════════════════
