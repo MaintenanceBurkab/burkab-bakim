@@ -2684,30 +2684,74 @@ function kayitAcikMi(k) {
   if (['BEKLIYOR','ISLEME_ALINDI','İŞLEME_ALINDI','ACIK','ÇALIŞIYOR'].includes(d)) return true;
   return !String(k?.tarihBit || '').trim();
 }
-
 function gsRequest(payload, options = {}) {
   return new Promise((resolve, reject) => {
-    const cb = 'gs_req_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const cb = 'gs_req_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
     const script = document.createElement('script');
     let done = false;
-    const timer = setTimeout(() => finish(new Error('Google Sheets yanıt zaman aşımı')), 15000);
+
+    function gecikmeliTemizle(ms) {
+      setTimeout(() => {
+        try {
+          if (script.parentNode) script.remove();
+          delete window[cb];
+        } catch (e) {}
+      }, ms);
+    }
 
     function finish(err, data) {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      try { delete window[cb]; } catch {}
+
+      if (err) {
+        // Timeout sonrasında geç gelen JSONP cevabı ReferenceError üretmesin.
+        window[cb] = function () {};
+        gecikmeliTemizle(120000);
+        reject(err);
+        return;
+      }
+
+      // Başarılı cevap geldi; script kaldırılabilir.
       if (script.parentNode) script.remove();
-      if (err) reject(err); else resolve(data);
+      resolve(data);
+
+      // Olası mükerrer/gecikmiş çağrılar için callback'i hemen silme.
+      setTimeout(() => {
+        try { delete window[cb]; } catch (e) {}
+      }, 60000);
     }
 
+    const timer = setTimeout(() => {
+      finish(new Error('Google Sheets yanıt zaman aşımı'));
+    }, Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 60000);
+
     const body = { ...(payload || {}) };
-    if (!options.skipAuth && currentUser?.token && !body.authToken) body.authToken = currentUser.token;
-    if (currentUser) body.auth = { username:currentUser.username, name:currentUser.name, role:currentUser.role };
+
+    if (!options.skipAuth && typeof currentUser !== 'undefined' && currentUser?.token && !body.authToken) {
+      body.authToken = currentUser.token;
+    }
+
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      body.auth = {
+        username: currentUser.username,
+        name: currentUser.name,
+        role: currentUser.role
+      };
+    }
 
     window[cb] = data => finish(null, data);
-    script.onerror = () => finish(new Error('Google Sheets bağlantı hatası'));
-    script.src = GS_URL + '?callback=' + encodeURIComponent(cb) + '&payload=' + encodeURIComponent(JSON.stringify(body));
+
+    script.onerror = () => {
+      finish(new Error('Google Sheets bağlantı hatası'));
+    };
+
+    script.src = GS_URL
+      + '?callback=' + encodeURIComponent(cb)
+      + '&payload=' + encodeURIComponent(JSON.stringify(body))
+      + '&_t=' + Date.now();
+
+    script.async = true;
     document.head.appendChild(script);
   });
 }
