@@ -3209,7 +3209,11 @@ async function kaydet() {
   const g = id => document.getElementById(id)?.value?.trim() || '';
   const pre = {'ARIZA KAYDI':'A','BAKIM KAYDI':'B','MONTAJ':'M','REVİZYON':'R','PLANLI BAKIM':'P','SERVİS BAKIM':'S'};
   const p = pre[g('islem')] || 'X';
-  sayac[p] = (sayac[p] || 0) + 1;
+  // Sadece manuel olarak oluşturulan yeni kayıtta sayacı ilerlet
+if (!_aktifBildirimKaynakId) {
+  const no = parseInt(g('formNo').replace(/\D/g, ''), 10) || 0;
+  sayac[p] = Math.max(sayac[p] || 0, no);
+}
 
   const yeniKayit = {
     // ★ DEĞİŞTİ: Bildirimden geliniyorsa (_aktifBildirimKaynakId doluysa) o ID kullanılır.
