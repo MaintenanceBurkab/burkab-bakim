@@ -3285,11 +3285,10 @@ if (!_aktifBildirimKaynakId) {
   onarimBit: g('onarimBit'),
   arizaBit: g('arizaBit'),
 
-  sure:
-    parseInt(
-      document.getElementById('sureBadge')?.dataset?.dk || '0',
-      10
-    ) || 0,
+  sure: parseInt(
+    document.getElementById('sureBadge')?.dataset?.dk || '0',
+    10
+  ) || 0,
 
   bakimci: g('bakimci'),
   kalite: g('kalite'),
@@ -3307,14 +3306,14 @@ if (!_aktifBildirimKaynakId) {
 
   kayitZaman: new Date().toISOString(),
 
-  // Manuel bakım kaydı da, bildirimden tamamlanan kayıt da
-  // tekrar bildirim oluşturmamalı.
+  // Manuel bakım kaydı ve bildirimden tamamlanan kayıt
+  // yeniden bildirim oluşturmamalı.
   durum: 'TAMAMLANDI',
 
   kayitKaynagi: _aktifBildirimKaynakId
     ? 'URETIM_BILDIRIMI'
     : 'MANUEL_BAKIM'
-}; // ← NESNE BURADA KAPANMALI
+};
 
 // Aynı ID varsa güncelle, yoksa ekle
 const mevcutIndex = kayitlar.findIndex(
@@ -3326,50 +3325,86 @@ if (mevcutIndex >= 0) {
 } else {
   kayitlar.push(yeniKayit);
 }
-  // ★ DEĞİŞTİ: push yerine — aynı ID varsa güncelle, yoksa ekle
-  const mevcutIndex = kayitlar.findIndex(x => String(x.id) === String(yeniKayit.id));
-  if (mevcutIndex >= 0) {
-    kayitlar[mevcutIndex] = yeniKayit;
-  } else {
-    kayitlar.push(yeniKayit);
+
+if (!isOnline) {
+  if (idbDB) {
+    await idbPut(yeniKayit);
+    pendingCount++;
+    setSyncUI(
+      'offline',
+      'İnternet yok — ' + pendingCount + ' kayıt bekliyor'
+    );
   }
 
-  if (!isOnline) {
-    if (idbDB) { await idbPut(yeniKayit); pendingCount++; setSyncUI('offline', 'İnternet yok — ' + pendingCount + ' kayıt bekliyor'); }
-    await saveData();
-    showToast('📴 Çevrimdışı — kayıt cihazda saklandı, internet gelince gönderilecek.', '');
-  } else {
-    try {
-      showLoading(true);
-      if (_aktifBildirimKaynakId) {
-        await gsBakimTamamlaKaydet(yeniKayit);
-      } else {
-        await gsKaydet(yeniKayit);
+  await saveData();
+
+  showToast(
+    '📴 Çevrimdışı — kayıt cihazda saklandı, internet gelince gönderilecek.',
+    ''
+  );
+
+} else {
+  try {
+    showLoading(true);
+
+    if (_aktifBildirimKaynakId) {
+      await gsBakimTamamlaKaydet(yeniKayit);
+    } else {
+      const sonuc = await gsKaydet(yeniKayit);
+
+      if (sonuc?.formNo) {
+        yeniKayit.formNo = sonuc.formNo;
       }
-      await saveData();
-      setSyncUI('online', "Kayıt Google Sheets'e gönderildi ✓");
-      setTimeout(() => setSyncUI('hidden'), 3000);
-    } catch(e) {
-      if (idbDB) { await idbPut(yeniKayit); pendingCount++; }
-      setSyncUI('offline', 'Sheets hatası — ' + pendingCount + ' kayıt bekliyor');
-      showToast('⚠️ Sheets bağlantı hatası, kayıt cihazda bekliyor.', 'err');
-    } finally {
-      showLoading(false);
     }
+
+    await saveData();
+
+    setSyncUI(
+      'online',
+      "Kayıt Google Sheets'e gönderildi ✓"
+    );
+
+    setTimeout(
+      () => setSyncUI('hidden'),
+      3000
+    );
+
+  } catch (e) {
+    if (idbDB) {
+      await idbPut(yeniKayit);
+      pendingCount++;
+    }
+
+    setSyncUI(
+      'offline',
+      'Sheets hatası — ' + pendingCount + ' kayıt bekliyor'
+    );
+
+    showToast(
+      '⚠️ Sheets bağlantı hatası, kayıt cihazda bekliyor.',
+      'err'
+    );
+
+  } finally {
+    showLoading(false);
   }
-
-  refreshAllDatalist();
-
-  // Bildirimden işleme alınan kayıt — kaynak referansını temizle
-  // (aynı ID kullanıldığı için ayrıca goruldulere eklemeye gerek kalmadı)
-  if (_aktifBildirimKaynakId !== null) {
-    _aktifBildirimKaynakId = null;
-  }
-
-  showToast('✅ Kayıt başarıyla eklendi! (Form No: ' + yeniKayit.formNo + ')', 'ok');
-  temizle();
-  renderBildirimler(); // badge sayısını güncelle
 }
+
+refreshAllDatalist();
+
+if (_aktifBildirimKaynakId !== null) {
+  _aktifBildirimKaynakId = null;
+}
+
+showToast(
+  '✅ Kayıt başarıyla eklendi! (Form No: ' +
+    yeniKayit.formNo +
+    ')',
+  'ok'
+);
+
+temizle();
+renderBildirimler();
 // ── SİL ──────────────────────────────────────
 async function kayitSil(id) {
   if (!confirm('Bu kayıt fiziksel olarak silinmeyecek; İPTAL durumuna alınacak. Devam edilsin mi?')) return;
