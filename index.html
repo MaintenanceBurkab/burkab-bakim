@@ -4556,13 +4556,20 @@ function showToast(msg, type) {
 }
 
 // ══════════════════════════════════════════════
-// BİLDİRİM SİSTEMİ
+// BİLDİRİM SİSTEMİ — STABİL SÜRÜM
 // ══════════════════════════════════════════════
+
 const BILDIRIM_KEY = 'burkab_goruldu_ids';
+
 let bildirimInterval = null;
+let otonomBildirimInterval = null;
 let ilkYuklemeIDs = new Set();
-// Bildirimden işleme alınan kaydın orijinal id'si — kaydet() sonrası duplicate bildirimi engeller
 let _aktifBildirimKaynakId = null;
+
+let bildirimAudioContext = null;
+let bildirimSesiAktif = false;
+let sesAktivasyonKuruldu = false;
+
 const BILDIRIM_ISLEMLERI = new Set([
   'ARIZA KAYDI',
   'BAKIM KAYDI',
@@ -4570,165 +4577,847 @@ const BILDIRIM_ISLEMLERI = new Set([
   'MONTAJ'
 ]);
 
+function bildirimNorm(value) {
+  return String(value == null ? '' : value)
+    .trim()
+    .toLocaleUpperCase('tr-TR');
+}
+
+function htmlGuvenli(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function jsParamGuvenli(value) {
+  return String(value == null ? '' : value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '')
+    .replace(/\n/g, '\\n');
+}
+
+function bekleyenMi(kayit) {
+  return bildirimNorm(
+    kayit && kayit.durum
+      ? kayit.durum
+      : 'BEKLIYOR'
+  ) === 'BEKLIYOR';
+}
+
 function uretimTalebiMi(k) {
-  return BILDIRIM_ISLEMLERI.has(
-    String(k.islem || '').trim().toUpperCase()
-  ) &&
-  String(k.bildiren || '').toUpperCase().includes('(ÜRETİM)') &&
-  String(k.durum || 'BEKLIYOR').trim().toUpperCase() === 'BEKLIYOR';
+  if (!k) return false;
+
+  return (
+    BILDIRIM_ISLEMLERI.has(
+      bildirimNorm(k.islem)
+    ) &&
+    bildirimNorm(k.bildiren)
+      .includes('(ÜRETİM)') &&
+    bekleyenMi(k)
+  );
 }
+
 function goruldulerYukle() {
-  try { return new Set(JSON.parse(localStorage.getItem(BILDIRIM_KEY) || '[]')); } catch { return new Set(); }
+  try {
+    const veri = JSON.parse(
+      localStorage.getItem(BILDIRIM_KEY) || '[]'
+    );
+
+    return new Set(
+      Array.isArray(veri)
+        ? veri.map(String)
+        : []
+    );
+
+  } catch (err) {
+    console.warn(
+      'Görüldü kayıtları okunamadı:',
+      err
+    );
+
+    return new Set();
+  }
 }
+
 function goruldulerKaydet(set) {
-  try { localStorage.setItem(BILDIRIM_KEY, JSON.stringify([...set])); } catch {}
+  try {
+    localStorage.setItem(
+      BILDIRIM_KEY,
+      JSON.stringify(
+        Array.from(set).map(String)
+      )
+    );
+
+  } catch (err) {
+    console.warn(
+      'Görüldü kayıtları kaydedilemedi:',
+      err
+    );
+  }
+}
+
+// ══════════════════════════════════════════════
+// SES SİSTEMİ
+// ══════════════════════════════════════════════
+
+async function bildirimSesiniAktifEt() {
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+    if (!AudioCtx) {
+      return false;
+    }
+
+    if (!bildirimAudioContext) {
+      bildirimAudioContext =
+        new AudioCtx();
+    }
+
+    if (
+      bildirimAudioContext.state ===
+      'suspended'
+    ) {
+      await bildirimAudioContext.resume();
+    }
+
+    bildirimSesiAktif =
+      bildirimAudioContext.state ===
+      'running';
+
+    return bildirimSesiAktif;
+
+  } catch (err) {
+    bildirimSesiAktif = false;
+
+    console.warn(
+      'Bildirim sesi başlatılamadı:',
+      err
+    );
+
+    return false;
+  }
+}
+
+function bildirimSesAktivasyonuKur() {
+  if (sesAktivasyonKuruldu) {
+    return;
+  }
+
+  sesAktivasyonKuruldu = true;
+
+  const aktiveEt = async function () {
+    const aktif =
+      await bildirimSesiniAktifEt();
+
+    if (!aktif) {
+      return;
+    }
+
+    document.removeEventListener(
+      'click',
+      aktiveEt
+    );
+
+    document.removeEventListener(
+      'keydown',
+      aktiveEt
+    );
+
+    document.removeEventListener(
+      'touchstart',
+      aktiveEt
+    );
+  };
+
+  document.addEventListener(
+    'click',
+    aktiveEt
+  );
+
+  document.addEventListener(
+    'keydown',
+    aktiveEt
+  );
+
+  document.addEventListener(
+    'touchstart',
+    aktiveEt,
+    { passive: true }
+  );
 }
 
 function bildirimSesi() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [[660,0],[880,180],[660,360]].forEach(([freq, delay]) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = freq;
-      g.gain.setValueAtTime(0.25, ctx.currentTime + delay/1000);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay/1000 + 0.35);
-      o.start(ctx.currentTime + delay/1000);
-      o.stop(ctx.currentTime + delay/1000 + 0.4);
+    const ctx =
+      bildirimAudioContext;
+
+    if (
+      !bildirimSesiAktif ||
+      !ctx ||
+      ctx.state !== 'running'
+    ) {
+      return;
+    }
+
+    const notalar = [
+      [660, 0],
+      [880, 180],
+      [660, 360]
+    ];
+
+    notalar.forEach(function (nota) {
+      const frekans = nota[0];
+      const gecikme = nota[1] / 1000;
+      const baslangic =
+        ctx.currentTime + gecikme;
+
+      const oscillator =
+        ctx.createOscillator();
+
+      const gain =
+        ctx.createGain();
+
+      oscillator.type = 'sine';
+
+      oscillator.frequency
+        .setValueAtTime(
+          frekans,
+          baslangic
+        );
+
+      gain.gain.setValueAtTime(
+        0.18,
+        baslangic
+      );
+
+      gain.gain
+        .exponentialRampToValueAtTime(
+          0.001,
+          baslangic + 0.35
+        );
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+
+      oscillator.start(baslangic);
+      oscillator.stop(
+        baslangic + 0.4
+      );
     });
-  } catch(e) {}
+
+  } catch (err) {
+    console.warn(
+      'Bildirim sesi çalınamadı:',
+      err
+    );
+  }
+}
+
+// ══════════════════════════════════════════════
+// BİLDİRİM RENDER
+// ══════════════════════════════════════════════
+
+function bildirimKayitId(k) {
+  return String(
+    k && (
+      k.id ||
+      k.otonomFormNo ||
+      k.formNo ||
+      ''
+    )
+  ).trim();
 }
 
 function renderBildirimler() {
-  const gorulduler = goruldulerYukle();
+  const gorulduler =
+    goruldulerYukle();
 
-  // ★ DEĞİŞTİ: durum === 'BEKLIYOR' kontrolü eklendi (normal arızalar için)
-  // Otonom kaynaklı kayıtlar zaten otonomArizaKontrolEt() tarafından
-  // sadece AÇIK durumdayken kayitlar dizisine ekleniyor, bu yüzden onlara
-  // ayrıca durum kontrolü uygulamıyoruz.
-  const arizalar = kayitlar.filter(k =>
-    !gorulduler.has(String(k.id)) &&
-    (
-      k.kayitKaynagi === 'OTONOM' ||
-      uretimTalebiMi(k)
-    )
-  );
-  const badge = document.getElementById('bildirimBadge');
-  const liste = document.getElementById('bildirimListe');
-  const baslik = document.getElementById('bildirimSayiBaslik');
-  if (!liste) return;
-  if (badge) {
-    badge.style.display = arizalar.length ? 'inline-flex' : 'none';
-    badge.textContent = arizalar.length;
-  }
-  if (baslik) baslik.textContent = arizalar.length ? arizalar.length + ' bekleyen arıza bildirimi' : 'Bekleyen bildirim yok';
-  if (!arizalar.length) {
-    liste.innerHTML = '<div class="bildirim-bos"><div class="bos-ikon">✅</div><p>Bekleyen arıza bildirimi yok.</p></div>';
+  const mevcutKayitlar =
+    Array.isArray(kayitlar)
+      ? kayitlar
+      : [];
+
+  const arizalar =
+    mevcutKayitlar.filter(function (k) {
+      if (!k) return false;
+
+      const id =
+        bildirimKayitId(k);
+
+      if (
+        !id ||
+        gorulduler.has(id)
+      ) {
+        return false;
+      }
+
+      if (
+        bildirimNorm(
+          k.kayitKaynagi
+        ) === 'OTONOM'
+      ) {
+        return true;
+      }
+
+      return uretimTalebiMi(k);
+    });
+
+  const badge =
+    document.getElementById(
+      'bildirimBadge'
+    );
+
+  const liste =
+    document.getElementById(
+      'bildirimListe'
+    );
+
+  const baslik =
+    document.getElementById(
+      'bildirimSayiBaslik'
+    );
+
+  if (!liste) {
     return;
   }
-  const sirali = [...arizalar].sort((a, b) => {
-    const p = k => k.durusEtkisi === 'TAM DURUŞ' ? 0 : k.durusEtkisi === 'KISMİ DURUŞ' ? 1 : 2;
-    return p(a) - p(b) || (b.id || 0) - (a.id || 0);
-  });
-  liste.innerHTML = sirali.map(k => {
-    const acil = k.durusEtkisi === 'TAM DURUŞ' || k.durusEtkisi === 'KISMİ DURUŞ';
-    const renk = acil ? '#d32f2f' : '#e65100';
-    const etiket = k.durusEtkisi === 'TAM DURUŞ' ? '🔴 TAM DURUŞ' : k.durusEtkisi === 'KISMİ DURUŞ' ? '🟠 KISMİ DURUŞ' : '🟡 Normal';
-    const otonomBadge = k.kayitKaynagi === 'OTONOM'
-      ? `<span style="background:#7b1fa2;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:.5px;">📋 FR-40 OTONOM</span>`
-      : '';
 
-    // ★ DEĞİŞTİ: kaynak OTONOM ise farklı fonksiyon çağrılıyor
-    const islemAlCagrisi = k.kayitKaynagi === 'OTONOM'
-      ? `otonomBildirimIslemeAl('${k.otonomFormNo}', currentUser)`
-      : `islemAl('${k.id}')`;
+  if (badge) {
+    badge.style.display =
+      arizalar.length
+        ? 'inline-flex'
+        : 'none';
 
-    return `<div class="bildirim-karti" id="bk-${k.id}" style="--bk-renk:${renk}">
-      <div class="bk-ust">
-        <span class="bk-islem">⚡ ${k.arizaTuru||'ARIZA'} — ${k.makine||'—'}</span>
-        <span class="bk-oncelik ${acil?'acil':'normal'}">${etiket}</span>
-      </div>
-      ${otonomBadge ? `<div style="margin-bottom:8px;">${otonomBadge}</div>` : ''}
-      <div class="bk-detaylar">
-        <span>📍 ${k.bolum||'—'}</span>
-        <span>👤 ${k.bildiren||'—'}</span>
-        <span>📋 ${k.formNo||k.otonomFormNo||'—'}</span>
-        <span>🏷️ ${k.proje||'—'}</span>
-      </div>
-     
-      ${k.konu ? `<div class="bk-aciklama">"${k.konu}"</div>` : ''} 
-      <div class="bk-alt">
-        <span class="bk-zaman">🕐 ${k.tarihBas||''} ${k.arizaBas||''}</span>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-goruldu" onclick="${islemAlCagrisi}" style="background:#00875a;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">▶ İşleme Al</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+    badge.textContent =
+      String(arizalar.length);
+  }
+
+  if (baslik) {
+    baslik.textContent =
+      arizalar.length
+        ? arizalar.length +
+          ' bekleyen arıza bildirimi'
+        : 'Bekleyen bildirim yok';
+  }
+
+  if (!arizalar.length) {
+    liste.innerHTML =
+      '<div class="bildirim-bos">' +
+        '<div class="bos-ikon">✅</div>' +
+        '<p>Bekleyen arıza bildirimi yok.</p>' +
+      '</div>';
+
+    return;
+  }
+
+  const sirali =
+    arizalar.slice().sort(
+      function (a, b) {
+        function oncelik(k) {
+          const etki =
+            bildirimNorm(
+              k.durusEtkisi
+            );
+
+          if (etki === 'TAM DURUŞ') {
+            return 0;
+          }
+
+          if (etki === 'KISMİ DURUŞ') {
+            return 1;
+          }
+
+          return 2;
+        }
+
+        return (
+          oncelik(a) -
+          oncelik(b) ||
+          Number(b.id || 0) -
+          Number(a.id || 0)
+        );
+      }
+    );
+
+  liste.innerHTML =
+    sirali.map(function (k) {
+      const etki =
+        bildirimNorm(
+          k.durusEtkisi
+        );
+
+      const otonom =
+        bildirimNorm(
+          k.kayitKaynagi
+        ) === 'OTONOM';
+
+      const acil =
+        etki === 'TAM DURUŞ' ||
+        etki === 'KISMİ DURUŞ';
+
+      const renk =
+        acil
+          ? '#d32f2f'
+          : '#e65100';
+
+      const etiket =
+        etki === 'TAM DURUŞ'
+          ? '🔴 TAM DURUŞ'
+          : etki === 'KISMİ DURUŞ'
+            ? '🟠 KISMİ DURUŞ'
+            : '🟡 NORMAL';
+
+      const kartId =
+        bildirimKayitId(k);
+
+      const islemAlCagrisi =
+        otonom
+          ? (
+            "otonomBildirimIslemeAl('" +
+            jsParamGuvenli(
+              k.otonomFormNo
+            ) +
+            "', currentUser)"
+          )
+          : (
+            "islemAl('" +
+            jsParamGuvenli(k.id) +
+            "')"
+          );
+
+      const otonomBadge =
+        otonom
+          ? (
+            '<div style="margin-bottom:8px;">' +
+              '<span style="' +
+                'background:#7b1fa2;' +
+                'color:#fff;' +
+                'font-size:10px;' +
+                'font-weight:800;' +
+                'padding:2px 8px;' +
+                'border-radius:4px;' +
+                'letter-spacing:.5px;' +
+              '">' +
+                '📋 FR-40 OTONOM' +
+              '</span>' +
+            '</div>'
+          )
+          : '';
+
+      const konuHtml =
+        k.konu
+          ? (
+            '<div class="bk-aciklama">' +
+              htmlGuvenli(k.konu) +
+            '</div>'
+          )
+          : '';
+
+      return (
+        '<div class="bildirim-karti" ' +
+          'id="bk-' +
+          htmlGuvenli(kartId) +
+          '" ' +
+          'style="--bk-renk:' +
+          renk +
+          '">' +
+
+          '<div class="bk-ust">' +
+            '<span class="bk-islem">' +
+              '⚡ ' +
+              htmlGuvenli(
+                k.arizaTuru ||
+                'ARIZA'
+              ) +
+              ' — ' +
+              htmlGuvenli(
+                k.makine ||
+                '—'
+              ) +
+            '</span>' +
+
+            '<span class="bk-oncelik ' +
+              (
+                acil
+                  ? 'acil'
+                  : 'normal'
+              ) +
+            '">' +
+              etiket +
+            '</span>' +
+          '</div>' +
+
+          otonomBadge +
+
+          '<div class="bk-detaylar">' +
+            '<span>📍 ' +
+              htmlGuvenli(
+                k.bolum ||
+                '—'
+              ) +
+            '</span>' +
+
+            '<span>👤 ' +
+              htmlGuvenli(
+                k.bildiren ||
+                '—'
+              ) +
+            '</span>' +
+
+            '<span>📋 ' +
+              htmlGuvenli(
+                k.formNo ||
+                k.otonomFormNo ||
+                '—'
+              ) +
+            '</span>' +
+
+            '<span>🏷️ ' +
+              htmlGuvenli(
+                k.proje ||
+                '—'
+              ) +
+            '</span>' +
+          '</div>' +
+
+          konuHtml +
+
+          '<div class="bk-alt">' +
+            '<span class="bk-zaman">' +
+              '🕐 ' +
+              htmlGuvenli(
+                k.tarihBas ||
+                ''
+              ) +
+              ' ' +
+              htmlGuvenli(
+                k.arizaBas ||
+                ''
+              ) +
+            '</span>' +
+
+            '<div style="' +
+              'display:flex;' +
+              'gap:8px;' +
+              'flex-wrap:wrap;' +
+            '">' +
+
+              '<button ' +
+                'type="button" ' +
+                'class="btn-goruldu" ' +
+                'onclick="' +
+                islemAlCagrisi +
+                '" ' +
+                'style="' +
+                  'background:#00875a;' +
+                  'color:#fff;' +
+                  'border:none;' +
+                  'border-radius:6px;' +
+                  'padding:7px 16px;' +
+                  'font-size:12px;' +
+                  'font-weight:700;' +
+                  'cursor:pointer;' +
+                  'transition:all .15s;' +
+                '">' +
+                  '▶ İşleme Al' +
+              '</button>' +
+
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
 }
+
 function gorulduYap(id) {
-  const el = document.getElementById('bk-' + id);
-  if (el) { el.classList.add('okunuyor'); }
-  setTimeout(() => {
-    const g = goruldulerYukle(); g.add(String(id)); goruldulerKaydet(g);
+  const temizId =
+    String(id || '').trim();
+
+  const el =
+    document.getElementById(
+      'bk-' + temizId
+    );
+
+  if (el) {
+    el.classList.add(
+      'okunuyor'
+    );
+  }
+
+  setTimeout(function () {
+    const gorulduler =
+      goruldulerYukle();
+
+    gorulduler.add(temizId);
+    goruldulerKaydet(
+      gorulduler
+    );
+
     renderBildirimler();
   }, 400);
 }
 
 function tumunuGorulduYap() {
-  const g = goruldulerYukle();
+  const gorulduler =
+    goruldulerYukle();
 
-  kayitlar
-  .filter(k => BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR')
-  .forEach(k => g.add(String(k.id)));
+  const mevcutKayitlar =
+    Array.isArray(kayitlar)
+      ? kayitlar
+      : [];
 
-  goruldulerKaydet(g);
+  mevcutKayitlar.forEach(
+    function (k) {
+      if (!k) return;
+
+      const otonom =
+        bildirimNorm(
+          k.kayitKaynagi
+        ) === 'OTONOM';
+
+      if (
+        !otonom &&
+        !uretimTalebiMi(k)
+      ) {
+        return;
+      }
+
+      const id =
+        bildirimKayitId(k);
+
+      if (id) {
+        gorulduler.add(id);
+      }
+    }
+  );
+
+  goruldulerKaydet(
+    gorulduler
+  );
+
   renderBildirimler();
 
-  showToast('✓ Tüm bildirimler okundu sayıldı.', 'ok');
+  if (
+    typeof showToast ===
+    'function'
+  ) {
+    showToast(
+      '✓ Tüm bildirimler okundu sayıldı.',
+      'ok'
+    );
+  }
 }
+
+// ══════════════════════════════════════════════
+// SUNUCU KONTROLÜ
+// ══════════════════════════════════════════════
+
 async function bildirimKontrolEt() {
   try {
-    const json = await gsGet();
-    if (!json || !json.ok || !Array.isArray(json.data)) return;
-    const yeniKayitlar = json.data.map(row => {
-      const obj = {};
-      COLS.forEach(c => obj[c] = row[c] || '');
-      obj.id = parseInt(obj.id) || 0;
-      obj.sure = parseInt(obj.sure) || 0;
-      return obj;
-    });
-    const gorulduler = goruldulerYukle();
-   const yeniArizalar = yeniKayitlar.filter(k =>
-  BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) &&
-  k.durum === 'BEKLIYOR' &&
-  !gorulduler.has(String(k.id)) &&
-  !ilkYuklemeIDs.has(String(k.id))
- );
-    if (yeniArizalar.length > 0) {
-      bildirimSesi();
-      const tab = document.getElementById('bildirimTab');
-      if (tab) { tab.classList.add('zil-animasyon'); setTimeout(() => tab.classList.remove('zil-animasyon'), 1500); }
-      kayitlar = yeniKayitlar;
-      renderBildirimler();
-      showToast('🔔 ' + yeniArizalar.length + ' yeni arıza bildirimi!', 'err');
-    } else {
-      // Badge'i yine de güncelle
-      kayitlar = yeniKayitlar;
-      renderBildirimler();
+    const json =
+      await gsGet();
+
+    if (
+      !json ||
+      !json.ok ||
+      !Array.isArray(json.data)
+    ) {
+      return;
     }
-    yeniKayitlar.filter(k => BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
-  } catch(e) {}
+
+    const yeniKayitlar =
+      json.data.map(function (row) {
+        const obj = {};
+
+        COLS.forEach(
+          function (kolon) {
+            obj[kolon] =
+              row &&
+              row[kolon] != null
+                ? row[kolon]
+                : '';
+          }
+        );
+
+        obj.id =
+          String(
+            obj.id || ''
+          ).trim();
+
+        obj.sure =
+          Number(obj.sure) || 0;
+
+        return obj;
+      });
+
+    const gorulduler =
+      goruldulerYukle();
+
+    const yeniArizalar =
+      yeniKayitlar.filter(
+        function (k) {
+          const id =
+            String(
+              k.id || ''
+            ).trim();
+
+          return (
+            uretimTalebiMi(k) &&
+            id !== '' &&
+            !gorulduler.has(id) &&
+            !ilkYuklemeIDs.has(id)
+          );
+        }
+      );
+
+    kayitlar = yeniKayitlar;
+    renderBildirimler();
+
+    if (
+      yeniArizalar.length > 0
+    ) {
+      bildirimSesi();
+
+      const tab =
+        document.getElementById(
+          'bildirimTab'
+        );
+
+      if (tab) {
+        tab.classList.add(
+          'zil-animasyon'
+        );
+
+        setTimeout(
+          function () {
+            tab.classList.remove(
+              'zil-animasyon'
+            );
+          },
+          1500
+        );
+      }
+
+      if (
+        typeof showToast ===
+        'function'
+      ) {
+        showToast(
+          '🔔 ' +
+          yeniArizalar.length +
+          ' yeni arıza bildirimi!',
+          'err'
+        );
+      }
+    }
+
+    yeniKayitlar.forEach(
+      function (k) {
+        if (
+          uretimTalebiMi(k) &&
+          k.id
+        ) {
+          ilkYuklemeIDs.add(
+            String(k.id)
+          );
+        }
+      }
+    );
+
+  } catch (err) {
+    console.warn(
+      'Bildirim kontrolü başarısız:',
+      err
+    );
+  }
 }
+
+// ══════════════════════════════════════════════
+// BAŞLATMA / DURDURMA
+// ══════════════════════════════════════════════
 
 function bildirimleriBaslat() {
-  kayitlar.filter(k => BILDIRIM_ISLEMLERI.has(String(k.islem||'').trim().toUpperCase()) && k.durum === 'BEKLIYOR').forEach(k => ilkYuklemeIDs.add(String(k.id)));
-  if (bildirimInterval) clearInterval(bildirimInterval);
-  bildirimInterval = setInterval(bildirimKontrolEt, 30000);
-  otonomArizaKontrolEt();
-  setInterval(otonomArizaKontrolEt, 45000);
+  const mevcutKayitlar =
+    Array.isArray(kayitlar)
+      ? kayitlar
+      : [];
+
+  mevcutKayitlar
+    .filter(uretimTalebiMi)
+    .forEach(function (k) {
+      if (k.id) {
+        ilkYuklemeIDs.add(
+          String(k.id)
+        );
+      }
+    });
+
+  if (bildirimInterval) {
+    clearInterval(
+      bildirimInterval
+    );
+
+    bildirimInterval = null;
+  }
+
+  if (otonomBildirimInterval) {
+    clearInterval(
+      otonomBildirimInterval
+    );
+
+    otonomBildirimInterval = null;
+  }
+
+  bildirimInterval =
+    setInterval(
+      bildirimKontrolEt,
+      30000
+    );
+
+  if (
+    typeof otonomArizaKontrolEt ===
+    'function'
+  ) {
+    otonomArizaKontrolEt();
+
+    otonomBildirimInterval =
+      setInterval(
+        otonomArizaKontrolEt,
+        45000
+      );
+  }
+
+  bildirimSesAktivasyonuKur();
+  renderBildirimler();
 }
 
+function bildirimleriDurdur() {
+  if (bildirimInterval) {
+    clearInterval(
+      bildirimInterval
+    );
+
+    bildirimInterval = null;
+  }
+
+  if (otonomBildirimInterval) {
+    clearInterval(
+      otonomBildirimInterval
+    );
+
+    otonomBildirimInterval = null;
+  }
+}
+
+window.addEventListener(
+  'beforeunload',
+  bildirimleriDurdur
+);
 // ══════════════════════════════════════════════
 // OTONOM BAKIM 5.0 → BAKIM BİLDİRİM ENTEGRASYONU
 // FR-40'tan gelen arızaları Bakım Yönetim bildirimine çeker
