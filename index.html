@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>BURKAB — Bakım Yönetim Sistemi | Grup OEE v5.5</title>
+<title>BURKAB — Bakım Yönetim Sistemi</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -4637,12 +4637,13 @@ function bildirimleriBaslat() {
 }
 
 // ══════════════════════════════════════════════
-// OTONOM BAKIM → BİLDİRİM ENTEGRASYONU (FIX-3)
+// OTONOM BAKIM 5.0 → BAKIM BİLDİRİM ENTEGRASYONU
 // FR-40'tan gelen arızaları Bakım Yönetim bildirimine çeker
 // Artık localStorage değil, sunucudaki Durum alanı esas alınır
 // ══════════════════════════════════════════════
 const OTONOM_GORULDU_KEY = 'burkab_otonom_goruldu_ids'; // sadece ses/toast tekrarını önlemek için kullanılır
 let otonomIlkYukleme = new Set();
+const OTONOM_CLIENT_VERSION = '5.0.0';
 
 function otonomGorulduYukle() {
   try { return new Set(JSON.parse(localStorage.getItem(OTONOM_GORULDU_KEY) || '[]')); } catch { return new Set(); }
@@ -4657,7 +4658,7 @@ function gsGetOtonom() {
     const script = document.createElement('script');
     window[cb] = (data) => { script.remove(); resolve(data); };
     script.onerror = () => { script.remove(); resolve(null); };
-    script.src = GS_URL + '?callback=' + cb + '&action=getOtonomArizalar';
+    script.src = GS_URL + '?callback=' + cb + '&action=getOtonomDashboardV5';
     document.head.appendChild(script);
     setTimeout(() => { script.remove(); resolve(null); }, 12000);
   });
@@ -4707,6 +4708,8 @@ async function otonomArizaKontrolEt() {
           islem: 'ARIZA KAYDI',
           bolum: row.bolum || row.makine || '—',
           makine: row.makine || '—',
+          makineGrupId: row.grupId || '',
+          etkilenenMakineler: Array.isArray(row.etkilenenMakineler) ? row.etkilenenMakineler : [row.makine],
           bildiren: (row.operator || row.vardiya || 'Otonom Bakım') + ' (FR-40)',
           konu: otonomArizaOzeti(row),
           arizaTuru: 'MEKANİK',
@@ -4748,6 +4751,7 @@ function otonomArizaOzeti(row) {
   const arizalar = Array.isArray(row.arizalar) ? row.arizalar : [];
   const uyarilar = Array.isArray(row.uyarilar) ? row.uyarilar : [];
   let ozet = '🔴 OTONOM BAKIM UYARISI — Form: ' + (row.formNo || '?');
+  if (row.grupId) ozet += '\nMAKİNE GRUBU: ' + row.grupId + ' (' + (row.etkilenenMakineler || []).join(' ↔ ') + ')';
   if (arizalar.length) ozet += '\nARIZALAR: ' + arizalar.map(a => '[' + a.no + '] ' + a.kriter).join(', ');
   if (uyarilar.length) ozet += '\nUYARILAR: ' + uyarilar.map(u => '[' + u.no + '] ' + u.kriter).join(', ');
   return ozet;
@@ -4755,7 +4759,7 @@ function otonomArizaOzeti(row) {
 
 // ── YENİ: Otonom bildirimi işleme alma / kapatma ─────────────
 async function otonomBildirimIslemeAl(formNo, personel) {
-  await gsRequest({ action: 'otonomFormKapat', formNo: formNo, personel: personel || '' });
+  await gsRequest({ action: 'closeOtonomIssueV5', formNo: formNo, personel: personel || '' });
   // gsRequest no-cors olduğu için sonucu doğrulayamıyoruz, iyimser güncelleme yapıyoruz
   kayitlar = kayitlar.filter(k => !(k.kayitKaynagi === 'OTONOM' && k.otonomFormNo === formNo));
   const gorulduler = otonomGorulduYukle();
@@ -5540,7 +5544,7 @@ function islemAlOnayla(id) {
   _aktifBildirimKaynakId = String(id);
 
   if (k.kayitKaynagi === 'OTONOM') {
-    gsRequest({ action: 'otonomFormKapat', formNo: k.otonomFormNo, personel: currentUser });
+    gsRequest({ action: 'closeOtonomIssueV5', formNo: k.otonomFormNo, personel: currentUser });
   } else {
     gsRequest({ action: 'islemeAl', arizaId: k.id, personel: currentUser });
   }
