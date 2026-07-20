@@ -2750,7 +2750,7 @@ window.addEventListener('beforeunload', e => {
 // ══════════════════════════════════════════════
 // VERİ KATMANI — Google Sheets
 // ══════════════════════════════════════════════
-const GS_URL = 'https://script.google.com/macros/s/AKfycbxMvsbGS0IrqJo4xScv7BoQRIXUt19gXVX-SqAwoczq0FkPc8gt6M-tqHCBn06N9ms/exec';
+const GS_URL = 'https://script.google.com/macros/s/AKfycbwRPDHyAfhz0CI4CeyT6w2VbDkwRXegB1CIK1hJld7p8oDHtQmcFHdqwRS-MJGdII-3/exec';
 
 const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje','mdNo','revNo','arizaTuru','arizaKodu','konu','tarihBas','tarihBit','arizaBas','onarimBas','onarimBit','arizaBit','sure','bakimci','kalite','yapilan','riskSeviye','cozumSure','durusEtkisi','parcalar','toplamMaliyet','teminDurumu','riskAksiyon','kayitYapan','kayitZaman','durum','islemeAlan','islemeAlmaZamani'];
 
@@ -6436,7 +6436,7 @@ function islemAlOnayla(id) {
 // KALİBRASYON SİSTEMİ
 // ══════════════════════════════════════════════
 const KAL_KEY = 'burkab_kalibrasyon_v1';
-const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxMvsbGS0IrqJo4xScv7BoQRIXUt19gXVX-SqAwoczq0FkPc8gt6M-tqHCBn06N9ms/exec';
+const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwRPDHyAfhz0CI4CeyT6w2VbDkwRXegB1CIK1hJld7p8oDHtQmcFHdqwRS-MJGdII-3/exec';
 
 function kalYukle() { try { return JSON.parse(localStorage.getItem(KAL_KEY) || '[]'); } catch { return []; } }
 function kalKaydet(list) { try { localStorage.setItem(KAL_KEY, JSON.stringify(list)); } catch {} }
