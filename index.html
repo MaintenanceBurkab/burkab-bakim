@@ -1909,11 +1909,10 @@ tr:last-child td { border-bottom: none; }
 <!-- ── AI ASİSTAN TAB ── -->
 <div class="tab-pane" id="tab-ai">
   <div class="ai-panel">
-    <div class="ai-apikey-bar">
-      <span style="font-size:18px">🔑</span>
-      <input type="password" id="ai-api-key-input" placeholder="Anthropic API Key (sk-ant-...)" />
-      <button onclick="aiSaveKey()">Kaydet</button>
-      <span id="ai-key-status" class="ai-key-status"></span>
+    <div class="ai-apikey-bar" role="status">
+      <span style="font-size:18px">🔐</span>
+      <span>AI anahtarı Google Apps Script üzerinde güvenli olarak yönetilir.</span>
+      <span id="ai-key-status" class="ai-key-status ok">Sunucu yönetimli</span>
     </div>
     <div class="ai-action-grid">
       <div class="ai-action-card" onclick="aiRunAnalysis('anomali')">
@@ -6045,17 +6044,30 @@ function aiGetKayitlar() {
 }
 
 async function aiCallClaude(systemPrompt, userMessage) {
+  const mesaj = String(systemPrompt||'') + '\n\n' + String(userMessage||'');
+  if (mesaj.length > 8000) {
+    throw new Error('AI isteği çok büyük. Toplu analiz için sunucu tarafındaki analiz kartlarını kullanın.');
+  }
   const res = await gsRequest({
     action:'handleAI',
-    mesaj:String(systemPrompt||'') + '\n\n' + String(userMessage||''),
+    mesaj,
     gecmis:[]
   });
   if(!res?.ok) throw new Error(res?.error || 'AI yanıtı alınamadı.');
   return res.yanit || '';
 }
 
+function aiEscapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function aiRenderMd(text) {
-  return text
+  return aiEscapeHtml(text)
     .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#a0a0ff">$1</strong>')
     .replace(/^### (.+)$/gm, '<div class="ai-section-title">$1</div>')
     .replace(/^## (.+)$/gm, '<div style="color:#c0c0ff;font-weight:600;margin:14px 0 6px;font-size:14px">$1</div>')
@@ -6073,16 +6085,6 @@ Bakım ekibi: MEHMET ERTÜRK, FERHAT OKTAY, SUNAY AVCI, ENES BALKAN.
 Tek vardiya: 07:00–17:00, Pazartesi–Cuma.`;
 
 async function aiRunAnalysis(tip) {
-  if (!aiGetKey()) {
-    showToast('⚠️ Önce API key girin!', 'err');
-    return;
-  }
-  const kayitlarData = aiGetKayitlar();
-  if (!kayitlarData.length) {
-    showToast('⚠️ Henüz kayıt yok.', 'err');
-    return;
-  }
-
   const loadingEl   = document.getElementById('ai-loading');
   const resultEl    = document.getElementById('ai-result-box');
   const loadingTxt  = document.getElementById('ai-loading-text');
@@ -6092,86 +6094,41 @@ async function aiRunAnalysis(tip) {
   loadingEl.classList.add('visible');
   resultEl.classList.remove('visible');
 
-  const veri = JSON.stringify(kayitlarData);
-
   const config = {
     anomali: {
       title: '🔍 Anomali & Tekrar Tespiti',
-      loading: 'Tekrarlayan arızalar taranıyor...',
-      prompt: `Aşağıdaki ${kayitlarData.length} bakım kaydını analiz et. Şunları raporla:
-## Tekrarlayan Arızalar
-Aynı makinede ≤14 gün içinde 2+ arıza varsa listele. Makine adı, tekrar sayısı, arıza türü.
-## Anomaliler
-Normalden uzun onarım süreleri (ortalama 2 katı üzeri). Hangi makine, ne kadar süre.
-## Yoğunlaşma Noktaları
-Hangi bölüm en fazla arıza veriyor? Yüzde olarak belirt.
-## Sonuç & Öneriler
-3 madde halinde somut eylem önerisi.
-
-VERİ: ${veri}`
+      loading: 'Tekrarlayan arızalar taranıyor...'
     },
     trend: {
       title: '📈 Arıza Trendi Analizi',
-      loading: 'Trendler hesaplanıyor...',
-      prompt: `${kayitlarData.length} kayıt üzerinden:
-## En Çok Arıza Veren Makineler (İlk 5)
-Makine adı, arıza sayısı, toplam duruş süresi (dk).
-## Arıza Türü Dağılımı
-Elektrik / Mekanik / Hidrolik / Pnömatik / Diğer → yüzde.
-## Bölüm Bazlı Risk Skoru
-Her bölüm için arıza yoğunluğunu sırala.
-## Ortalama Onarım Süresi (MTTR)
-Genel ortalama ve en yüksek 3 makine.
-## Trend Yorumu
-Bu verilerin gösterdiği genel eğilim 2-3 cümle.
-
-VERİ: ${veri}`
+      loading: 'Trendler hesaplanıyor...'
     },
     preventif: {
       title: '🛡️ Önleyici Bakım Önerileri',
-      loading: 'Risk değerlendirmesi yapılıyor...',
-      prompt: `${kayitlarData.length} kayda dayanarak:
-## Yüksek Risk Makineleri
-Her biri için: Makine adı | Risk gerekçesi | Önerilen bakım tarihi.
-Öncelik sırasına göre: 🔴 Kritik / 🟠 Yüksek / 🟡 Orta
-## Önerilen Bakım Adımları
-Her yüksek riskli makine için 3-5 somut kontrol maddesi.
-## Bakım Frekansı Önerisi
-Hangi makine kaç günde bir bakım görmeli?
-## Tahmini Fayda
-Önleyici bakım yapılırsa kaç saatlik duruş önlenebilir (kaba tahmin).
-
-VERİ: ${veri}`
+      loading: 'Risk değerlendirmesi yapılıyor...'
     },
     ozet: {
       title: '📋 Genel Durum Özeti',
-      loading: 'Özet rapor hazırlanıyor...',
-      prompt: `${kayitlarData.length} kayıt için yönetici raporu:
-## Genel Sistem Sağlığı
-1 paragraf, durumu özetle.
-## Bu Dönemin En Önemli 3 Bulgusu
-Numaralı liste.
-## Acil Dikkat Gerektiren Konular
-Varsa 2-3 madde, yoksa "Kritik acil durum tespit edilmedi" yaz.
-## Olumlu Gelişmeler
-Varsa 1-2 madde.
-## Bakımcı Performansı
-Kayıt sayısına göre en aktif 2-3 kişiyi belirt.
-
-VERİ: ${veri}`
+      loading: 'Özet rapor hazırlanıyor...'
     },
   };
 
   const c = config[tip];
+  if (!c) {
+    showToast('⚠️ Geçersiz analiz türü.', 'err');
+    return;
+  }
   resultTitle.textContent = c.title;
   loadingTxt.textContent  = c.loading;
 
   try {
-    const yanit = await aiCallClaude(AI_SYS, c.prompt);
+    const res = await gsRequest({action:'handleAI', aiType:tip});
+    if(!res?.ok) throw new Error(res?.error || 'AI yanıtı alınamadı.');
+    const yanit = res.yanit || '';
     resultCnt.innerHTML = aiRenderMd(yanit);
     resultEl.classList.add('visible');
   } catch (e) {
-    resultCnt.innerHTML = `<span style="color:#ff6060">❌ Hata: ${e.message}</span>`;
+    resultCnt.innerHTML = `<span style="color:#ff6060">❌ Hata: ${aiEscapeHtml(e.message)}</span>`;
     resultEl.classList.add('visible');
   } finally {
     loadingEl.classList.remove('visible');
@@ -6230,7 +6187,7 @@ Türkçe, teknik, kısa ve net yanıt ver. Markdown kullan.`;
     const yanit = await aiCallClaude(sys, userMsg);
     resultEl.innerHTML = aiRenderMd(yanit);
   } catch (e) {
-    resultEl.innerHTML = `<span style="color:#ff6060">❌ ${e.message}</span>`;
+    resultEl.innerHTML = `<span style="color:#ff6060">❌ ${aiEscapeHtml(e.message)}</span>`;
   }
 }
 
@@ -7753,56 +7710,6 @@ function qrEtiketYazdir() {
   <div class="durum">${durum}</div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     AI RAPOR MODAL — Dashboard & Üretim Durumu
-     ══════════════════════════════════════════════ -->
-<div class="ai-rapor-modal-overlay" id="aiRaporModalOverlay">
-  <div class="ai-rapor-modal">
-    <div class="ai-rapor-modal-head">
-      <div class="ai-rapor-modal-title">
-        <span style="font-size:20px">🤖</span>
-        <span id="aiRaporModalBaslik">AI Rapor & Analiz</span>
-      </div>
-      <button class="ai-rapor-modal-close" onclick="aiRaporModalKapat()">✕</button>
-    </div>
-    <div class="ai-rapor-modal-body">
-
-      <!-- API Key satırı -->
-      <div class="ai-rapor-key-row">
-        <span style="color:#888;font-size:12px;white-space:nowrap">🔑 API Key:</span>
-        <input type="password" id="aiRaporKeyInput" placeholder="Anthropic API Key (sk-ant-...)" />
-        <button class="ai-rapor-key-save" onclick="aiRaporKeySave()">Kaydet</button>
-        <span id="aiRaporKeyStatus" class="ai-rapor-key-status"></span>
-      </div>
-
-      <!-- Analiz türü seçimi -->
-      <div class="ai-rapor-type-grid" id="aiRaporTypeGrid">
-        <!-- JS ile doldurulur -->
-      </div>
-
-      <!-- Çalıştır butonu -->
-      <button class="ai-rapor-run-btn" id="aiRaporRunBtn" onclick="aiRaporCalistir()">
-        <span>🚀</span> <span>AI Analizi Başlat</span>
-      </button>
-
-      <!-- Loading -->
-      <div class="ai-rapor-loading" id="aiRaporLoading">
-        <div class="ai-rapor-spinner"></div>
-        <div class="ai-rapor-loading-txt">Veriler analiz ediliyor<span class="ai-rapor-loading-dots"></span></div>
-        <div style="font-size:11px;color:#666;margin-top:4px" id="aiRaporLoadingDetail">AI modeli çalışıyor</div>
-      </div>
-
-      <!-- Sonuç -->
-      <div class="ai-rapor-result" id="aiRaporResult">
-        <div class="ai-rapor-result-title" id="aiRaporResultTitle">📊 Analiz Sonucu</div>
-        <div class="ai-rapor-result-content" id="aiRaporResultContent"></div>
-        <button class="ai-rapor-copy-btn" onclick="aiRaporKopyala()">📋 Raporu Kopyala</button>
-      </div>
-
-    </div>
-  </div>
-</div>
-
 </body></html>`;
 
   const win = window.open('','_blank','width=400,height=300');
@@ -8809,13 +8716,13 @@ async function aiRaporCalistir() {
     resultEl.classList.add('visible');
   } catch(e) {
     _aiRaporSonuc='Hata: '+e.message;
-    document.getElementById('aiRaporResultContent').innerHTML='<span style="color:#ff6060">❌ '+e.message+'</span>';
+    document.getElementById('aiRaporResultContent').innerHTML='<span style="color:#ff6060">❌ '+aiEscapeHtml(e.message)+'</span>';
     resultEl.classList.add('visible');
   } finally { loadingEl.classList.remove('visible'); runBtn.disabled=false; }
 }
 
 function aiRaporRenderMd(text) {
-  return text
+  return aiEscapeHtml(text)
     .replace(/\*\*(.+?)\*\*/g, '<span class="rbold">$1</span>')
     .replace(/^### (.+)$/gm, '<span class="rh3">$1</span>')
     .replace(/^## (.+)$/gm, '<span class="rh2">$1</span>')
@@ -8901,14 +8808,9 @@ getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').fo
     </div>
 
     <div style="padding:18px 20px">
-      <!-- API KEY -->
-      <div style="margin-bottom:16px">
-        <label style="font-size:11px;font-weight:700;letter-spacing:.6px;color:#999;text-transform:uppercase">Anthropic API Key</label>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <input type="password" id="aiRaporKeyInput" placeholder="sk-ant-..." style="flex:1;background:#111;border:1px solid #333;border-radius:8px;padding:9px 12px;color:#eee;font-size:13px">
-          <button onclick="aiRaporKeySave()" style="background:#f5c400;color:#1c1c1c;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">Kaydet</button>
-        </div>
-        <div id="aiRaporKeyStatus" class="ai-rapor-key-status" style="font-size:12px;margin-top:6px"></div>
+      <!-- API anahtarı tarayıcıya verilmez -->
+      <div style="margin-bottom:16px;padding:10px 12px;border:1px solid #33443b;border-radius:8px;background:#14231c;color:#9ed7b9;font-size:12px" role="status">
+        🔐 AI anahtarı Google Apps Script üzerinde güvenli olarak yönetilir.
       </div>
 
       <!-- RAPOR TİPİ SEÇİMİ -->
