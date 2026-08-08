@@ -3756,7 +3756,7 @@ function dashFiltreTemizle() {
 }
 function filtreliVeri() {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = yerelYMD(now);
   let baslangic = null, bitis = null;
   if (dashZamanFiltre === 'bugun') {
     baslangic = today; 
@@ -3765,7 +3765,7 @@ function filtreliVeri() {
   else if (dashZamanFiltre === 'bu_hafta') {
     const paz = new Date(now);
     paz.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    baslangic = paz.toISOString().split('T')[0];
+    baslangic = yerelYMD(paz);
     bitis = today;
   } 
   else if (dashZamanFiltre === 'bu_ay') {
@@ -3775,8 +3775,8 @@ function filtreliVeri() {
   else if (dashZamanFiltre === 'gecen_ay') {
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    baslangic = prevMonth.toISOString().split('T')[0];
-    bitis = lastDayOfPrevMonth.toISOString().split('T')[0];
+    baslangic = yerelYMD(prevMonth);
+    bitis = yerelYMD(lastDayOfPrevMonth);
   } 
   else if (dashZamanFiltre === 'gecen_yil') {
     const gy = now.getFullYear() - 1;
