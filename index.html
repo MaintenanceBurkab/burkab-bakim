@@ -1014,7 +1014,7 @@ tr:last-child td { border-bottom: none; }
           <label>FORM NO <span class="req">*</span></label>
           <div class="form-no-row">
             <input type="text" id="formNo" placeholder="Otomatik" readonly>
-            <button class="btn-gen" ="genFormNo()">⚡</button>
+            <button class="btn-gen" onclick="genFormNo()">⚡</button>
           </div>
         </div>
         <div class="field">
@@ -3283,8 +3283,17 @@ function genFormNo() {
   if (!islem) { showToast('❗ Önce işlem türü seçin!', 'err'); return; }
   const pre = {'ARIZA KAYDI':'A','BAKIM KAYDI':'B','MONTAJ':'M','REVİZYON':'R','PLANLI BAKIM':'P','SERVİS BAKIM':'S'};
   const p = pre[islem] || 'X';
-  const n = (sayac[p] || 0) + 1;
-  document.getElementById('formNo').value = p + String(n).padStart(4,'0');
+
+  let maxN = sayac[p] || 0;
+  kayitlar.forEach(k => {
+    if (pre[k.islem] === p) {
+      const n = parseInt((k.formNo || '').slice(1)) || 0;
+      if (n > maxN) maxN = n;
+    }
+  });
+  sayac[p] = maxN; // önbelleği de güncelle
+
+  document.getElementById('formNo').value = p + String(maxN + 1).padStart(4, '0');
 }
 
 // ── SÜRE ──────────────────────────────────────
