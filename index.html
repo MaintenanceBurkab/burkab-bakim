@@ -8949,7 +8949,60 @@ function renderYpHareketGecmisi(){const list=ypHareketFiltreli();let giris=0,cik
  if(!list.length){document.getElementById('yphg-table').innerHTML='<div class="yp-hareket-empty">Seçilen kriterlere uygun stok hareketi bulunamadı.</div>';return;}
  document.getElementById('yphg-table').innerHTML=`<table class="yp-hareket-table"><thead><tr><th>TARİH / SAAT</th><th>STOK KODU</th><th>PARÇA</th><th>HAREKET</th><th>MİKTAR</th><th>ÖNCEKİ STOK</th><th>SONRAKİ STOK</th><th>FORM / BELGE NO</th><th>AÇIKLAMA</th><th>KAYNAK</th><th>MAKİNE</th><th>KULLANICI</th></tr></thead><tbody>${list.map(h=>`<tr><td>${ypEsc(ypHareketTarihMetin(h))}</td><td><b>${ypEsc(ypHareketKod(h)||'—')}</b></td><td>${ypEsc(ypHareketParcaAdi(ypHareketKod(h)))}</td><td class="${ypHareketSinif(ypHareketTip(h))}">${ypEsc(ypHareketEtiket(ypHareketTip(h)))}</td><td><b>${ypNum(ypHareketMiktar(h))}</b></td><td>${ypEsc(ypHareketOncekiStok(h)===''?'—':ypHareketOncekiStok(h))}</td><td>${ypEsc(ypHareketSonrakiStok(h)===''?'—':ypHareketSonrakiStok(h))}</td><td><b>${ypEsc(ypHareketBelge(h)||'—')}</b></td><td>${ypEsc(ypHareketAciklama(h)||'—')}</td><td>${ypEsc(ypHareketKaynak(h)||'—')}</td><td>${ypEsc(ypHareketMakine(h)||'—')}</td><td>${ypEsc(ypHareketKullanici(h)||'—')}</td></tr>`).join('')}</tbody></table>`;}
 function ypHareketGecmisiYazdir(){ypHareketGecmisiPDF(true);}
-function ypHareketGecmisiPDF(printOnly=false){const list=ypHareketFiltreli();const sec=ypN(document.getElementById('yphg-kod')?.value),parca=ypHareketParcaAdi(sec),bas=document.getElementById('yphg-bas')?.value||'—',bit=document.getElementById('yphg-bit')?.value||'—';const title='BURKAB A.Ş. — YEDEK PARÇA STOK HAREKET RAPORU';const html=`<div class="yp-print-title">${title}</div><div class="yp-print-meta">Parça: <b>${ypEsc(sec?sec+' — '+parca:'TÜM PARÇALAR')}</b> &nbsp; | &nbsp; Tarih: <b>${ypEsc(bas)}</b> → <b>${ypEsc(bit)}</b> &nbsp; | &nbsp; Kayıt: <b>${list.length}</b> &nbsp; | &nbsp; Rapor: ${new Date().toLocaleString('tr-TR')}</div><table class="yp-print-table"><thead><tr><th>Tarih/Saat</th><th>Stok Kodu</th><th>Parça</th><th>Hareket</th><th>Miktar</th><th>Önceki</th><th>Sonraki</th><th>Form/Belge</th><th>Açıklama</th><th>Kaynak</th><th>Makine</th></tr></thead><tbody>${list.map(h=>`<tr><td>${ypEsc(ypHareketTarihMetin(h))}</td><td>${ypEsc(ypHareketKod(h))}</td><td>${ypEsc(ypHareketParcaAdi(ypHareketKod(h)))}</td><td>${ypEsc(ypHareketEtiket(ypHareketTip(h)))}</td><td>${ypNum(ypHareketMiktar(h))}</td><td>${ypEsc(ypHareketOncekiStok(h)||'—')}</td><td>${ypEsc(ypHareketSonrakiStok(h)||'—')}</td><td>${ypEsc(ypHareketBelge(h)||'—')}</td><td>${ypEsc(ypHareketAciklama(h)||'—')}</td><td>${ypEsc(ypHareketKaynak(h)||'—')}</td><td>${ypEsc(ypHareketMakine(h)||'—')}</td></tr>`).join('')}</tbody></table>`;const box=document.getElementById('ypHareketRaporPrint');box.innerHTML=html;window.print();setTimeout(()=>{box.innerHTML='';},1000);}
+function ypHareketGecmisiPDF(printOnly=false){
+  const list=ypHareketFiltreli();
+  const sec=ypN(document.getElementById('yphg-kod')?.value);
+  const parca=ypHareketParcaAdi(sec);
+  const bas=document.getElementById('yphg-bas')?.value||'—';
+  const bit=document.getElementById('yphg-bit')?.value||'—';
+  const title='BURKAB A.Ş. — YEDEK PARÇA STOK HAREKET RAPORU';
+  const rows=list.map(h=>`<tr>
+    <td>${ypEsc(ypHareketTarihMetin(h))}</td>
+    <td>${ypEsc(ypHareketKod(h))}</td>
+    <td>${ypEsc(ypHareketParcaAdi(ypHareketKod(h)))}</td>
+    <td>${ypEsc(ypHareketEtiket(ypHareketTip(h)))}</td>
+    <td class="num">${ypNum(ypHareketMiktar(h))}</td>
+    <td class="num">${ypEsc(ypHareketOncekiStok(h)||'—')}</td>
+    <td class="num">${ypEsc(ypHareketSonrakiStok(h)||'—')}</td>
+    <td>${ypEsc(ypHareketBelge(h)||'—')}</td>
+    <td>${ypEsc(ypHareketAciklama(h)||'—')}</td>
+    <td>${ypEsc(ypHareketKaynak(h)||'—')}</td>
+    <td>${ypEsc(ypHareketMakine(h)||'—')}</td>
+    <td>${ypEsc(ypHareketKullanici(h)||'—')}</td>
+  </tr>`).join('');
+  const empty=`<tr><td colspan="12" class="empty">Seçilen kriterlere uygun stok hareketi bulunamadı.</td></tr>`;
+  const html=`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${title}</title>
+  <style>
+    @page{size:A4 landscape;margin:9mm}
+    *{box-sizing:border-box}
+    body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;margin:0;font-size:8px}
+    .head{border-bottom:2px solid #111;padding-bottom:7px;margin-bottom:8px}
+    .title{font-size:17px;font-weight:800;margin-bottom:5px}
+    .meta{font-size:9px;line-height:1.5}
+    .summary{display:flex;gap:8px;margin:7px 0 9px}
+    .kpi{border:1px solid #aaa;padding:5px 9px;min-width:105px}.kpi b{display:block;font-size:12px}.kpi span{font-size:7px;color:#555}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th{background:#1a1a1a;color:#fff;font-size:7.5px;padding:5px 3px;border:1px solid #222;text-align:left}
+    td{border:1px solid #aaa;padding:4px 3px;vertical-align:top;word-break:break-word;line-height:1.25}
+    tr{page-break-inside:avoid}
+    .num{text-align:right;white-space:nowrap}
+    .empty{text-align:center;padding:20px}
+    .foot{margin-top:7px;font-size:7px;color:#555;text-align:right}
+  </style></head><body>
+  <div class="head"><div class="title">${title}</div>
+  <div class="meta">Parça: <b>${ypEsc(sec?sec+' — '+parca:'TÜM PARÇALAR')}</b> &nbsp; | &nbsp; Tarih: <b>${ypEsc(bas)}</b> → <b>${ypEsc(bit)}</b> &nbsp; | &nbsp; Kayıt: <b>${list.length}</b> &nbsp; | &nbsp; Rapor: ${new Date().toLocaleString('tr-TR')}</div></div>
+  <div class="summary"><div class="kpi"><b>${list.length}</b><span>HAREKET KAYDI</span></div>
+  <div class="kpi"><b>${ypNum(list.reduce((s,h)=>{const t=ypHareketTip(h);return s+((t==='GIRIS'||t==='IADE')?ypHareketMiktar(h):0)},0))}</b><span>TOPLAM GİRİŞ / İADE</span></div>
+  <div class="kpi"><b>${ypNum(list.reduce((s,h)=>{const t=ypHareketTip(h);return s+((t==='CIKIS'||t==='HURDA')?ypHareketMiktar(h):0)},0))}</b><span>TOPLAM ÇIKIŞ / HURDA</span></div></div>
+  <table><thead><tr><th>Tarih/Saat</th><th>Stok Kodu</th><th>Parça</th><th>Hareket</th><th>Miktar</th><th>Önceki</th><th>Sonraki</th><th>Form/Belge</th><th>Açıklama</th><th>Kaynak</th><th>Makine</th><th>Kullanıcı</th></tr></thead>
+  <tbody>${rows||empty}</tbody></table>
+  <div class="foot">BURKAB A.Ş. · Yedek Parça Stok Hareketleri · İzlenebilirlik Raporu</div>
+  <script>window.onload=function(){setTimeout(function(){window.print();setTimeout(function(){window.close()},700)},250)};<\/script>
+  </body></html>`;
+  const win=window.open('','_blank','width=1400,height=900');
+  if(!win){showToast('⚠️ Rapor penceresi açılamadı. Tarayıcı açılır pencere iznini kontrol edin.','err');return;}
+  win.document.open();win.document.write(html);win.document.close();
+}
 
 function ypHareketModalAc(kod='',tip='GIRIS'){ypParcaSelectDoldur();document.getElementById('yph-kod').value=kod;document.getElementById('yph-tip').value=tip;document.getElementById('yph-miktar').value=1;document.getElementById('yph-belge').value='';document.getElementById('yph-aciklama').value='';const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));document.getElementById('yph-fiyat').value=p?.birimFiyat||'';document.getElementById('ypHareketModal').classList.add('open');}
 async function ypHareketKaydet(){const hareket={stokKodu:document.getElementById('yph-kod').value,tip:document.getElementById('yph-tip').value,miktar:ypNum(document.getElementById('yph-miktar').value),belgeNo:ypN(document.getElementById('yph-belge').value),birimFiyat:ypNum(document.getElementById('yph-fiyat').value),aciklama:ypN(document.getElementById('yph-aciklama').value)};if(!hareket.stokKodu||hareket.miktar<=0||!hareket.aciklama){showToast('❗ Parça, miktar ve açıklama zorunludur.','err');return;}try{showLoading(true);const r=await gsRequest({action:'yedekParcaHareket',hareket});if(!r?.ok)throw new Error(r?.error||'Hareket başarısız');ypModalKapat('ypHareketModal');ypYuklendi=false;await ypVerileriYukle(true);showToast('✅ Stok hareketi işlendi.','ok');}catch(e){showToast('⚠️ '+e.message,'err')}finally{showLoading(false);}}
@@ -9033,7 +9086,7 @@ getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').fo
 .yp-hareket-kpi{border:1px solid #ddd;border-radius:10px;padding:10px 12px;background:#fafafa}.yp-hareket-kpi b{display:block;font-size:20px;color:#1a1a1a}.yp-hareket-kpi span{font-size:11px;color:#666}
 .yp-hareket-table-wrap{overflow:auto;max-height:58vh}.yp-hareket-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1050px}.yp-hareket-table th{position:sticky;top:0;background:#1a1a1a;color:#fff;padding:9px 8px;text-align:left;z-index:2}.yp-hareket-table td{padding:8px;border-bottom:1px solid #eee;vertical-align:top}.yp-hareket-table tr:hover{background:#fffbe6}.yp-hareket-giris{color:#00875a;font-weight:800}.yp-hareket-cikis{color:#d32f2f;font-weight:800}.yp-hareket-diger{color:#6b4f00;font-weight:800}.yp-hareket-empty{text-align:center;padding:35px;color:#777}.yp-hareket-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #ddd;background:#fff;flex-wrap:wrap}.yp-hareket-count{font-size:12px;color:#666}
 @media(max-width:800px){.yp-hareket-summary{grid-template-columns:repeat(2,1fr)}}
-@media print{body>*:not(#ypHareketRaporPrint){display:none!important}#ypHareketRaporPrint{display:block!important;position:static!important;color:#000;background:#fff}.yp-print-table{width:100%;border-collapse:collapse;font-size:9px}.yp-print-table th,.yp-print-table td{border:1px solid #999;padding:4px}.yp-print-title{font-size:18px;font-weight:800;margin-bottom:5px}.yp-print-meta{font-size:10px;margin-bottom:12px}}
+
 </style>
     
   </body>
