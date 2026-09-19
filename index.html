@@ -1133,11 +1133,11 @@ tr:last-child td { border-bottom: none; }
       <div class="fg g3">
         <div class="field">
           <label>BAŞLANGIÇ TARİHİ <span class="req">*</span></label>
-          <input type="date" id="tarihBas">
+          <input type="date" id="tarihBas" onchange="calcSure()">
         </div>
         <div class="field">
           <label>BİTİŞ TARİHİ</label>
-          <input type="date" id="tarihBit">
+          <input type="date" id="tarihBit" onchange="calcSure()">
         </div>
         <div class="field"></div>
         <div class="field">
@@ -3255,7 +3255,7 @@ const BOLUM_MAKINELER = {
             'YÜK ASANSÖRÜ','PER.ASANSÖRÜ','ISITICILAR','KLİMALAR','AYDINLATMA'],
   'HAZIRLIK': ['MP-01','MP-02','MP-03','MP-04','MP-05','MP-06','MP-07',
                'MP-08','MP-09','MP-10','MP-11','MP-12','MP-14','MP-15','MP-16',
-               'US-01','US-02','US-03','KS-01','TWS-01','CT-02','HP-01','HP-02','PKM-01','MKM-01','PV-01','BM-01','IDC-01'],
+               'US-01','US-02','US-03','KS-01','TWS-01','CT-02','HP-01','HP-02','PKM-01','MKM-01','PV-01','BM-01'],
   'KALIPLAR': Array.from({length:120}, (_,i) => 'BK-' + String(i+1).padStart(2,'0')),
 };
 
@@ -3297,16 +3297,171 @@ function genFormNo() {
 }
 
 // ── SÜRE ──────────────────────────────────────
+// ── ÇALIŞMA TAKVİMİ / SÜRE HESAPLAMA MOTORU ───────────────
+// BURKAB Bakım çalışma takvimi
+// Pazartesi-Cuma : 07:00-17:00
+// Molalar        : 09:00-09:10 / 12:00-12:30 / 15:00-15:10
+//
+// Aynı motor:
+// 1) ONARIM SÜRESİ / MTTR
+// 2) MTBF
+// hesaplamalarında kullanılır.
+
+const CALISMA_TAKVIMI = {
+  baslangic: 7 * 60,
+  bitis: 17 * 60,
+  molalar: [
+    [9 * 60, 9 * 60 + 10],
+    [12 * 60, 12 * 60 + 30],
+    [15 * 60, 15 * 60 + 10]
+  ]
+};
+
+function tarihSaatOlustur(tarih, saat) {
+  if (!tarih || !saat) return null;
+
+  const t = String(tarih).trim();
+  const s = String(saat).trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+
+  const h = Number(m[1]);
+  const dk = Number(m[2]);
+  if (!Number.isInteger(h) || !Number.isInteger(dk) || h < 0 || h > 23 || dk < 0 || dk > 59) return null;
+
+  const p = t.split('-').map(Number);
+  if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return null;
+
+  const d = new Date(p[0], p[1] - 1, p[2], h, dk, 0, 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function gunIciCalismaDakikasi(bas, bit) {
+  if (!bas || !bit || bit <= bas) return 0;
+
+  const gunNo = bas.getDay();
+  if (gunNo === 0 || gunNo === 6) return 0;
+
+  const gunBas = new Date(bas);
+  gunBas.setHours(0, 0, 0, 0);
+
+  const calismaBas = new Date(gunBas);
+  calismaBas.setMinutes(CALISMA_TAKVIMI.baslangic);
+
+  const calismaBit = new Date(gunBas);
+  calismaBit.setMinutes(CALISMA_TAKVIMI.bitis);
+
+  const efektifBas = new Date(Math.max(bas.getTime(), calismaBas.getTime()));
+  const efektifBit = new Date(Math.min(bit.getTime(), calismaBit.getTime()));
+
+  if (efektifBit <= efektifBas) return 0;
+
+  let dakika = (efektifBit.getTime() - efektifBas.getTime()) / 60000;
+
+  CALISMA_TAKVIMI.molalar.forEach(([molaBasDak, molaBitDak]) => {
+    const molaBas = new Date(gunBas);
+    molaBas.setMinutes(molaBasDak);
+    const molaBit = new Date(gunBas);
+    molaBit.setMinutes(molaBitDak);
+
+    const overlapBas = Math.max(efektifBas.getTime(), molaBas.getTime());
+    const overlapBit = Math.min(efektifBit.getTime(), molaBit.getTime());
+
+    if (overlapBit > overlapBas) {
+      dakika -= (overlapBit - overlapBas) / 60000;
+    }
+  });
+
+  return Math.max(0, dakika);
+}
+
+function calismaDakikasiHesapla(bas, bit) {
+  if (!bas || !bit || isNaN(bas.getTime()) || isNaN(bit.getTime()) || bit <= bas) return 0;
+
+  let toplam = 0;
+  const gun = new Date(bas);
+  gun.setHours(0, 0, 0, 0);
+
+  const sonGun = new Date(bit);
+  sonGun.setHours(0, 0, 0, 0);
+
+  while (gun <= sonGun) {
+    const sonrakiGun = new Date(gun);
+    sonrakiGun.setDate(sonrakiGun.getDate() + 1);
+
+    const gunBas = gun.getTime() === new Date(bas).setHours(0, 0, 0, 0)
+      ? bas
+      : new Date(gun);
+
+    const gunBit = gun.getTime() === new Date(bit).setHours(0, 0, 0, 0)
+      ? bit
+      : new Date(sonrakiGun);
+
+    toplam += gunIciCalismaDakikasi(gunBas, gunBit);
+    gun.setDate(gun.getDate() + 1);
+  }
+
+  return Math.round(toplam);
+}
+
+function kayitOnarimDakikasi(kayit) {
+  if (!kayit) return 0;
+
+  const basTarih = kayit.tarihBas;
+  let bitTarih = kayit.tarihBit || kayit.tarihBas;
+
+  // Tarih bitişi boşsa ve saat geri dönmüşse bir sonraki günü varsay.
+  if (!kayit.tarihBit && kayit.onarimBas && kayit.onarimBit) {
+    const basDak = Number(kayit.onarimBas.slice(0, 2)) * 60 + Number(kayit.onarimBas.slice(3, 5));
+    const bitDak = Number(kayit.onarimBit.slice(0, 2)) * 60 + Number(kayit.onarimBit.slice(3, 5));
+    if (bitDak < basDak) {
+      const d = new Date(String(basTarih) + 'T00:00:00');
+      if (!isNaN(d.getTime())) {
+        d.setDate(d.getDate() + 1);
+        bitTarih = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+    }
+  }
+
+  const bas = tarihSaatOlustur(basTarih, kayit.onarimBas);
+  const bit = tarihSaatOlustur(bitTarih, kayit.onarimBit);
+  if (!bas || !bit) return 0;
+
+  return calismaDakikasiHesapla(bas, bit);
+}
+
+function kayitArizaBaslangic(kayit) {
+  if (!kayit) return null;
+  return tarihSaatOlustur(kayit.tarihBas, kayit.arizaBas);
+}
+
 function calcSure() {
-  const bas = document.getElementById('onarimBas').value;
-  const bit = document.getElementById('onarimBit').value;
-  if (!bas || !bit) return;
-  const [bh,bm] = bas.split(':').map(Number);
-  const [eh,em] = bit.split(':').map(Number);
-  let dk = (eh*60+em)-(bh*60+bm);
-  if (dk < 0) dk += 1440;
-  document.getElementById('sureBadge').textContent = dk > 0 ? dk + ' dakika' : '0 dakika';
-  document.getElementById('sureBadge').dataset.dk = dk > 0 ? dk : 0;
+  const tarihBas = document.getElementById('tarihBas')?.value || '';
+  const tarihBit = document.getElementById('tarihBit')?.value || tarihBas;
+  const onarimBas = document.getElementById('onarimBas')?.value || '';
+  const onarimBit = document.getElementById('onarimBit')?.value || '';
+  const badge = document.getElementById('sureBadge');
+
+  if (!badge) return;
+
+  if (!tarihBas || !onarimBas || !onarimBit) {
+    badge.textContent = '— dk —';
+    badge.dataset.dk = '0';
+    return;
+  }
+
+  const bas = tarihSaatOlustur(tarihBas, onarimBas);
+  const bit = tarihSaatOlustur(tarihBit, onarimBit);
+
+  if (!bas || !bit) {
+    badge.textContent = '— dk —';
+    badge.dataset.dk = '0';
+    return;
+  }
+
+  const dk = calismaDakikasiHesapla(bas, bit);
+  badge.textContent = dk + ' dakika';
+  badge.dataset.dk = String(dk);
 }
 
 // ── DATALİST ─────────────────────────────────
@@ -3514,7 +3669,7 @@ const badgeMap = {
 const riskBadge = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon'};
 
 function detayAc(id) {
-const k = kayitlar.find(x => String(x.id) === String(id));
+  const k = kayitlar.find(x => x.id === id);
   if (!k) return;
   document.getElementById('modalBaslik').textContent = (k.formNo || '—') + '  —  ' + (k.islem || '');
   const satir = (lbl, val) => val ? (
@@ -3833,26 +3988,66 @@ function buildDash() {
   const veri   = filtreliVeri();
   const total  = veri.length;
   const arizaV = veri.filter(k =>
-  String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
-);
-  const sureler = veri.map(k => {
-    const m = typeof k.sure === 'number' ? k.sure : parseInt(k.sure);
-    return isNaN(m) ? 0 : m;
-  }).filter(s => s > 0);
-  const mttr = sureler.length ? Math.round(sureler.reduce((a,b) => a+b, 0) / sureler.length) : 0;
+    String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
+  );
 
+  // ── MTTR ────────────────────────────────────────────────
+  // Kayıtta tarih + onarım başlangıç/bitiş bilgileri varsa
+  // gerçek çalışma takvimi üzerinden yeniden hesaplanır.
+  // Eski kayıtlarda bu bilgiler yoksa mevcut sure değeri korunur.
+  const sureler = veri.map(k => {
+    const hesaplanan = kayitOnarimDakikasi(k);
+    if (hesaplanan > 0) return hesaplanan;
+
+    const eskiSure = typeof k.sure === 'number'
+      ? k.sure
+      : parseInt(k.sure, 10);
+
+    return isNaN(eskiSure) ? 0 : eskiSure;
+  }).filter(s => s > 0);
+
+  const mttr = sureler.length
+    ? Math.round(sureler.reduce((a, b) => a + b, 0) / sureler.length)
+    : 0;
+
+  // ── MTBF ────────────────────────────────────────────────
+  // Aktif arıza zamanı = tarihBas + arizaBas.
+  // Arızalar arasındaki süre de aynı çalışma takviminden geçirilir.
   let mtbf = 0;
-  if (arizaV.length > 1) {
-    const dates = arizaV.map(k => new Date(k.tarihBas)).sort((a,b) => a-b);
-    let top = 0;
-    for (let i=1; i<dates.length; i++) top += (dates[i] - dates[i-1]);
-    mtbf = Math.round(top / (dates.length-1) / 3600000);
+
+  const arizaZamanlari = arizaV.map(k => ({
+    kayit: k,
+    zaman: kayitArizaBaslangic(k)
+  })).filter(x => x.zaman).sort((a, b) => a.zaman - b.zaman);
+
+  if (arizaZamanlari.length > 1) {
+    let toplamCalismaDakikasi = 0;
+    let aralikSayisi = 0;
+
+    for (let i = 1; i < arizaZamanlari.length; i++) {
+      const onceki = arizaZamanlari[i - 1].zaman;
+      const sonraki = arizaZamanlari[i].zaman;
+
+      if (sonraki > onceki) {
+        const aralik = calismaDakikasiHesapla(onceki, sonraki);
+        if (aralik > 0) {
+          toplamCalismaDakikasi += aralik;
+          aralikSayisi++;
+        }
+      }
+    }
+
+    if (aralikSayisi > 0) {
+      mtbf = Math.round((toplamCalismaDakikasi / aralikSayisi) / 60);
+    }
   }
 
   const mttrSaat = mttr / 60;
   let avail;
   if (arizaV.length === 0) { avail = 100; }
-  else if (mtbf > 0) { avail = Math.min(99.9, Math.round(mtbf/(mtbf+mttrSaat)*1000)/10); }
+  else if (mtbf > 0) {
+    avail = Math.min(99.9, Math.round(mtbf / (mtbf + mttrSaat) * 1000) / 10);
+  }
   else { avail = 0; }
 
   let topMaliyet = 0;
