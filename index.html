@@ -1133,11 +1133,11 @@ tr:last-child td { border-bottom: none; }
       <div class="fg g3">
         <div class="field">
           <label>BAŞLANGIÇ TARİHİ <span class="req">*</span></label>
-          <input type="date" id="tarihBas" onchange="calcSure()">
+          <input type="date" id="tarihBas">
         </div>
         <div class="field">
           <label>BİTİŞ TARİHİ</label>
-          <input type="date" id="tarihBit" onchange="calcSure()">
+          <input type="date" id="tarihBit">
         </div>
         <div class="field"></div>
         <div class="field">
@@ -1522,7 +1522,7 @@ tr:last-child td { border-bottom: none; }
           <thead>
             <tr>
               <th>MAKİNE</th><th>BÖLÜM</th><th>ARIZA SAYISI</th>
-              <th>MTTR (dk)</th><th>MTBF (saat)</th><th>TEKRARLAYAN ARIZA</th><th>KULLANILABİLİRLİK %</th>
+              <th>MTTR (dk)</th><th>MTBF (saat)</th><th>KULLANILABİLİRLİK %</th>
               <th>SON ARIZA</th><th>DURUM</th><th>EKİPMAN KARTI</th>
             </tr>
           </thead>
@@ -3297,19 +3297,143 @@ function genFormNo() {
 }
 
 // ── SÜRE ──────────────────────────────────────
+// ── ÇALIŞMA TAKVİMİ / SÜRE HESAPLAMA MOTORU ─────────────────────
+// Pazartesi-Cuma 07:00-17:00
+// Molalar: 09:00-09:10 / 12:00-12:30 / 15:00-15:10
+// Aynı motor ONARIM SÜRESİ (MTTR) ve MTBF hesaplarında kullanılır.
+const CALISMA_TAKVIMI = {
+  baslangic: 7 * 60,
+  bitis: 17 * 60,
+  molalar: [[9*60,9*60+10],[12*60,12*60+30],[15*60,15*60+10]]
+};
+
+function tarihSaatOlustur(tarih, saat) {
+  if (!tarih || !saat) return null;
+  const t = String(tarih).trim();
+  const m = String(saat).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const p = t.slice(0,10).split('-').map(Number);
+  if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return null;
+  const h = Number(m[1]), dk = Number(m[2]);
+  if (h<0 || h>23 || dk<0 || dk>59) return null;
+  const d = new Date(p[0],p[1]-1,p[2],h,dk,0,0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function gunIciCalismaDakikasi(bas, bit) {
+  if (!(bas instanceof Date) || !(bit instanceof Date) || bit <= bas) return 0;
+  const dow = bas.getDay();
+  if (dow === 0 || dow === 6) return 0;
+  const g = new Date(bas); g.setHours(0,0,0,0);
+  const cb = new Date(g); cb.setMinutes(CALISMA_TAKVIMI.baslangic);
+  const ce = new Date(g); ce.setMinutes(CALISMA_TAKVIMI.bitis);
+  const eb = new Date(Math.max(bas.getTime(),cb.getTime()));
+  const ee = new Date(Math.min(bit.getTime(),ce.getTime()));
+  if (ee <= eb) return 0;
+  let dk = (ee-eb)/60000;
+  CALISMA_TAKVIMI.molalar.forEach(([mb,me]) => {
+    const b = new Date(g); b.setMinutes(mb);
+    const e = new Date(g); e.setMinutes(me);
+    const ob = Math.max(eb.getTime(),b.getTime());
+    const oe = Math.min(ee.getTime(),e.getTime());
+    if (oe > ob) dk -= (oe-ob)/60000;
+  });
+  return Math.max(0,dk);
+}
+
+function calismaDakikasiHesapla(bas, bit) {
+  if (!(bas instanceof Date) || !(bit instanceof Date) || isNaN(bas) || isNaN(bit) || bit<=bas) return 0;
+  let toplam=0;
+  const gun = new Date(bas.getFullYear(),bas.getMonth(),bas.getDate());
+  const son = new Date(bit.getFullYear(),bit.getMonth(),bit.getDate());
+  while (gun <= son) {
+    const gb = new Date(gun);
+    const ge = new Date(gun); ge.setDate(ge.getDate()+1);
+    const db = gun.getTime()===new Date(bas.getFullYear(),bas.getMonth(),bas.getDate()).getTime() ? bas : gb;
+    const de = gun.getTime()===new Date(bit.getFullYear(),bit.getMonth(),bit.getDate()).getTime() ? bit : ge;
+    toplam += gunIciCalismaDakikasi(db,de);
+    gun.setDate(gun.getDate()+1);
+  }
+  return Math.round(toplam);
+}
+
+function kayitArizaBaslangic(k) {
+  return tarihSaatOlustur(k?.tarihBas,k?.arizaBas) || tarihSaatOlustur(k?.tarihBas,'00:00');
+}
+
+function kayitOnarimDakikasi(k) {
+  const bas = tarihSaatOlustur(k?.tarihBas,k?.onarimBas);
+  const bit = tarihSaatOlustur(k?.tarihBit || k?.tarihBas,k?.onarimBit);
+  if (bas && bit) {
+    let e = bit;
+    if (e <= bas && !k?.tarihBit) { e = new Date(e); e.setDate(e.getDate()+1); }
+    const dk = calismaDakikasiHesapla(bas,e);
+    if (dk > 0) return dk;
+  }
+  const legacy = parseInt(k?.sure,10);
+  return Number.isFinite(legacy) && legacy>0 ? legacy : 0;
+}
+
+function arizaKayitlari(liste) {
+  return (liste||[]).filter(k => String(k.islem||'').trim().toUpperCase()==='ARIZA KAYDI');
+}
+
+function makineMTBFVerisi(arizalar) {
+  const a=(arizalar||[]).map(k=>({k,z:kayitArizaBaslangic(k)})).filter(x=>x.z).sort((x,y)=>x.z-y.z);
+  let toplam=0, adet=0;
+  for(let i=1;i<a.length;i++){ const dk=calismaDakikasiHesapla(a[i-1].z,a[i].z); if(dk>0){toplam+=dk;adet++;} }
+  return {dakika:adet?Math.round(toplam/adet):0,saat:adet?Math.round(toplam/adet/60*10)/10:0,araliklar:adet};
+}
+
+function makineMTTR(arizalar) {
+  const vals=(arizalar||[]).map(k=>kayitOnarimDakikasi(k)).filter(v=>v>0);
+  return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+}
+
+function ayniArizaMTBFVerisi(arizalar) {
+  const gruplar={};
+  (arizalar||[]).forEach(k=>{
+    const kod=String(k.arizaKodu||'').trim().toUpperCase();
+    if(!kod) return;
+    (gruplar[kod]||(gruplar[kod]=[])).push(k);
+  });
+  const sonuc={};
+  Object.keys(gruplar).forEach(kod=>{
+    const r=makineMTBFVerisi(gruplar[kod]);
+    if(r.araliklar>0) sonuc[kod]={kod,adet:gruplar[kod].length,mtbfSaat:r.saat,mtbfDk:r.dakika};
+  });
+  return sonuc;
+}
+
+function makinePerformansVerisi(makine,liste) {
+  const a=arizaKayitlari(liste).filter(k=>String(k.makine||'').trim()===String(makine||'').trim());
+  const mttr=makineMTTR(a), mtbf=makineMTBFVerisi(a), ayni=ayniArizaMTBFVerisi(a);
+  const tekrarlar=Object.values(ayni).sort((x,y)=>y.adet-x.adet || y.mtbfSaat-x.mtbfSaat);
+  const mttrSaat=mttr/60;
+  const avail=a.length===0?100:(mtbf.saat>0?Math.min(99.9,Math.round(mtbf.saat/(mtbf.saat+mttrSaat)*1000)/10):0);
+  return {arizalar:a,mttr,mtbf,ayni,kronik:tekrarlar[0]||null,avail};
+}
+
+function dashboardMTBF(arizalar) {
+  const byMachine={};
+  (arizalar||[]).forEach(k=>{const mak=String(k.makine||'').trim();if(!mak)return;(byMachine[mak]||(byMachine[mak]=[])).push(k);});
+  let toplam=0,adet=0;
+  Object.values(byMachine).forEach(list=>{const r=makineMTBFVerisi(list);toplam+=r.dakika*r.araliklar;adet+=r.araliklar;});
+  return adet?Math.round(toplam/adet):0;
+}
+
 function calcSure() {
-  const basT = document.getElementById('tarihBas')?.value;
-  const bitT = document.getElementById('tarihBit')?.value;
-  const basS = document.getElementById('onarimBas')?.value;
-  const bitS = document.getElementById('onarimBit')?.value;
-  if (!basS || !bitS) return;
-  const bas = tarihSaatOlustur(basT, basS);
-  const bit = tarihSaatOlustur(bitT || basT, bitS);
-  if (!bas || !bit) return;
-  if (bit <= bas && !bitT) bit.setDate(bit.getDate() + 1);
-  const dk = calismaDakikasiHesapla(bas, bit);
-  const badge = document.getElementById('sureBadge');
-  if (badge) { badge.textContent = (dk || 0) + ' dakika'; badge.dataset.dk = dk || 0; }
+  const basSaat = document.getElementById('onarimBas')?.value;
+  const bitSaat = document.getElementById('onarimBit')?.value;
+  if (!basSaat || !bitSaat) return;
+  const tarih = document.getElementById('tarihBas')?.value || document.getElementById('tarih')?.value || new Date().toISOString().slice(0,10);
+  const tarihBit = document.getElementById('tarihBit')?.value || tarih;
+  let bas=tarihSaatOlustur(tarih,basSaat), bit=tarihSaatOlustur(tarihBit,bitSaat);
+  if(!bas || !bit) return;
+  if(bit<=bas && !document.getElementById('tarihBit')?.value) { bit=new Date(bit); bit.setDate(bit.getDate()+1); }
+  const dk=calismaDakikasiHesapla(bas,bit);
+  const badge=document.getElementById('sureBadge');
+  if(badge){badge.textContent=dk+' dakika';badge.dataset.dk=dk;}
 }
 
 // ── DATALİST ─────────────────────────────────
@@ -3832,23 +3956,237 @@ function parseTutar(str) {
   return parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// BURKAB MTBF / MTTR HESAPLAMA MOTORU
-// MTBF = makine bazında; aynı arıza = MAKİNE + ARIZA KODU bazında.
-// Çalışma: Pzt-Cuma 07:00-17:00; molalar 09:00-09:10, 12:00-12:30, 15:00-15:10.
-// ═══════════════════════════════════════════════════════════════
-const CALISMA_TAKVIMI={baslangic:420,bitis:1020,molalar:[[540,550],[720,750],[900,910]]};
-function tarihSaatOlustur(tarih,saat){if(!tarih)return null;const d=new Date(String(tarih).slice(0,10)+'T00:00:00');if(isNaN(d))return null;const m=String(saat||'00:00').match(/^(\d{1,2}):(\d{2})/);d.setHours(m?+m[1]:0,m?+m[2]:0,0,0);return d;}
-function calismaDakikasiHesapla(bas,bit){if(!(bas instanceof Date)||!(bit instanceof Date)||isNaN(bas)||isNaN(bit)||bit<=bas)return 0;let toplam=0,g=new Date(bas.getFullYear(),bas.getMonth(),bas.getDate()),son=new Date(bit.getFullYear(),bit.getMonth(),bit.getDate());while(g<=son){const dow=g.getDay();if(dow>=1&&dow<=5){const gb=new Date(g);gb.setHours(7,0,0,0);const ge=new Date(g);ge.setHours(17,0,0,0);const ab=new Date(Math.max(bas,gb));const ae=new Date(Math.min(bit,ge));if(ae>ab){let dk=(ae-ab)/60000;CALISMA_TAKVIMI.molalar.forEach(([mbm,mem])=>{const mb=new Date(g);mb.setHours(Math.floor(mbm/60),mbm%60,0,0);const me=new Date(g);me.setHours(Math.floor(mem/60),mem%60,0,0);const ob=Math.max(ab,mb),oe=Math.min(ae,me);if(oe>ob)dk-=(oe-ob)/60000;});toplam+=Math.max(0,dk);}}g.setDate(g.getDate()+1);}return Math.round(toplam);}
-function kayitArizaBaslangic(k){return tarihSaatOlustur(k?.tarihBas,k?.arizaBas);}
-function kayitOnarimDakikasi(k){if(!k?.tarihBas||!k?.onarimBas)return 0;let b=tarihSaatOlustur(k.tarihBas,k.onarimBas),e=tarihSaatOlustur(k.tarihBit||k.tarihBas,k.onarimBit);if(!b||!e)return 0;if(e<=b&&!k.tarihBit)e.setDate(e.getDate()+1);return calismaDakikasiHesapla(b,e);}
-function arizaKayitlari(liste){return(liste||[]).filter(k=>String(k.islem||'').trim().toUpperCase()==='ARIZA KAYDI');}
-function makineMTBFVerisi(arizalar){const a=arizalar.map(k=>({k,z:kayitArizaBaslangic(k)})).filter(x=>x.z).sort((x,y)=>x.z-y.z);if(a.length<2)return{saat:0,dakika:0,araliklar:0};let top=0,n=0;for(let i=1;i<a.length;i++){const dk=calismaDakikasiHesapla(a[i-1].z,a[i].z);if(dk>0){top+=dk;n++;}}return{dakika:n?Math.round(top/n):0,saat:n?Math.round(top/n/60*10)/10:0,araliklar:n};}
-function makineMTTR(arizalar){const yeni=arizalar.map(k=>kayitOnarimDakikasi(k)).filter(x=>x>0),eski=arizalar.map(k=>parseInt(k.sure,10)||0).filter(x=>x>0),a=yeni.length?yeni:eski;return a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;}
-function ayniArizaMTBFVerisi(arizalar){const g={};arizalar.forEach(k=>{const kod=String(k.arizaKodu||'').trim().toUpperCase();if(!kod)return;(g[kod]||(g[kod]=[])).push(k);});const o={};Object.keys(g).forEach(kod=>{const r=makineMTBFVerisi(g[kod]);if(r.araliklar>0)o[kod]={kod,adet:g[kod].length,mtbfSaat:r.saat,mtbfDk:r.dakika};});return o;}
-function makinePerformansVerisi(makine,liste){const a=arizaKayitlari(liste).filter(k=>String(k.makine||'').trim()===String(makine||'').trim()),mttr=makineMTTR(a),mtbf=makineMTBFVerisi(a),ayni=ayniArizaMTBFVerisi(a),tekrarlar=Object.values(ayni).sort((x,y)=>y.adet-x.adet||y.mtbfSaat-x.mtbfSaat),kronik=tekrarlar[0]||null,mttrSaat=mttr/60,avail=a.length===0?100:(mtbf.saat>0?Math.min(99.9,Math.round(mtbf.saat/(mtbf.saat+mttrSaat)*1000)/10):0);return{arizalar:a,mttr,mtbf,ayni,kronik,avail};}
-function gecerlilerOrtalama(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function buildDash() {
+  const veri   = filtreliVeri();
+  const total  = veri.length;
+  const arizaV = veri.filter(k =>
+  String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
+);
+  // MTTR yalnızca ARIZA KAYDI üzerinden; onarım süresi çalışma takvimine göre hesaplanır.
+  const mttr = makineMTTR(arizaV);
 
+  // MTBF farklı makinelerin arızalarını birbirine bağlamaz.
+  // Aynı makinenin ardışık arıza başlangıçları arasındaki çalışma süresinin ortalamasıdır.
+  const mtbfDk = dashboardMTBF(arizaV);
+  const mtbf = Math.round(mtbfDk / 60 * 10) / 10;
+
+  const mttrSaat = mttr / 60;
+  let avail;
+  if (arizaV.length === 0) { avail = 100; }
+  else if (mtbf > 0) { avail = Math.min(99.9, Math.round(mtbf/(mtbf+mttrSaat)*1000)/10); }
+  else { avail = 0; }
+
+  let topMaliyet = 0;
+  veri.forEach(k => { const m = parseTutar(k.toplamMaliyet); if (!isNaN(m)) topMaliyet += m; });
+
+  document.getElementById('kpiGrid').innerHTML =
+    '<div class="kpi-card" style="--kpi-color:#f5c400"><div class="kpi-val">' + total + '</div><div class="kpi-lbl">Toplam Kayıt</div></div>' +
+    '<div class="kpi-card" style="--kpi-color:#d32f2f"><div class="kpi-val">' + arizaV.length + '</div><div class="kpi-lbl">Arıza Kaydı</div></div>' +
+    '<div class="kpi-card" style="--kpi-color:#0277bd"><div class="kpi-val">' + mttr + '<span style="font-size:14px;font-weight:400"> dk</span></div><div class="kpi-lbl">MTTR</div><div class="kpi-sub">Ort. Onarım Süresi</div></div>' +
+    '<div class="kpi-card" style="--kpi-color:#00875a"><div class="kpi-val">' + mtbf + '<span style="font-size:14px;font-weight:400"> sa</span></div><div class="kpi-lbl">MTBF</div><div class="kpi-sub">Arızalar Arası Süre</div></div>' +
+    '<div class="kpi-card" style="--kpi-color:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"><div class="kpi-val">%' + avail + '</div><div class="kpi-lbl">KULLANILABİLİRLİK</div><div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + avail + '%;background:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"></div></div></div>';
+
+  if (total === 0) {
+    ['Trend','Islem','MTTR','Bolum','Risk','Maliyet'].forEach(id => {
+      destroyChart(id.toLowerCase());
+      const c = document.getElementById('chart' + id);
+      if (c) { const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }
+    });
+    document.getElementById('makineKartGrid').innerHTML = '<div class="empty">Henüz veri yok</div>';
+    document.getElementById('makineTableBody').innerHTML = '<tr><td colspan="9" class="empty">Henüz veri yok</td></tr>';
+    return;
+  }
+
+  // Aylık trend
+  destroyChart('trend');
+  const ayMap = {};
+  veri.forEach(k => {
+    if (!k.tarihBas) return;
+    const d = new Date(k.tarihBas);
+    const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');   // ★ GERİ EKLENDİ
+    if (!ayMap[ay]) ayMap[ay] = { ariza: 0, bakim: 0 };
+
+    const islem = String(k.islem || '').trim().toUpperCase();
+
+    if (islem === 'ARIZA KAYDI') {
+      ayMap[ay].ariza++;
+    } else if (islem.includes('BAKIM')) {
+      ayMap[ay].bakim++;
+    }
+  });   // ★ GERİ EKLENDİ — forEach'i kapatıyor
+  const aylar = Object.keys(ayMap).sort();
+  const ctx1 = document.getElementById('chartTrend')?.getContext('2d');
+  if (ctx1 && aylar.length) {
+    charts['trend'] = new Chart(ctx1, {
+      type: 'bar',
+      data: { labels: aylar, datasets: [
+        {label:'Arıza', data:aylar.map(a=>ayMap[a].ariza), backgroundColor:'rgba(211,47,47,.8)', borderRadius:4},
+        {label:'Bakım', data:aylar.map(a=>ayMap[a].bakim), backgroundColor:'rgba(0,135,90,.7)', borderRadius:4}
+      ]},
+      options: {responsive:true, plugins:{legend:{position:'top'}}, scales:{x:{stacked:false}, y:{beginAtZero:true, ticks:{stepSize:1}}}}
+    });
+  }
+
+  // İşlem türü pasta
+  destroyChart('islem');
+  const islemC = {};
+  veri.forEach(k => { islemC[k.islem] = (islemC[k.islem]||0) + 1; });
+  const ctx2 = document.getElementById('chartIslem')?.getContext('2d');
+  if (ctx2 && Object.keys(islemC).length) {
+    charts['islem'] = new Chart(ctx2, {
+      type: 'doughnut',
+      data: { labels: Object.keys(islemC), datasets: [{data:Object.values(islemC), backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'], borderWidth:2, borderColor:'#fff'}]},
+      options: {responsive:true, plugins:{legend:{position:'right'}}, cutout:'60%'}
+    });
+  }
+
+  // Makine MTTR
+  destroyChart('mttr');
+  const makineMap = {};
+  arizaV.forEach(k => {
+    const mak = String(k.makine||'').trim();
+    if (!mak) return;
+    (makineMap[mak]||(makineMap[mak]=[])).push(k);
+  });
+  const makineIsimler = Object.keys(makineMap).slice(0,10);
+  const makineMTTRDegerleri = makineIsimler.map(m => makineMTTR(makineMap[m]));
+  const ctx3 = document.getElementById('chartMTTR')?.getContext('2d');
+  if (ctx3 && makineIsimler.length) {
+    charts['mttr'] = new Chart(ctx3, {
+      type: 'bar',
+      data: { labels:makineIsimler, datasets:[{label:'MTTR (dk)', data:makineMTTRDegerleri, backgroundColor:'rgba(2,119,189,.8)', borderRadius:4}]},
+      options: {indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}}}
+    });
+  }
+
+  // Bölüm dağılımı
+  destroyChart('bolum');
+  const bolumC = {};
+  veri.forEach(k => { bolumC[k.bolum] = (bolumC[k.bolum]||0) + 1; });
+  const ctx4 = document.getElementById('chartBolum')?.getContext('2d');
+  if (ctx4 && Object.keys(bolumC).length) {
+    charts['bolum'] = new Chart(ctx4, {
+      type: 'bar',
+      data: { labels:Object.keys(bolumC), datasets:[{label:'Kayıt Sayısı', data:Object.values(bolumC), backgroundColor:'rgba(245,196,0,.85)', borderRadius:4}]},
+      options: {responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}}
+    });
+  }
+
+  // Risk dağılımı
+  destroyChart('risk');
+  const riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
+  veri.forEach(k => { if (k.riskSeviye && riskC.hasOwnProperty(k.riskSeviye)) riskC[k.riskSeviye]++; });
+  const ctx5 = document.getElementById('chartRisk')?.getContext('2d');
+  if (ctx5) {
+    charts['risk'] = new Chart(ctx5, {
+      type: 'doughnut',
+      data: { labels:Object.keys(riskC), datasets:[{data:Object.values(riskC), backgroundColor:['#00875a','#e65100','#d32f2f','#6a1b9a'], borderWidth:2, borderColor:'#fff'}]},
+      options: {responsive:true, plugins:{legend:{position:'right'}}, cutout:'55%'}
+    });
+  }
+
+  // Maliyet trendi
+  destroyChart('maliyet');
+  const malMap = {};
+  veri.forEach(k => {
+    if (!k.tarihBas || !k.toplamMaliyet) return;
+    const d = new Date(k.tarihBas);
+    const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const m = parseTutar(k.toplamMaliyet);
+    if (!isNaN(m) && m > 0) malMap[ay] = (malMap[ay]||0) + m;
+  });
+  const malAylar = Object.keys(malMap).sort();
+  const ctx6 = document.getElementById('chartMaliyet')?.getContext('2d');
+  if (ctx6 && malAylar.length) {
+    charts['maliyet'] = new Chart(ctx6, {
+      type: 'line',
+      data: { labels:malAylar, datasets:[{label:'Maliyet (₺)', data:malAylar.map(a=>malMap[a]), borderColor:'#f5c400', backgroundColor:'rgba(245,196,0,.1)', fill:true, tension:.4, pointRadius:5, pointBackgroundColor:'#f5c400'}]},
+      options: {responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    });
+  }
+
+  // Makine kartları
+  const tumMakineler = [...new Set(veri.map(k=>k.makine).filter(Boolean))].sort();
+  const renkler = ['#f5c400','#0277bd','#00875a','#d32f2f','#6a1b9a','#e65100','#00695c'];
+
+  document.getElementById('makineKartGrid').innerHTML = tumMakineler.map((mak, idx) => {
+    const mKayit   = veri.filter(k=>k.makine===mak);
+    const mAriza   = arizaKayitlari(mKayit);
+    const mVeri    = makinePerformansVerisi(mak,veri);
+    const mMTTR    = mVeri.mttr;
+    const mMTBF    = mVeri.mtbf.saat;
+    const mMTTRsa = mMTTR/60;
+    let mAvail;
+    if (mAriza.length===0) { mAvail=100; }
+    else if (mMTBF>0) { mAvail=Math.min(99.9,Math.round(mMTBF/(mMTBF+mMTTRsa)*1000)/10); }
+    else { mAvail=0; }
+    const bolum = mKayit[0]?.bolum || '-';
+    let durumClass='durum-iyi', durumText='İYİ';
+    if (mAvail<85) { durumClass='durum-kotu'; durumText='KÖTÜ'; }
+    else if (mAvail<95) { durumClass='durum-orta'; durumText='ORTA'; }
+    if (mAriza.filter(k=>k.riskSeviye==='KRİTİK').length>0) { durumClass='durum-kritik'; durumText='KRİTİK'; }
+    const renk = renkler[idx % renkler.length];
+    return '<div class="makine-kart" style="--mk-color:' + renk + '">' +
+      '<div class="makine-kart-baslik"><span>' + mak + '</span><span class="durum-badge ' + durumClass + '">' + durumText + '</span></div>' +
+      '<div class="makine-kart-bolum">' + bolum + '</div>' +
+      '<div class="makine-kart-stats">' +
+      '<div class="mk-stat"><div class="mk-stat-val" style="color:#d32f2f">' + mAriza.length + '</div><div class="mk-stat-lbl">Arıza</div></div>' +
+      '<div class="mk-stat"><div class="mk-stat-val" style="color:#0277bd">' + mMTTR + '</div><div class="mk-stat-lbl">MTTR (dk)</div></div>' +
+      '<div class="mk-stat"><div class="mk-stat-val" style="color:#00875a">' + mMTBF + '</div><div class="mk-stat-lbl">MTBF (sa)</div></div>' +
+      '<div class="mk-stat"><div class="mk-stat-val" style="color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '">%' + mAvail + '</div><div class="mk-stat-lbl">Kullanılab.</div></div>' +
+      '</div>' +
+      '<div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + mAvail + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div>' +
+      (mVeri.kronik ? '<div style="margin-top:8px;font-size:11px;color:var(--muted)">Tekrarlayan arıza: <strong>' + mVeri.kronik.kod + '</strong> · ' + mVeri.kronik.adet + ' kayıt · aynı arıza MTBF ' + mVeri.kronik.mtbfSaat + ' sa</div>' : '') +
+      '</div>';
+  }).join('') || '<div class="empty">Henüz makine kaydı yok</div>';
+
+  // Makine tablo
+  document.getElementById('makineTableBody').innerHTML = tumMakineler.map(mak => {
+    const mKayit   = veri.filter(k=>k.makine===mak);
+    const mAriza   = arizaKayitlari(mKayit);
+    const mVeri    = makinePerformansVerisi(mak,veri);
+    const mMTTR    = mVeri.mttr;
+    const mMTBF    = mVeri.mtbf.saat;
+    const mMTTRsa=mMTTR/60;
+    let mAvail;
+    if (mAriza.length===0) { mAvail=100; }
+    else if (mMTBF>0) { mAvail=Math.min(99.9,Math.round(mMTBF/(mMTBF+mMTTRsa)*1000)/10); }
+    else { mAvail=0; }
+    const bolum=mKayit[0]?.bolum||'-';
+    const sonAriza=mAriza.length?mAriza.slice().sort((a,b)=>(kayitArizaBaslangic(b)||0)-(kayitArizaBaslangic(a)||0))[0].tarihBas:'-';
+    let durumClass='durum-iyi', durumText='İYİ';
+    if(mAvail<85){durumClass='durum-kotu';durumText='KÖTÜ';}
+    else if(mAvail<95){durumClass='durum-orta';durumText='ORTA';}
+    return '<tr>' +
+      '<td><strong>' + mak + '</strong></td><td>' + bolum + '</td>' +
+      '<td style="text-align:center;font-weight:700;color:#d32f2f">' + mAriza.length + '</td>' +
+      '<td style="text-align:center;font-family:\'IBM Plex Mono\',monospace;color:#0277bd">' + mMTTR + ' dk</td>' +
+      '<td style="text-align:center;font-family:\'IBM Plex Mono\',monospace;color:#00875a">' + mMTBF + ' sa</td>' +
+      '<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px"><div class="avail-bar" style="flex:1"><div class="avail-fill" style="width:' + mAvail + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div><span style="font-weight:700;color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + ';min-width:42px">%' + mAvail + '</span></div></td>' +
+      '<td style="font-family:\'IBM Plex Mono\',monospace;font-size:12px">' + sonAriza + '</td>' +
+      '<td><span class="durum-badge ' + durumClass + '">' + durumText + '</span></td>' +
+      '<td><button onclick="ekipmanKartModalAcDashboard(\'' +String(mak).replace(/'/g, "\\'") +'\',\'' +String(bolum).replace(/'/g, "\\'") +'\')" style="background:rgba(0,77,64,.1);border:1px solid rgba(0,77,64,.3);border-radius:5px;color:#004d40;cursor:pointer;padding:4px 10px;font-size:11px;font-weight:700">📋 Kart</button></td>' +
+
+  '</tr>';
+
+  }).join('') ||
+    '<tr><td colspan="9" class="empty">Henüz makine kaydı yok</td></tr>';
+
+  renderRiskAksiyonOzet(veri); /* IATF 4.4 */
+  }
+
+// ── CANLI DASHBOARD ───────────────────────────
+let liveInterval = null;
+
+function startLiveDashboard() {
+  liveVeriCek();
+
+  if (liveInterval) {
+    clearInterval(liveInterval);
+  }
+
+  liveInterval = setInterval(liveVeriCek, 5 * 60 * 1000);
+}
 async function liveVeriCek() {
   try {
     const [json, metrics] = await Promise.all([
@@ -4032,7 +4370,7 @@ function _renderUretim() {
   if (arizaBody) {
     const gorunen = bugunKayit.filter(k=>k.islem==='ARIZA KAYDI'||k.durusEtkisi==='TAM DURUŞ'||k.durusEtkisi==='KISMİ DURUŞ');
     if (!gorunen.length) {
-      arizaBody.innerHTML = '<tr><td colspan="10" class="empty">🎉 Bugün arıza / duruş kaydı yok!</td></tr>';
+      arizaBody.innerHTML = '<tr><td colspan="9" class="empty">🎉 Bugün arıza / duruş kaydı yok!</td></tr>';
     } else {
       arizaBody.innerHTML = gorunen.map(k => {
         const durusRenk = k.durusEtkisi==='TAM DURUŞ'?'#d32f2f':k.durusEtkisi==='KISMİ DURUŞ'?'#e65100':'#00875a';
