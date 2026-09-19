@@ -3641,7 +3641,7 @@ const badgeMap = {
 const riskBadge = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon'};
 
 function detayAc(id) {
-  const k = kayitlar.find(x => x.id === id);
+  const k = kayitlar.find(x => String(x.id) === String(id));
   if (!k) return;
   document.getElementById('modalBaslik').textContent = (k.formNo || '—') + '  —  ' + (k.islem || '');
   const satir = (lbl, val) => val ? (
