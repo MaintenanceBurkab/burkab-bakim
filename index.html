@@ -8912,7 +8912,87 @@ async function ypVerileriYukle(force=false){if(ypYuklendi&&!force){renderYedekSt
 function ypKategoriDoldur(){const el=document.getElementById('ypKategoriFiltre');if(!el)return;const sec=el.value;const cats=[...new Set(ypStoklar.map(x=>x.kategori).filter(Boolean))].sort();el.innerHTML='<option value="">TÜM KATEGORİLER</option>'+cats.map(x=>'<option>'+ypEsc(x)+'</option>').join('');el.value=sec;}
 function ypParcaSelectDoldur(){['yph-kod','yps-kod'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— SEÇİNİZ —</option>'+ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').map(p=>`<option value="${ypEsc(p.stokKodu)}">${ypEsc(p.stokKodu)} — ${ypEsc(p.parcaAdi)} (${ypKullanilabilir(p)} ${ypEsc(p.birim||'ADET')})</option>`).join('');});}
 function ypFormParcaDatalist(){let dl=document.getElementById('yedek-parca-list');if(!dl){dl=document.createElement('datalist');dl.id='yedek-parca-list';document.body.appendChild(dl);}dl.innerHTML=ypStoklar.map(p=>`<option value="${ypEsc(p.stokKodu)}">${ypEsc(p.parcaAdi)}</option>`).join('');}
-function ypKpiHtml(list){const total=list.length, kritik=list.filter(p=>ypDurum(p)==='KRITIK').length, yok=list.filter(p=>ypDurum(p)==='STOK_YOK').length, uyari=list.filter(p=>ypDurum(p)==='UYARI').length;const deger=list.reduce((a,p)=>a+ypNum(p.mevcutStok)*ypNum(p.birimFiyat),0);const sip=ypSiparisler.filter(x=>!['TAMAMLANDI','IPTAL'].includes(ypN(x.durum))).length;return `<div class="yp-kpi" style="--c:#1a1a1a"><b>${total}</b><span>Toplam Parça</span></div><div class="yp-kpi" style="--c:#e65100"><b>${uyari}</b><span>Uyarı</span></div><div class="yp-kpi" style="--c:#d32f2f"><b>${kritik}</b><span>Kritik</span></div><div class="yp-kpi" style="--c:#1a1a1a"><b>${yok}</b><span>Stok Yok</span></div><div class="yp-kpi" style="--c:#00875a"><b>${deger.toLocaleString('tr-TR',{maximumFractionDigits:0})} ₺</b><span>Stok Değeri</span></div><div class="yp-kpi" style="--c:#0277bd"><b>${sip}</b><span>Açık Sipariş</span></div>`;}
+function ypKpiHtml(list) {
+  const total  = list.length;
+  const kritik = list.filter(p => ypDurum(p) === 'KRITIK').length;
+  const yok    = list.filter(p => ypDurum(p) === 'STOK_YOK').length;
+  const uyari  = list.filter(p => ypDurum(p) === 'UYARI').length;
+
+  // STOK DEĞERLERİ PARA BİRİMİNE GÖRE AYRI AYRI HESAPLANIR.
+  // Birimler birbirine çevrilmez.
+  const stokDegeri = {
+    '₺': 0,
+    '$': 0,
+    '€': 0
+  };
+
+  list.forEach(p => {
+    const para = String(p.paraBirimi || '₺').trim();
+    const deger = ypNum(p.mevcutStok) * ypNum(p.birimFiyat);
+
+    if (stokDegeri[para] !== undefined) {
+      stokDegeri[para] += deger;
+    } else {
+      // Tanımsız para birimi varsa varsayılan olarak TL kabul edilir.
+      stokDegeri['₺'] += deger;
+    }
+  });
+
+  const tl = stokDegeri['₺'].toLocaleString('tr-TR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+
+  const usd = stokDegeri['$'].toLocaleString('tr-TR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+
+  const eur = stokDegeri['€'].toLocaleString('tr-TR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+
+  const sip = ypSiparisler.filter(
+    x => !['TAMAMLANDI', 'IPTAL'].includes(ypN(x.durum))
+  ).length;
+
+  return `
+    <div class="yp-kpi" style="--c:#1a1a1a">
+      <b>${total}</b>
+      <span>TOPLAM PARÇA</span>
+    </div>
+
+    <div class="yp-kpi" style="--c:#e65100">
+      <b>${uyari}</b>
+      <span>UYARI</span>
+    </div>
+
+    <div class="yp-kpi" style="--c:#d32f2f">
+      <b>${kritik}</b>
+      <span>KRİTİK</span>
+    </div>
+
+    <div class="yp-kpi" style="--c:#1a1a1a">
+      <b>${yok}</b>
+      <span>STOK YOK</span>
+    </div>
+
+    <div class="yp-kpi" style="--c:#00875a">
+      <b style="font-size:14px;line-height:1.8">
+        ₺ ${tl}<br>
+        $ ${usd}<br>
+        € ${eur}
+      </b>
+      <span>STOK DEĞERİ</span>
+    </div>
+
+    <div class="yp-kpi" style="--c:#0277bd">
+      <b>${sip}</b>
+      <span>AÇIK SİPARİŞ</span>
+    </div>
+  `;
+}
 function renderYedekStok(){const box=document.getElementById('ypStokListe');if(!box)return;if(!ypYuklendi){ypVerileriYukle();return;}const q=ypN(document.getElementById('ypArama')?.value),cat=ypN(document.getElementById('ypKategoriFiltre')?.value),dur=document.getElementById('ypDurumFiltre')?.value||'';let list=ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').filter(p=>!q||ypN([p.stokKodu,p.parcaAdi,p.kategori,p.makineGrubu,p.rafKonumu].join(' ')).includes(q)).filter(p=>!cat||ypN(p.kategori)===cat).filter(p=>!dur||ypDurum(p)===dur);document.getElementById('ypKpiGrid').innerHTML=ypKpiHtml(ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR'));box.innerHTML=list.length?list.map(p=>{const d=ypDurum(p),c=ypRenk(d),k=ypKullanilabilir(p);return `<div class="yp-stock-card" style="--c:${c}"><div class="yp-stock-head"><div><div class="yp-code">${ypEsc(p.stokKodu)}</div><div class="yp-name">${ypEsc(p.parcaAdi)}</div></div><span class="yp-badge ${d==='NORMAL'?'yp-ok':d==='UYARI'?'yp-warn':d==='KRITIK'?'yp-critical':'yp-zero'}">${ypEtiket(d)}</span></div><div class="yp-meta"><div><b>${ypNum(p.mevcutStok)}</b><span>Mevcut</span></div><div><b>${ypNum(p.rezerveStok)}</b><span>Rezerve</span></div><div><b>${k}</b><span>Kullanılabilir</span></div></div><div style="font-size:11px;color:#666;margin-top:9px">📍 ${ypEsc(p.rafKonumu||'—')} · 🏭 ${ypEsc(p.makineGrubu||'TÜM MAKİNELER')} · Min: <b>${ypNum(p.minimumStok)}</b> · Max: <b>${ypNum(p.maksimumStok)}</b></div><div class="yp-actions"><button class="yp-btn outline" onclick="ypParcaModalAc('${ypEsc(p.stokKodu)}')">DÜZENLE</button><button class="yp-btn green" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','GIRIS')">GİRİŞ</button><button class="yp-btn dark" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','CIKIS')">ÇIKIŞ</button><button class="yp-btn primary" onclick="ypSiparisModalAc('${ypEsc(p.stokKodu)}')">SİPARİŞ</button></div></div>`;}).join(''):'<div class="empty">Filtreye uygun parça bulunamadı.</div>';ypBadgeGuncelle();}
 function renderKritikParcalar(){const box=document.getElementById('ypKritikListe');if(!box)return;if(!ypYuklendi){ypVerileriYukle();return;}const q=ypN(document.getElementById('ypKritikArama')?.value),f=document.getElementById('ypKritikFiltre')?.value||'';let list=ypStoklar.filter(p=>['UYARI','KRITIK','STOK_YOK'].includes(ypDurum(p))).filter(p=>!q||ypN([p.stokKodu,p.parcaAdi,p.makineGrubu].join(' ')).includes(q)).filter(p=>!f||ypDurum(p)===f).sort((a,b)=>ypRisk(b)-ypRisk(a));document.getElementById('ypKritikKpi').innerHTML=ypKpiHtml(ypStoklar);box.innerHTML=list.length?list.map(p=>{const d=ypDurum(p),c=ypRenk(d),risk=ypRisk(p),oneri=Math.max(1,ypNum(p.maksimumStok)-ypNum(p.mevcutStok));return `<div class="yp-critical-row" style="--c:${c}"><div class="yp-critical-top"><div><div class="yp-code">${ypEsc(p.stokKodu)} — ${ypEsc(p.parcaAdi)}</div><div style="font-size:12px;color:#666;margin-top:4px">Makine: <b>${ypEsc(p.makineGrubu||'—')}</b> · Kullanılabilir: <b>${ypKullanilabilir(p)}</b> · Min: <b>${ypNum(p.minimumStok)}</b> · Termin: <b>${ypNum(p.terminGun)} gün</b> · Alternatif: <b>${ypEsc(p.alternatifParca||'—')}</b></div></div><div style="text-align:right"><div class="yp-risk-score">${risk}</div><span class="yp-badge ${d==='UYARI'?'yp-warn':d==='KRITIK'?'yp-critical':'yp-zero'}">${ypEtiket(d)}</span></div></div><div class="yp-progress" style="--c:${c};--w:${risk}%"><i></i></div><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:9px;flex-wrap:wrap"><span style="font-size:12px;color:#555">Önerilen sipariş: <b>${oneri} ${ypEsc(p.birim||'ADET')}</b></span><button class="yp-btn primary" onclick="ypSiparisModalAc('${ypEsc(p.stokKodu)}',${oneri})">SİPARİŞ TALEBİ</button></div></div>`;}).join(''):'<div class="empty">Kritik veya uyarı seviyesinde parça yok. ✅</div>';ypBadgeGuncelle();}
 function ypBadgeGuncelle(){const n=ypStoklar.filter(p=>['KRITIK','STOK_YOK'].includes(ypDurum(p))).length;document.querySelectorAll('#kritikParcaBadge').forEach(b=>{b.textContent=n;b.style.display=n?'inline-flex':'none'});document.querySelectorAll('#kritikParcaTab').forEach(t=>t.classList.toggle('yp-alert-tab',n>0));}
