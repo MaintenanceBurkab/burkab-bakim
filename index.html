@@ -2981,6 +2981,7 @@ loadData().then(() => {
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('tarihBas').value = today;
 document.getElementById('tarihBit').value = today;
+});
 
 // ── TABS ─────────────────────────────────────
 function goTab(id, btn) {
@@ -4633,7 +4634,7 @@ function _renderUretim() {
         Gerçek kapasite değeri sistemde tanımlandıkça otomatik güncellenir.
       </div>`;
   }
-};
+}
 
 function kpiCard(ikon, deger, etiket, renk) {
   return `<div style="background:#fff;border:1px solid #d0d0c0;border-radius:10px;padding:16px;text-align:center;border-top:4px solid ${renk};box-shadow:0 2px 8px rgba(0,0,0,.06)">
@@ -9079,16 +9080,12 @@ parcaEkle=function(){
   const id=parcaSayac,div=document.createElement('div');
   div.className='parca-row';
   div.id='parca-'+id;
-
   div.innerHTML=
     '<div><input type="text" list="yedek-parca-list" placeholder="Stok kodu / parça adı" oninput="this.value=this.value.toUpperCase()" onchange="ypFormParcaSec(this)" class="parca-ad"><div class="yp-stock-info">Serbest giriş veya stok kodu seçimi</div></div>'+
     '<input type="number" placeholder="Adet" min="1" value="1" class="parca-adet" onchange="ypFormMiktarKontrol(this);hesaplaMaliyet()">'+
     '<input type="number" placeholder="Birim fiyat" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()">'+
-    '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center">'+
-    '<option value="₺">₺</option><option value="$">$</option><option value="€">€</option>'+
-    '</select>'+
+    '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center"><option value="₺">₺</option><option value="$">$</option><option value="€">€</option></select>'+
     '<button class="btn-parca-sil" onclick="parcaSil(\'parca-'+id+'\')">✕</button>';
-
   document.getElementById('parcaListesi').appendChild(div);
   ypFormParcaDatalist();
 };
