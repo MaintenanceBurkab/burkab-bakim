@@ -1240,7 +1240,7 @@ tr:last-child td { border-bottom: none; }
        <button class="btn-parca-ekle" onclick="parcaEkle()">＋ Yedek Parça Ekle</button>
         <div style="margin-top:14px" class="fg">
           <div class="field">
-            <label>TOPLAM PARÇA MALİYETİ (₺)</label>
+            <label>TOPLAM PARÇA MALİYETİ</label>
            <input type="text" id="toplamMaliyet" placeholder="0.00" readonly style="color:#b8900a;font-family:'IBM Plex Mono',monospace;font-weight:600">
         </div>
         <div class="field">
@@ -3684,11 +3684,11 @@ function detayAc(id) {
     (k.arizaKodu ? '<div style="margin-top:10px">' + satir('Arıza Kodu', k.arizaKodu) + '</div>' : '') +
     (k.yapilan ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:6px">YAPILAN İŞLEMLER</div><div style="background:#f7f5f0;border-radius:7px;padding:12px;font-size:14px;line-height:1.6">' + k.yapilan + '</div></div>' : '') +
     (k.parcalar && k.parcalar !== '[]' ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:8px">YEDEK PARÇALAR</div>' + parcaHtml + '</div>' : '') +
-    (kayitToplamMaliyet(k) > 0 ? '<div style="margin-top:12px;padding:10px 12px;background:#fffbe6;border:1px solid #f5c400;border-radius:7px">' +
+    (maliyetVarMi(k) ? '<div style="margin-top:12px;padding:10px 12px;background:#fffbe6;border:1px solid #f5c400;border-radius:7px">' +
       '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:6px">TOPLAM BAKIM / ARIZA MALİYETİ</div>' +
-      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Parça Maliyeti</span><strong>' + (k.toplamMaliyet || '0') + ' ₺</strong></div>' +
-      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-top:4px"><span>İşçilik Maliyeti</span><strong>' + (k.iscilikMaliyeti || '0') + ' ₺</strong></div>' +
-      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;margin-top:7px;padding-top:7px;border-top:1px solid #ead98a;color:#b8900a"><span><strong>TOPLAM</strong></span><strong>' + kayitToplamMaliyet(k).toLocaleString('tr-TR') + ' ₺</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Parça Maliyeti</span><strong>' + formatParcaMaliyet(k) + '</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-top:4px"><span>İşçilik Maliyeti</span><strong>' + formatPara((parseTutar(k.iscilikMaliyeti)||0),'₺') + '</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;margin-top:7px;padding-top:7px;border-top:1px solid #ead98a;color:#b8900a"><span><strong>TOPLAM</strong></span><strong>' + formatToplamMaliyet(k) + '</strong></div>' +
       '</div>' : '') +
     renderRiskAksiyonDetay(k.riskAksiyon); /* IATF 4.4 */
   document.getElementById('detayModal').style.display = 'flex';
@@ -3980,15 +3980,67 @@ function parseTutar(str) {
   return parseFloat(String(str).replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
 }
 
-// Bakım/arıza maliyetinin rapor ve dashboardlardaki TEK kaynağı.
-// Apps Script'in hesapladığı sabit saatlik işçilik ücretine dokunulmaz.
-// Yeni kayıtlarda toplamBakimMaliyeti = parça + işçilik kullanılır.
-// Eski kayıtlarda alan yoksa parça + iscilikMaliyeti geri dönüşü yapılır.
+// Maliyetler para birimi bazında tutulur. Para birimleri birbirine çevrilmez.
+function maliyetDovizleri(k) {
+  const o = {'₺':0,'$':0,'€':0};
+  if (!k) return o;
+  const arr = parseParcalar(k.parcalar || '');
+  arr.forEach(p => {
+    const para = o[p.para] !== undefined ? p.para : '₺';
+    o[para] += (parseFloat(p.toplam) || ((parseFloat(p.adet)||0)*(parseFloat(p.fiyat)||0)) || 0);
+  });
+
+  // Eski kayıtlarda parcalar JSON yoksa toplamMaliyet metninden sembolleri oku.
+  if (!arr.length && k.toplamMaliyet) {
+    const metin = String(k.toplamMaliyet);
+    ['₺','$','€'].forEach(para => {
+      const re = new RegExp('([0-9][0-9.,]*)\\s*\\'+para);
+      const m = metin.match(re);
+      if (m) o[para] += parseTutar(m[1]);
+    });
+    if (!o['₺'] && !o['$'] && !o['€']) o['₺'] = parseTutar(metin);
+  }
+  // İşçilik mevcut sistemde ISCILIK_UCRETI üzerinden TL'dir.
+  o['₺'] += parseTutar(k.iscilikMaliyeti);
+  return o;
+}
+function formatPara(v, para) {
+  v = Number(v)||0;
+  return v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + para;
+}
+function formatParcaMaliyet(k) {
+  const o = maliyetDovizleri(k);
+  // İşçiliği parça satırından ayırmak için tekrar sadece parça JSON'unu hesapla.
+  const p = {'₺':0,'$':0,'€':0};
+  parseParcalar(k?.parcalar || '').forEach(x => {
+    const para = p[x.para] !== undefined ? x.para : '₺';
+    p[para] += parseFloat(x.toplam) || ((parseFloat(x.adet)||0)*(parseFloat(x.fiyat)||0)) || 0;
+  });
+  const out=[];
+  ['₺','$','€'].forEach(para=>{if(p[para]>0)out.push(formatPara(p[para],para));});
+  if(!out.length && k?.toplamMaliyet) return String(k.toplamMaliyet);
+  return out.join(' + ') || '0,00 ₺';
+}
+function formatToplamMaliyet(k) {
+  const o = maliyetDovizleri(k), out=[];
+  ['₺','$','€'].forEach(para=>{if(o[para]>0)out.push(formatPara(o[para],para));});
+  return out.join(' + ') || '0,00 ₺';
+}
+function formatMaliyetOzetListe(list) {
+  const o={'₺':0,'$':0,'€':0};
+  (list||[]).forEach(k=>{const m=maliyetDovizleri(k);o['₺']+=m['₺'];o['$']+=m['$'];o['€']+=m['€'];});
+  const out=[]; ['₺','$','€'].forEach(para=>{if(o[para]>0)out.push(formatPara(o[para],para));});
+  return out.join(' + ') || '0,00 ₺';
+}
+function maliyetVarMi(k) {
+  const o = maliyetDovizleri(k);
+  return o['₺']>0 || o['$']>0 || o['€']>0 || String(k?.toplamMaliyet||'').trim()!=='';
+}
+
+// Eski kodun sayısal kullandığı yerler için TL bileşenini döndürür.
+// USD/EUR kayıtlar artık TL'ye çevrilmez.
 function kayitToplamMaliyet(k) {
-  if (!k) return 0;
-  const hesaplanmisToplam = parseTutar(k.toplamBakimMaliyeti);
-  if (hesaplanmisToplam > 0) return hesaplanmisToplam;
-  return parseTutar(k.toplamMaliyet) + parseTutar(k.iscilikMaliyeti);
+  return maliyetDovizleri(k)['₺'];
 }
 
 function buildDash() {
@@ -4011,8 +4063,7 @@ function buildDash() {
   else if (mtbf > 0) { avail = Math.min(99.9, Math.round(mtbf/(mtbf+mttrSaat)*1000)/10); }
   else { avail = 0; }
 
-  let topMaliyet = 0;
-  veri.forEach(k => { const m = kayitToplamMaliyet(k); if (!isNaN(m)) topMaliyet += m; });
+  const topMaliyet = formatMaliyetOzetListe(veri);
 
   document.getElementById('kpiGrid').innerHTML =
     '<div class="kpi-card" style="--kpi-color:#f5c400"><div class="kpi-val">' + total + '</div><div class="kpi-lbl">Toplam Kayıt</div></div>' +
@@ -4120,23 +4171,29 @@ function buildDash() {
     });
   }
 
-  // Maliyet trendi
+  // Maliyet trendi — para birimleri ayrı seriler olarak gösterilir.
   destroyChart('maliyet');
-  const malMap = {};
+  const malMap = {'₺':{}, '$':{}, '€':{}};
   veri.forEach(k => {
-    if (!k.tarihBas || kayitToplamMaliyet(k) <= 0) return;
+    if (!k.tarihBas) return;
     const d = new Date(k.tarihBas);
     const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    const m = kayitToplamMaliyet(k);
-    if (!isNaN(m) && m > 0) malMap[ay] = (malMap[ay]||0) + m;
+    const o = maliyetDovizleri(k);
+    Object.keys(malMap).forEach(para => {
+      if (o[para] > 0) malMap[para][ay] = (malMap[para][ay]||0) + o[para];
+    });
   });
-  const malAylar = Object.keys(malMap).sort();
+  const malAylar = [...new Set(Object.keys(malMap['₺']).concat(Object.keys(malMap['$']),Object.keys(malMap['€'])))].sort();
   const ctx6 = document.getElementById('chartMaliyet')?.getContext('2d');
   if (ctx6 && malAylar.length) {
     charts['maliyet'] = new Chart(ctx6, {
       type: 'line',
-      data: { labels:malAylar, datasets:[{label:'Maliyet (₺)', data:malAylar.map(a=>malMap[a]), borderColor:'#f5c400', backgroundColor:'rgba(245,196,0,.1)', fill:true, tension:.4, pointRadius:5, pointBackgroundColor:'#f5c400'}]},
-      options: {responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+      data: { labels:malAylar, datasets:[
+        {label:'₺', data:malAylar.map(a=>malMap['₺'][a]||0), borderColor:'#f5c400', backgroundColor:'rgba(245,196,0,.1)', fill:false, tension:.4, pointRadius:4},
+        {label:'$', data:malAylar.map(a=>malMap['$'][a]||0), borderColor:'#0277bd', backgroundColor:'rgba(2,119,189,.08)', fill:false, tension:.4, pointRadius:4},
+        {label:'€', data:malAylar.map(a=>malMap['€'][a]||0), borderColor:'#00875a', backgroundColor:'rgba(0,135,90,.08)', fill:false, tension:.4, pointRadius:4}
+      ]},
+      options: {responsive:true, plugins:{legend:{display:true,position:'top'}}, scales:{y:{beginAtZero:true}}}
     });
   }
 
@@ -4290,7 +4347,7 @@ function _renderUretim() {
       kpiCard('📋', acikKayitlar.length,         'Açık Kayıt',           '#0277bd') +
       kpiCard('🔧', bugunBakim,                  'Bugün Bakım',          '#00875a') +
       kpiCard('📅', bugunKayit.filter(k=>k.islem==='PLANLI BAKIM').length, 'Planlı Bakım', '#004d40') +
-      kpiCard('💰', bugunKayit.reduce((a,k)=>a+(kayitToplamMaliyet(k)||0),0).toLocaleString('tr-TR')+'₺', 'Bugün Maliyet', '#795548');
+      kpiCard('💰', formatMaliyetOzetListe(bugunKayit), 'Bugün Maliyet', '#795548');
     kpiEl.style.gridTemplateColumns = 'repeat(4,1fr)';
   }
 
