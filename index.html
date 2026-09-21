@@ -2789,6 +2789,11 @@ function kayitAcikMi(k) {
   if (['BEKLIYOR','ISLEME_ALINDI','İŞLEME_ALINDI','ACIK','ÇALIŞIYOR'].includes(d)) return true;
   return !String(k?.tarihBit || '').trim();
 }
+function hesaplaIscilikMaliyeti(sureDakika, saatlikUcret, bakimciSayisi) {
+  const saat = sureDakika / 60;
+  return Math.round(saat * saatlikUcret * bakimciSayisi);
+}
+
 function gsRequest(payload, options = {}) {
   return new Promise((resolve, reject) => {
     const cb = 'gs_req_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
@@ -2811,7 +2816,6 @@ function gsRequest(payload, options = {}) {
       clearTimeout(timer);
 
       if (err) {
-        // Geç dönen JSONP yanıtı ReferenceError oluşturmasın.
         window[cb] = function () {};
         cleanup(120000);
         reject(err);
@@ -2859,16 +2863,13 @@ function gsGet() {
 }
 
 async function saveData() {
-  // Form numarası artık Apps Script tarafından üretilir.
-  // Tarayıcı sayacı kalıcı olarak saklanmaz.
   return true;
 }
 
 async function loadData() {
-  sayac = {}; // Her yüklemede Sheets verisinden yeniden hesaplanır.
+  sayac = {};
   try {
     showLoading(true);
-    // Init isteğini hata olursa sessizce geç
     try { await gsRequest({ action: 'init', headers: COLS }); } catch(e) {}
     const json = await gsGet();
     if (json && json.ok && Array.isArray(json.data)) {
@@ -2911,6 +2912,11 @@ async function gsBakimTamamlaKaydet(kayit) {
     ? kayit.riskAksiyon
     : JSON.stringify(kayit.riskAksiyon || '');
 
+  // 🔽 Seçilen bakımcı sayısını otomatik algıla
+  const bakimciSayisi = Array.isArray(kayit.bakimci) 
+    ? kayit.bakimci.length 
+    : (kayit.bakimci ? 1 : 0);
+
   const bakim = {
     arizaKayitId: String(kayit.id || ''),
     personel: kayit.bakimci || '',
@@ -2923,7 +2929,11 @@ async function gsBakimTamamlaKaydet(kayit) {
     maliyet: kayit.toplamMaliyet || '',
     parcaTeminDurumu: kayit.teminDurumu || '',
     kaliteKontrol: kayit.kalite || '',
-    riskAksiyon: riskAksiyon
+    riskAksiyon: riskAksiyon,
+    sure: kayit.sure || 0,
+    bakimciSayisi: bakimciSayisi,   // 🔽 yeni alan
+    iscilikMaliyeti: kayit.iscilikMaliyeti || '',
+    toplamBakimMaliyeti: kayit.toplamBakimMaliyeti || ''
   };
 
   const sonuc = await gsRequest({
@@ -2955,34 +2965,6 @@ loadData().then(() => {
   _appReady = true;
   refreshAllDatalist();
   const dm = document.getElementById('dashMakine');
-  if (dm) {
-    const maks = [...new Set(kayitlar.map(k=>k.makine).filter(Boolean))].sort();
-    dm.innerHTML = '<option value="">Tüm Makineler</option>' + maks.map(m=>'<option>'+m+'</option>').join('');
-  }
-  bildirimleriBaslat();
-  ypVerileriYukle().catch(e=>console.warn('Yedek parça yükleme:',e));
-  // Planları Sheets'ten çek, sonra bastalt ve gerekirse render et
-  gsPlanlarYukle().then(() => {
-    planlariBastalt();
-    const ap2 = document.querySelector('.tab-pane.active');
-    if (ap2 && ap2.id === 'tab-planlar') renderPlanlar();
-  });
-  // Aktif sekmeyi yenile — sayfa yüklendiğinde gösterilen sekmenin içeriği güncellenir
-  const activePane = document.querySelector('.tab-pane.active');
-  if (activePane) {
-    const id = activePane.id.replace('tab-','');
-    if (id === 'list') renderList();
-    else if (id === 'dash') setTimeout(renderDash, 50);
-    else if (id === 'uretim') renderUretimDurumu();
-    else if (id === 'bildirimler') renderBildirimler();
-    else if (id === 'planlar') renderPlanlar();
-  }
-}).catch(e => {
-  console.warn('loadData başarısız:', e);
-  _appReady = true;
-  bildirimleriBaslat();
-  planlariBastalt();
-});
 
 // ── SAAT ─────────────────────────────────────
 (function tick() {
