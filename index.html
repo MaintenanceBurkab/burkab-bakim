@@ -9080,7 +9080,7 @@ function ypFormParcaSec(inp){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(inp
 function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.querySelector('.parca-ad')?.dataset.stokKodu,p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));if(p&&ypNum(el.value)>ypKullanilabilir(p)){showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');}}
 const _ypGetParcaListesi=getParcaListesi;
 getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').forEach(row=>{const inp=row.querySelector('.parca-ad'),ad=inp?.value.trim(),stokKodu=inp?.dataset?.stokKodu||'',adet=ypNum(row.querySelector('.parca-adet')?.value),fiyat=ypNum(row.querySelector('.parca-fiyat')?.value),para=row.querySelector('.parca-para')?.value||'₺';if(ad)p.push({stokKodu,ad,adet,fiyat,para,toplam:adet*fiyat});});return JSON.stringify(p);};
-}
+
 </script>
   <!-- ══ AI RAPOR MODAL ══ -->
 <div id="aiRaporModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;align-items:center;justify-content:center;padding:20px">
