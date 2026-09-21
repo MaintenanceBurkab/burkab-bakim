@@ -9074,8 +9074,24 @@ async function ypSiparisKaydet(){const siparis={stokKodu:document.getElementById
 async function ypBakimdanStokDus(kayit){const list=parseParcalar(kayit.parcalar);const stoklu=list.filter(x=>x.stokKodu||ypStoklar.some(p=>ypN(p.stokKodu)===ypN(x.ad)));if(!stoklu.length)return {ok:true,skipped:true};const hareketler=stoklu.map(x=>({stokKodu:x.stokKodu||x.ad,tip:'CIKIS',miktar:ypNum(x.adet),belgeNo:kayit.formNo||String(kayit.id),birimFiyat:ypNum(x.fiyat),aciklama:'BAKIM FORMUNDAN OTOMATİK TÜKETİM',kaynak:'BAKIM'}));const r=await gsRequest({action:'yedekParcaTopluHareket',hareketler});if(!r?.ok)throw new Error(r?.error||'Parça stok düşümü başarısız');ypYuklendi=false;return r;}
 // Eski parça satırını stok seçilebilir hale getir.
 const _ypEskiParcaEkle=parcaEkle;
-parcaEkle=function(){parcaSayac++;const id=parcaSayac,div=document.createElement('div');div.className='parca-row';div.id='parca-'+id;div.innerHTML='<div><input type="text" list="yedek-parca-list" placeholder="Stok kodu / parça adı" oninput="this.value=this.value.toUpperCase()" onchange="ypFormParcaSec(this)" class="parca-ad"><div class="yp-stock-info">Serbest giriş veya stok kodu seçimi</div></div><input type="number" placeholder="Adet" min="1" value="1" class="parca-adet" onchange="ypFormMiktarKontrol(this);hesaplaMaliyet()"><input type="number" placeholder="Birim fiyat" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()"><select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center"><option value="₺">₺</option><option value="$">$</option><option value="€">€</option></select>`<button class="btn-parca-sil" onclick="parcaSil('parca-${id}')">✕</button>`
-;document.getElementById('parcaListesi').appendChild(div);ypFormParcaDatalist();};
+parcaEkle=function(){
+  parcaSayac++;
+  const id=parcaSayac,div=document.createElement('div');
+  div.className='parca-row';
+  div.id='parca-'+id;
+
+  div.innerHTML=
+    '<div><input type="text" list="yedek-parca-list" placeholder="Stok kodu / parça adı" oninput="this.value=this.value.toUpperCase()" onchange="ypFormParcaSec(this)" class="parca-ad"><div class="yp-stock-info">Serbest giriş veya stok kodu seçimi</div></div>'+
+    '<input type="number" placeholder="Adet" min="1" value="1" class="parca-adet" onchange="ypFormMiktarKontrol(this);hesaplaMaliyet()">'+
+    '<input type="number" placeholder="Birim fiyat" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()">'+
+    '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center">'+
+    '<option value="₺">₺</option><option value="$">$</option><option value="€">€</option>'+
+    '</select>'+
+    '<button class="btn-parca-sil" onclick="parcaSil(\'parca-'+id+'\')">✕</button>';
+
+  document.getElementById('parcaListesi').appendChild(div);
+  ypFormParcaDatalist();
+};
 function ypFormParcaSec(inp){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(inp.value)||ypN(x.parcaAdi)===ypN(inp.value));const row=inp.closest('.parca-row'),info=row?.querySelector('.yp-stock-info');if(!p){inp.dataset.stokKodu='';if(info){info.textContent='Serbest giriş — stoktan otomatik düşülmez';info.classList.remove('bad')}return;}inp.value=p.stokKodu;inp.dataset.stokKodu=p.stokKodu;row.querySelector('.parca-fiyat').value=p.birimFiyat||0;row.querySelector('.parca-para').value=p.paraBirimi||'₺';if(info){info.textContent=`${p.parcaAdi} · Kullanılabilir: ${ypKullanilabilir(p)} ${p.birim||'ADET'}`;info.classList.toggle('bad',ypKullanilabilir(p)<=ypNum(p.minimumStok));}hesaplaMaliyet();}
 function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.querySelector('.parca-ad')?.dataset.stokKodu,p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));if(p&&ypNum(el.value)>ypKullanilabilir(p)){showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');}}
 const _ypGetParcaListesi=getParcaListesi;
