@@ -2771,7 +2771,7 @@ window.addEventListener('beforeunload', e => {
 // ══════════════════════════════════════════════
 const GS_URL = 'https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec';
 
-const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje','mdNo','revNo','arizaTuru','arizaKodu','konu','tarihBas','tarihBit','arizaBas','onarimBas','onarimBit','arizaBit','sure','bakimci','kalite','yapilan','riskSeviye','cozumSure','durusEtkisi','parcalar','toplamMaliyet','teminDurumu','riskAksiyon','kayitYapan','kayitZaman','durum','islemeAlan','islemeAlmaZamani'];
+const COLS = ['id','formNo','islem','bolum','makine','bildiren','proje','mdNo','revNo','arizaTuru','arizaKodu','konu','tarihBas','tarihBit','arizaBas','onarimBas','onarimBit','arizaBit','sure','bakimci','kalite','yapilan','riskSeviye','cozumSure','durusEtkisi','parcalar','toplamMaliyet','teminDurumu','riskAksiyon','kayitYapan','kayitZaman','durum','islemeAlan','islemeAlmaZamani','iscilikMaliyeti','toplamBakimMaliyeti'];
 
 let kayitlar = [];
 let sayac = {};
@@ -3668,7 +3668,13 @@ function detayAc(id) {
     '</div>' +
     (k.arizaKodu ? '<div style="margin-top:10px">' + satir('Arıza Kodu', k.arizaKodu) + '</div>' : '') +
     (k.yapilan ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:6px">YAPILAN İŞLEMLER</div><div style="background:#f7f5f0;border-radius:7px;padding:12px;font-size:14px;line-height:1.6">' + k.yapilan + '</div></div>' : '') +
-    (k.parcalar && k.parcalar !== '[]' ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:8px">YEDEK PARÇALAR</div>' + parcaHtml + '<div style="text-align:right;margin-top:6px;font-size:13px;font-weight:700;color:#b8900a">Toplam: ' + k.toplamMaliyet + '</div></div>' : '') +
+    (k.parcalar && k.parcalar !== '[]' ? '<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:8px">YEDEK PARÇALAR</div>' + parcaHtml + '</div>' : '') +
+    (kayitToplamMaliyet(k) > 0 ? '<div style="margin-top:12px;padding:10px 12px;background:#fffbe6;border:1px solid #f5c400;border-radius:7px">' +
+      '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#888;text-transform:uppercase;margin-bottom:6px">TOPLAM BAKIM / ARIZA MALİYETİ</div>' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span>Parça Maliyeti</span><strong>' + (k.toplamMaliyet || '0') + ' ₺</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-top:4px"><span>İşçilik Maliyeti</span><strong>' + (k.iscilikMaliyeti || '0') + ' ₺</strong></div>' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;margin-top:7px;padding-top:7px;border-top:1px solid #ead98a;color:#b8900a"><span><strong>TOPLAM</strong></span><strong>' + kayitToplamMaliyet(k).toLocaleString('tr-TR') + ' ₺</strong></div>' +
+      '</div>' : '') +
     renderRiskAksiyonDetay(k.riskAksiyon); /* IATF 4.4 */
   document.getElementById('detayModal').style.display = 'flex';
 }
@@ -3955,8 +3961,19 @@ function renderDash() {
 }
 
 function parseTutar(str) {
-  if (!str) return 0;
-  return parseFloat(str.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+  if (str === null || str === undefined || str === '') return 0;
+  return parseFloat(String(str).replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+}
+
+// Bakım/arıza maliyetinin rapor ve dashboardlardaki TEK kaynağı.
+// Apps Script'in hesapladığı sabit saatlik işçilik ücretine dokunulmaz.
+// Yeni kayıtlarda toplamBakimMaliyeti = parça + işçilik kullanılır.
+// Eski kayıtlarda alan yoksa parça + iscilikMaliyeti geri dönüşü yapılır.
+function kayitToplamMaliyet(k) {
+  if (!k) return 0;
+  const hesaplanmisToplam = parseTutar(k.toplamBakimMaliyeti);
+  if (hesaplanmisToplam > 0) return hesaplanmisToplam;
+  return parseTutar(k.toplamMaliyet) + parseTutar(k.iscilikMaliyeti);
 }
 
 function buildDash() {
@@ -3980,7 +3997,7 @@ function buildDash() {
   else { avail = 0; }
 
   let topMaliyet = 0;
-  veri.forEach(k => { const m = parseTutar(k.toplamMaliyet); if (!isNaN(m)) topMaliyet += m; });
+  veri.forEach(k => { const m = kayitToplamMaliyet(k); if (!isNaN(m)) topMaliyet += m; });
 
   document.getElementById('kpiGrid').innerHTML =
     '<div class="kpi-card" style="--kpi-color:#f5c400"><div class="kpi-val">' + total + '</div><div class="kpi-lbl">Toplam Kayıt</div></div>' +
@@ -4092,10 +4109,10 @@ function buildDash() {
   destroyChart('maliyet');
   const malMap = {};
   veri.forEach(k => {
-    if (!k.tarihBas || !k.toplamMaliyet) return;
+    if (!k.tarihBas || kayitToplamMaliyet(k) <= 0) return;
     const d = new Date(k.tarihBas);
     const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    const m = parseTutar(k.toplamMaliyet);
+    const m = kayitToplamMaliyet(k);
     if (!isNaN(m) && m > 0) malMap[ay] = (malMap[ay]||0) + m;
   });
   const malAylar = Object.keys(malMap).sort();
@@ -4258,7 +4275,7 @@ function _renderUretim() {
       kpiCard('📋', acikKayitlar.length,         'Açık Kayıt',           '#0277bd') +
       kpiCard('🔧', bugunBakim,                  'Bugün Bakım',          '#00875a') +
       kpiCard('📅', bugunKayit.filter(k=>k.islem==='PLANLI BAKIM').length, 'Planlı Bakım', '#004d40') +
-      kpiCard('💰', bugunKayit.reduce((a,k)=>a+(parseTutar(k.toplamMaliyet)||0),0).toLocaleString('tr-TR')+'₺', 'Bugün Maliyet', '#795548');
+      kpiCard('💰', bugunKayit.reduce((a,k)=>a+(kayitToplamMaliyet(k)||0),0).toLocaleString('tr-TR')+'₺', 'Bugün Maliyet', '#795548');
     kpiEl.style.gridTemplateColumns = 'repeat(4,1fr)';
   }
 
@@ -4607,7 +4624,7 @@ function _renderUretim() {
     const tamKayip      = Math.round(tamDurusSure / 60 * saatlikUretim);
     const kismiKayip    = Math.round(kismiDurusSure / 60 * saatlikUretim * 0.5);
     const topKayip      = tamKayip + kismiKayip;
-    const maliyet       = bugunKayit.reduce((a,k)=>a+(parseTutar(k.toplamMaliyet)||0),0);
+    const maliyet       = bugunKayit.reduce((a,k)=>a+(kayitToplamMaliyet(k)||0),0);
 
     kaybiEl.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px">
@@ -8729,7 +8746,7 @@ function aiRaporVeriOzetle() {
   veri.filter(function(k){return k.islem==='ARIZA KAYDI';}).forEach(function(k){ if(k.makine) makineMap[k.makine]=(makineMap[k.makine]||0)+1; });
   var topMakine = Object.entries(makineMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
   var toplamMaliyet = 0;
-  veri.forEach(function(k){ var m = (typeof parseTutar==='function') ? parseTutar(k.toplamMaliyet) : 0; if(m) toplamMaliyet+=m; });
+  veri.forEach(function(k){ var m = (typeof kayitToplamMaliyet==='function') ? kayitToplamMaliyet(k) : 0; if(m) toplamMaliyet+=m; });
   var riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
   veri.forEach(function(k){ if(k.riskSeviye && riskC[k.riskSeviye]!==undefined) riskC[k.riskSeviye]++; });
   var bugun = yerelYMD(new Date());
