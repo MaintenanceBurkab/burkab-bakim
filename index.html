@@ -2961,9 +2961,24 @@ function showLoading(show) {
   if (el) el.classList.toggle('show', show);
 }
 
-loadData().then(() => {
+loadData().then(async () => {
   _appReady = true;
   refreshAllDatalist();
+
+  // Eski bakım kayıtlarında daha önce boş kalan işçilik/Toplam maliyet alanlarını
+  // sunucudaki aynı ISCILIK_UCRETI hesabıyla bir kez geriye dönük tamamla.
+  if (isOnline) {
+    try {
+      const r = await gsRequest({ action:'bakimMaliyetleriniGuncelle' });
+      if (r?.ok && r.updated > 0) {
+        await loadData();
+        refreshAllDatalist();
+        showToast('✅ Eski bakım maliyetleri güncellendi (' + r.updated + ' kayıt)', 'ok');
+      }
+    } catch (e) {
+      console.warn('Eski bakım maliyeti güncellemesi atlandı:', e);
+    }
+  }
   const dm = document.getElementById('dashMakine');
 
 // ── SAAT ─────────────────────────────────────
