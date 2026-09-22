@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BURKAB 37 BASE + AKSİYON SYNC + PLANLI BAKIM AKSİYONLARI + AKSİYON TAKVİMİ -->
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -6054,6 +6055,109 @@ async function planSil(id) {
   }
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// PLANLI BAKIM → AKSİYONLAR
+// Plan kartından BakimAksiyonlari kayıtlarını makine + bölüm ile getirir.
+// ══════════════════════════════════════════════════════════════
+let _planAksiyonCache = [];
+
+async function planAksiyonlariAc(planId) {
+  const plan = planlarYukle().find(p => String(p.id) === String(planId));
+  if (!plan) {
+    showToast('❌ Plan bulunamadı.', 'err');
+    return;
+  }
+
+  const eski = document.getElementById('planAksiyonModal');
+  if (eski) eski.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'planAksiyonModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:99997;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  modal.innerHTML = `
+    <div style="background:#fff;width:min(900px,96vw);max-height:88vh;overflow:auto;border-radius:14px;box-shadow:0 25px 70px rgba(0,0,0,.35)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:#1c1c1c;color:#fff;position:sticky;top:0;z-index:2">
+        <div>
+          <div style="font-size:16px;font-weight:800">⚙️ BAKIM AKSİYONLARI</div>
+          <div style="font-size:11px;color:#bbb;margin-top:3px">${plan.makine || '—'} · ${plan.bolum || '—'} · ${plan.gorev || '—'}</div>
+        </div>
+        <button onclick="document.getElementById('planAksiyonModal')?.remove()" style="background:none;border:0;color:#fff;font-size:25px;cursor:pointer">×</button>
+      </div>
+      <div id="planAksiyonModalBody" style="padding:18px">
+        <div style="text-align:center;padding:35px;color:#777">⏳ Aksiyonlar yükleniyor...</div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  try {
+    const sonuc = await gsRequest({ action: 'getBakimAksiyonlari' });
+    if (!sonuc?.ok) throw new Error(sonuc?.error || 'Aksiyonlar alınamadı');
+
+    const tumAksiyonlar = Array.isArray(sonuc.data) ? sonuc.data : [];
+    const makine = String(plan.makine || '').trim().toLowerCase();
+    const bolum = String(plan.bolum || '').trim().toLowerCase();
+
+    // Öncelik: makine eşleşmesi. Bölüm de varsa bölüm ile daralt.
+    let aksiyonlar = tumAksiyonlar.filter(a => String(a.makine || '').trim().toLowerCase() === makine);
+    if (bolum) {
+      const bolumlu = aksiyonlar.filter(a => String(a.bolum || '').trim().toLowerCase() === bolum);
+      if (bolumlu.length) aksiyonlar = bolumlu;
+    }
+
+    aksiyonlar.sort((a,b) => String(a.termin || '').localeCompare(String(b.termin || '')));
+
+    const body = document.getElementById('planAksiyonModalBody');
+    if (!body) return;
+
+    if (!aksiyonlar.length) {
+      body.innerHTML = `
+        <div style="text-align:center;padding:30px;color:#777">
+          <div style="font-size:32px;margin-bottom:8px">📭</div>
+          <strong>${plan.makine || 'Bu makine'}</strong> için kayıtlı bakım aksiyonu bulunamadı.
+          <div style="font-size:11px;margin-top:8px;color:#999">Aksiyonlar, BakimAksiyonlari sayfasından makine/bölüm eşleşmesine göre gösterilir.</div>
+        </div>`;
+      return;
+    }
+
+    const durumRenk = durum => {
+      const d = String(durum || 'ACIK').toUpperCase();
+      if (d === 'TAMAMLANDI' || d === 'TAMAM') return ['#e3f7ee','#00875a','✓ TAMAMLANDI'];
+      if (d === 'DEVAM' || d === 'DEVAM_EDIYOR') return ['#fff3e0','#e65100','⏳ DEVAM EDİYOR'];
+      if (d === 'IPTAL') return ['#f5f5f5','#777','✕ İPTAL'];
+      return ['#fde8e8','#d32f2f','🔴 AÇIK'];
+    };
+
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <span style="background:#e3f2fd;color:#0277bd;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700">📌 ${aksiyonlar.length} aksiyon</span>
+        <span style="background:#f5f5f5;color:#555;border-radius:7px;padding:6px 10px;font-size:12px">${plan.makine || '—'}</span>
+        <span style="background:#f5f5f5;color:#555;border-radius:7px;padding:6px 10px;font-size:12px">${plan.bolum || '—'}</span>
+      </div>
+      ${aksiyonlar.map(a => {
+        const dr = durumRenk(a.durum);
+        return `<div style="border:1px solid #ddd;border-left:4px solid ${dr[1]};border-radius:9px;padding:12px 14px;margin-bottom:10px;background:#fff">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+            <div style="font-weight:800;color:#222">${a.aksiyonTuru || 'AKSİYON'}${a.zorunlu === 'EVET' ? ' <span style="color:#d32f2f;font-size:10px">ZORUNLU</span>' : ''}</div>
+            <span style="background:${dr[0]};color:${dr[1]};padding:4px 8px;border-radius:6px;font-size:10px;font-weight:800">${dr[2]}</span>
+          </div>
+          <div style="font-size:13px;color:#333;margin-top:8px;white-space:pre-wrap">${a.aksiyon || '—'}</div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#666">
+            <span>👤 ${a.sorumlu || 'Atanmadı'}</span>
+            <span>📅 ${a.termin || 'Termin yok'}</span>
+            <span>🎯 ${a.oncelik || '—'}</span>
+          </div>
+          ${a.etkinlikDurumu ? `<div style="margin-top:8px;font-size:11px;color:#555">🔎 Etkinlik: <strong>${a.etkinlikDurumu}</strong>${a.etkinlikNotu ? ' · ' + a.etkinlikNotu : ''}</div>` : ''}
+        </div>`;
+      }).join('')}`;
+  } catch (e) {
+    const body = document.getElementById('planAksiyonModalBody');
+    if (body) body.innerHTML = `<div style="padding:25px;color:#d32f2f">❌ Aksiyonlar yüklenemedi: ${e?.message || e}</div>`;
+  }
+}
+
 function renderPlanlar() {
   let planlar = planlarYukle();
 
@@ -6127,6 +6231,7 @@ function renderPlanlar() {
         <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:8px">📋 ${p.gorev}</div>
         ${p.notlar ? '<div style="font-size:12px;color:#666;background:#f7f5f0;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-style:italic">' + p.notlar + '</div>' : ''}
         <div class="plan-aksiyonlar">
+          <button onclick="planAksiyonlariAc(${JSON.stringify(String(p.id))})" style="border:1px solid #7b1fa2;background:#f5eafa;color:#7b1fa2;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer">⚙️ AKSİYONLAR</button>
           <span class="plan-sonraki">${(() => {
             if (!p.periyot) return '';
             const _pc = {
@@ -6167,8 +6272,85 @@ function renderPlanlar() {
     ).join('');
   }
 
-  // Takvimi render et
+  // Takvimi render et. Planlar + aksiyon terminleri aynı takvimde gösterilir.
   renderTakvim();
+  aksiyonTakvimiYukle();
+}
+
+// ══════════════════════════════════════════════════════════════
+// AKSİYON TAKVİMİ
+// BakimAksiyonlari.termin tarihlerini Planlı Bakım takvimine taşır.
+// Aksiyonlar plan tarihinden bağımsız olarak kendi termin gününde görünür.
+// ══════════════════════════════════════════════════════════════
+let _takvimAksiyonlar = [];
+let _takvimAksiyonYukleniyor = false;
+let _takvimAksiyonYuklendi = false;
+
+function aksiyonTakvimTarih(tarih) {
+  if (!tarih) return '';
+  const s = String(tarih).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})/);
+  if (m) return m[3] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[1]).padStart(2,'0');
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return '';
+}
+
+async function aksiyonTakvimiYukle(force) {
+  if (_takvimAksiyonYukleniyor) return;
+  if (_takvimAksiyonYuklendi && !force) { renderTakvim(); return; }
+
+  _takvimAksiyonYukleniyor = true;
+  try {
+    const sonuc = await gsRequest({ action: 'getBakimAksiyonlari' });
+    if (!sonuc?.ok) throw new Error(sonuc?.error || 'Bakım aksiyonları alınamadı');
+    _takvimAksiyonlar = Array.isArray(sonuc.data) ? sonuc.data : [];
+    _takvimAksiyonYuklendi = true;
+  } catch (e) {
+    console.warn('Aksiyon takvimi yüklenemedi:', e);
+    _takvimAksiyonlar = [];
+  } finally {
+    _takvimAksiyonYukleniyor = false;
+    renderTakvim();
+  }
+}
+
+function takvimAksiyonGunAc(tarihStr) {
+  const planlar = planlarYukle().filter(p => p.tarih === tarihStr);
+  const aksiyonlar = _takvimAksiyonlar.filter(a => aksiyonTakvimTarih(a.termin) === tarihStr);
+  if (!planlar.length && !aksiyonlar.length) return;
+
+  const eski = document.getElementById('takvimGunDetayModal');
+  if (eski) eski.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'takvimGunDetayModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  const tarihGoster = tarihStr.split('-').reverse().join('.');
+
+  const durumRenk = durum => {
+    const d = String(durum || 'ACIK').toUpperCase();
+    if (d === 'TAMAMLANDI' || d === 'TAMAM') return ['#e3f7ee','#00875a','✓ TAMAMLANDI'];
+    if (d === 'DEVAM' || d === 'DEVAM_EDIYOR') return ['#fff3e0','#e65100','⏳ DEVAM EDİYOR'];
+    if (d === 'IPTAL') return ['#f5f5f5','#777','✕ İPTAL'];
+    return ['#fde8e8','#d32f2f','🔴 AÇIK'];
+  };
+
+  modal.innerHTML = `
+    <div style="background:#fff;width:min(820px,96vw);max-height:88vh;overflow:auto;border-radius:14px;box-shadow:0 25px 70px rgba(0,0,0,.35)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:#1c1c1c;color:#fff;position:sticky;top:0;z-index:2">
+        <div><div style="font-size:16px;font-weight:800">📅 ${tarihGoster} — GÜNÜN AKSİYONLARI</div><div style="font-size:11px;color:#bbb;margin-top:3px">${aksiyonlar.length} aksiyon · ${planlar.length} plan</div></div>
+        <button onclick="document.getElementById('takvimGunDetayModal')?.remove()" style="background:none;border:0;color:#fff;font-size:25px;cursor:pointer">×</button>
+      </div>
+      <div style="padding:18px">
+        ${aksiyonlar.length ? `<div style="font-size:12px;font-weight:800;color:#7b1fa2;margin-bottom:10px">⚙️ AKSİYONLAR</div>${aksiyonlar.map(a => { const dr=durumRenk(a.durum); return `<div style="border:1px solid #ddd;border-left:4px solid #7b1fa2;border-radius:9px;padding:12px 14px;margin-bottom:10px;background:#fff"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div style="font-weight:800;color:#222">${a.aksiyonTuru || 'AKSİYON'}</div><span style="background:${dr[0]};color:${dr[1]};padding:4px 8px;border-radius:6px;font-size:10px;font-weight:800">${dr[2]}</span></div><div style="font-size:13px;color:#333;margin-top:7px;white-space:pre-wrap">${a.aksiyon || '—'}</div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:11px;color:#666"><span>🔧 ${a.makine || '—'}</span><span>👤 ${a.sorumlu || 'Atanmadı'}</span><span>🎯 ${a.oncelik || '—'}</span></div></div>`; }).join('')}` : ''}
+        ${planlar.length ? `<div style="font-size:12px;font-weight:800;color:#00695c;margin:${aksiyonlar.length?'18px':'0'} 0 10px">📋 PLANLI BAKIMLAR</div>${planlar.map(p => `<div style="border:1px solid #ddd;border-left:4px solid #00695c;border-radius:9px;padding:11px 13px;margin-bottom:9px"><strong>${p.makine || '—'}</strong> · ${p.bolum || '—'}<div style="font-size:12px;color:#555;margin-top:5px">${p.gorev || '—'} · ${p.bakimci || '—'}</div></div>`).join('')}` : ''}
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
 function renderTakvim() {
@@ -6193,6 +6375,7 @@ function renderTakvim() {
     const fark     = Math.round((new Date(tarihStr) - bugun) / 86400000);
 
     const gunPlanlar = planlar.filter(p => p.tarih === tarihStr);
+    const gunAksiyonlar = _takvimAksiyonlar.filter(a => aksiyonTakvimTarih(a.termin) === tarihStr);
     const tamamlandi = gunPlanlar.some(p => p.durum === 'tamamlandi');
     const aktif      = gunPlanlar.filter(p => p.durum !== 'tamamlandi');
 
@@ -6206,11 +6389,16 @@ function renderTakvim() {
       else                        cls += ' plan-var';
     }
     if (aktif.length && fark < 0) cls += ' gecmis-plan';
+    if (gunAksiyonlar.length) cls += ' aksiyon-var';
 
-    const tooltip = gunPlanlar.length ? gunPlanlar.map(p => p.makine + ': ' + p.gorev).join('\n') : '';
-    html += `<div class="${cls}" title="${tooltip}">
+    const tooltipParcalar = [];
+    if (gunPlanlar.length) tooltipParcalar.push('PLAN: ' + gunPlanlar.map(p => p.makine + ': ' + p.gorev).join(' | '));
+    if (gunAksiyonlar.length) tooltipParcalar.push('AKSİYON: ' + gunAksiyonlar.map(a => (a.makine || '—') + ' / ' + (a.aksiyonTuru || 'AKSİYON') + ' / ' + (a.sorumlu || 'Atanmadı')).join(' | '));
+    const tooltip = tooltipParcalar.join('\n');
+    html += `<div class="${cls}" title="${tooltip}" onclick="takvimAksiyonGunAc('${tarihStr}')" style="cursor:${(gunPlanlar.length || gunAksiyonlar.length) ? 'pointer' : 'default'}">
       <span>${gun}</span>
       ${aktif.length ? '<div class="takvim-gun-nokta"></div>' : ''}
+      ${gunAksiyonlar.length ? `<div style="margin-top:3px;font-size:9px;font-weight:800;color:#7b1fa2;line-height:1">⚙ ${gunAksiyonlar.length}</div>` : ''}
     </div>`;
   }
 
@@ -9817,6 +10005,10 @@ async function aksiyonKaydetLocal(id) {
 .yp-hareket-table-wrap{overflow:auto;max-height:58vh}.yp-hareket-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1050px}.yp-hareket-table th{position:sticky;top:0;background:#1a1a1a;color:#fff;padding:9px 8px;text-align:left;z-index:2}.yp-hareket-table td{padding:8px;border-bottom:1px solid #eee;vertical-align:top}.yp-hareket-table tr:hover{background:#fffbe6}.yp-hareket-giris{color:#00875a;font-weight:800}.yp-hareket-cikis{color:#d32f2f;font-weight:800}.yp-hareket-diger{color:#6b4f00;font-weight:800}.yp-hareket-empty{text-align:center;padding:35px;color:#777}.yp-hareket-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #ddd;background:#fff;flex-wrap:wrap}.yp-hareket-count{font-size:12px;color:#666}
 @media(max-width:800px){.yp-hareket-summary{grid-template-columns:repeat(2,1fr)}}
 
+
+/* AKSİYON TAKVİMİ */
+.takvim-gun.aksiyon-var{box-shadow:inset 0 -3px 0 #7b1fa2;}
+.takvim-gun.aksiyon-var:hover{background:#f5eafa !important;transform:translateY(-1px);}
 </style>
     
   </body>
