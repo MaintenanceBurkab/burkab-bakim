@@ -9191,10 +9191,15 @@ function ypFormParcaSec(inp){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(inp
 function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.querySelector('.parca-ad')?.dataset.stokKodu,p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));if(p&&ypNum(el.value)>ypKullanilabilir(p)){showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');}}
 const _ypGetParcaListesi=getParcaListesi;
 getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').forEach(row=>{const inp=row.querySelector('.parca-ad'),ad=inp?.value.trim(),stokKodu=inp?.dataset?.stokKodu||'',adet=ypNum(row.querySelector('.parca-adet')?.value),fiyat=ypNum(row.querySelector('.parca-fiyat')?.value),para=row.querySelector('.parca-para')?.value||'₺';if(ad)p.push({stokKodu,ad,adet,fiyat,para,toplam:adet*fiyat});});return JSON.stringify(p);};
-function aksiyonDetayAc(id) {
+// ══════════════════════════════════════════════════════════════
+// BAKIM RİSK AKSİYON PLANI — DETAY / GÜNCELLE / TAMAMLA
+// IATF 4.4 — Mevcut riskAksiyon alanını kullanır
+// ══════════════════════════════════════════════════════════════
 
-  const kayit = (window.kayitlar || kayitlar || [])
-    .find(k => String(k.id) === String(id));
+async function aksiyonDetayAc(id) {
+
+  const liste = window.kayitlar || kayitlar || [];
+  const kayit = liste.find(k => String(k.id) === String(id));
 
   if (!kayit) {
     showToast('❌ Kayıt bulunamadı', 'error');
@@ -9215,6 +9220,10 @@ function aksiyonDetayAc(id) {
   const cfg = RISK_AKSIYON_MAP[rak.seviye] || {};
   const renk = cfg.renk || '#00875a';
 
+  // ─────────────────────────────────────────────
+  // Mevcut aksiyon alanlarını oluştur
+  // ─────────────────────────────────────────────
+
   let aksiyonHtml = '';
 
   if (cfg.aksiyonlar && cfg.aksiyonlar.length) {
@@ -9226,10 +9235,10 @@ function aksiyonDetayAc(id) {
       return `
         <div style="
           margin-bottom:14px;
-          padding:12px;
+          padding:13px;
           border:1px solid ${renk}33;
           border-left:4px solid ${renk};
-          border-radius:7px;
+          border-radius:8px;
           background:#fafafa">
 
           <div style="
@@ -9242,13 +9251,13 @@ function aksiyonDetayAc(id) {
 
             ${a.zorunlu
               ? `<span style="
-                   margin-left:6px;
-                   background:${renk};
-                   color:white;
-                   padding:2px 6px;
-                   border-radius:3px;
-                   font-size:9px">
-                   ZORUNLU
+                  margin-left:7px;
+                  background:${renk};
+                  color:#fff;
+                  padding:2px 7px;
+                  border-radius:4px;
+                  font-size:9px">
+                  ZORUNLU
                  </span>`
               : ''}
           </div>
@@ -9260,12 +9269,13 @@ function aksiyonDetayAc(id) {
             style="
               width:100%;
               box-sizing:border-box;
-              border:1px solid #ddd;
+              border:1px solid #d8d8d8;
               border-radius:6px;
               padding:9px;
               font-size:12px;
               resize:vertical;
               font-family:inherit;
+              background:#fff;
             ">${mevcut}</textarea>
 
         </div>
@@ -9274,19 +9284,24 @@ function aksiyonDetayAc(id) {
     }).join('');
   }
 
-  const modalEski =
-    document.getElementById('aksiyonDetayModal');
+  // ─────────────────────────────────────────────
+  // Eski modalı temizle
+  // ─────────────────────────────────────────────
 
-  if (modalEski) modalEski.remove();
+  const eski = document.getElementById('aksiyonDetayModal');
+  if (eski) eski.remove();
+
+  // ─────────────────────────────────────────────
+  // Modal
+  // ─────────────────────────────────────────────
 
   const modal = document.createElement('div');
-
   modal.id = 'aksiyonDetayModal';
 
   modal.style.cssText = `
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,.55);
+    background:rgba(0,0,0,.58);
     z-index:99999;
     display:flex;
     align-items:center;
@@ -9294,258 +9309,476 @@ function aksiyonDetayAc(id) {
     padding:20px;
   `;
 
+  const durum = rak.durum || 'ACIK';
+
+  const bugun = new Date().toISOString().split('T')[0];
+
   modal.innerHTML = `
 
     <div style="
-      background:white;
-      width:min(700px,95vw);
-      max-height:90vh;
+      background:#fff;
+      width:min(720px,96vw);
+      max-height:92vh;
       overflow:auto;
-      border-radius:12px;
-      box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      border-radius:14px;
+      box-shadow:0 25px 70px rgba(0,0,0,.35)">
 
       <!-- BAŞLIK -->
-
       <div style="
-        padding:18px 20px;
-        background:${renk};
-        color:white;
+        position:sticky;
+        top:0;
+        z-index:2;
+        background:#fff;
+        padding:17px 20px;
+        border-bottom:1px solid #eee;
         display:flex;
         justify-content:space-between;
         align-items:center">
 
         <div>
-
           <div style="
-            font-size:11px;
-            opacity:.85">
-            ${kayit.formNo || ''}
+            font-size:17px;
+            font-weight:800;
+            color:#222">
+            ⚠️ AKSİYON PLANI
           </div>
 
           <div style="
-            font-size:18px;
-            font-weight:800">
+            font-size:12px;
+            color:#777;
+            margin-top:4px">
 
-            ${cfg.bannerIkon || '⚠️'}
-            AKSİYON PLANI
-
-          </div>
-
-          <div style="
-            font-size:11px;
-            margin-top:3px">
-
-            IATF 4.4 • ${rak.seviye || '—'} RİSK
+            ${kayit.formNo || 'Kayıt'} ·
+            ${kayit.makine || 'Makine belirtilmemiş'}
+            ${kayit.bolum ? ' · ' + kayit.bolum : ''}
 
           </div>
-
         </div>
 
         <button
-          onclick="document.getElementById('aksiyonDetayModal').remove()"
+          onclick="document.getElementById('aksiyonDetayModal')?.remove()"
           style="
-            border:0;
-            background:rgba(255,255,255,.2);
-            color:white;
+            border:none;
+            background:#f1f1f1;
             width:32px;
             height:32px;
             border-radius:50%;
-            cursor:pointer;
-            font-size:18px">
-
+            font-size:21px;
+            color:#666;
+            cursor:pointer">
           ×
-
         </button>
 
       </div>
 
-
-      <!-- İÇERİK -->
-
       <div style="padding:20px">
 
-        <!-- KAYIT BİLGİSİ -->
-
+        <!-- RİSK BİLGİSİ -->
         <div style="
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          gap:15px;
-          margin-bottom:20px;
-          padding-bottom:15px;
-          border-bottom:1px solid #eee">
+          background:${renk}12;
+          border:1px solid ${renk}44;
+          border-left:5px solid ${renk};
+          border-radius:8px;
+          padding:12px 14px;
+          margin-bottom:18px">
 
-          <div>
-            <div style="font-size:10px;color:#888">
-              MAKİNE
+          <div style="
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap">
+
+            <div>
+              <div style="
+                font-size:10px;
+                color:#777;
+                font-weight:700;
+                letter-spacing:.7px">
+                RİSK SEVİYESİ
+              </div>
+
+              <div style="
+                font-size:16px;
+                color:${renk};
+                font-weight:900;
+                margin-top:3px">
+                ${rak.seviye || kayit.riskSeviye || 'BELİRTİLMEMİŞ'}
+              </div>
             </div>
 
-            <strong>
-              ${kayit.makine || '—'}
-            </strong>
-          </div>
-
-          <div>
-            <div style="font-size:10px;color:#888">
-              BÖLÜM
+            <div>
+              <span id="aksiyonDurumBadge"
+                style="
+                  display:inline-block;
+                  padding:5px 10px;
+                  border-radius:5px;
+                  font-size:11px;
+                  font-weight:800;
+                  background:${durum === 'TAMAMLANDI'
+                    ? '#e8f5e9'
+                    : '#fff3cd'};
+                  color:${durum === 'TAMAMLANDI'
+                    ? '#2e7d32'
+                    : '#9a6700'}">
+                ${durum === 'TAMAMLANDI'
+                  ? '✓ TAMAMLANDI'
+                  : '● AÇIK'}
+              </span>
             </div>
 
-            <strong>
-              ${kayit.bolum || '—'}
-            </strong>
           </div>
 
         </div>
 
-
         <!-- AKSİYONLAR -->
-
         <div style="
           font-size:11px;
           font-weight:800;
-          color:#666;
-          margin-bottom:12px;
-          letter-spacing:.7px">
-
+          letter-spacing:.8px;
+          color:#777;
+          margin-bottom:10px">
           AKSİYONLAR
-
         </div>
 
         ${aksiyonHtml}
 
-
         <!-- SORUMLU / TERMİN -->
-
         <div style="
           display:grid;
           grid-template-columns:1fr 1fr;
-          gap:14px;
+          gap:12px;
           margin-top:8px">
 
           <div>
-
             <label style="
               display:block;
               font-size:10px;
-              font-weight:700;
+              font-weight:800;
               color:#777;
               margin-bottom:5px">
-
-              👤 SORUMLU
-
+              SORUMLU
             </label>
 
             <input
               id="aksiyon-sorumlu"
+              type="text"
               value="${rak.sorumlu || ''}"
               placeholder="Aksiyon sorumlusu"
               style="
                 width:100%;
                 box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
                 padding:9px;
-                border:1px solid #ddd;
-                border-radius:6px">
-
+                font-size:12px">
           </div>
 
-
           <div>
-
             <label style="
               display:block;
               font-size:10px;
-              font-weight:700;
+              font-weight:800;
               color:#777;
               margin-bottom:5px">
-
-              📅 TERMİN
-
+              TERMİN
             </label>
 
             <input
-              type="date"
               id="aksiyon-termin"
+              type="date"
               value="${rak.termin || ''}"
               style="
                 width:100%;
                 box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
                 padding:9px;
-                border:1px solid #ddd;
-                border-radius:6px">
-
+                font-size:12px">
           </div>
 
         </div>
 
-
         <!-- NOT -->
-
         <div style="margin-top:14px">
 
           <label style="
             display:block;
             font-size:10px;
-            font-weight:700;
+            font-weight:800;
             color:#777;
             margin-bottom:5px">
-
-            📝 NOT
-
+            AKSİYON NOTU
           </label>
 
           <textarea
             id="aksiyon-not"
             rows="3"
-            placeholder="Ek açıklama..."
+            placeholder="Ek açıklama / takip notu..."
             style="
               width:100%;
               box-sizing:border-box;
-              padding:9px;
-              border:1px solid #ddd;
+              border:1px solid #d5d5d5;
               border-radius:6px;
+              padding:9px;
+              font-size:12px;
               resize:vertical">${rak.not || ''}</textarea>
 
         </div>
 
-
-        <!-- ALT BÖLÜM -->
-
+        <!-- TAMAMLAMA BÖLÜMÜ -->
         <div style="
-          margin-top:20px;
-          padding-top:15px;
-          border-top:1px solid #eee;
-          display:flex;
-          justify-content:flex-end;
-          gap:8px">
+          margin-top:18px;
+          padding:14px;
+          background:#f8f8f5;
+          border:1px solid #e3e1d8;
+          border-radius:9px">
 
-          <button
-            onclick="document.getElementById('aksiyonDetayModal').remove()"
-            style="
-              padding:9px 15px;
-              border:1px solid #ddd;
-              background:white;
-              border-radius:6px;
-              cursor:pointer">
+          <div style="
+            font-size:11px;
+            font-weight:800;
+            letter-spacing:.7px;
+            color:#555;
+            margin-bottom:12px">
+            TAMAMLAMA / ETKİNLİK KONTROLÜ
+          </div>
 
-            Kapat
+          <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px">
 
-          </button>
+            <div>
 
-          <button
-            onclick="aksiyonKaydetLocal(${id})"
-            style="
-              padding:9px 18px;
-              border:0;
-              background:${renk};
-              color:white;
-              border-radius:6px;
-              cursor:pointer;
-              font-weight:700">
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                DURUM
+              </label>
 
-            💾 KAYDET
+              <select id="aksiyon-durum"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
 
-          </button>
+                <option value="ACIK"
+                  ${durum === 'ACIK' ? 'selected' : ''}>
+                  AÇIK
+                </option>
+
+                <option value="TAMAMLANDI"
+                  ${durum === 'TAMAMLANDI' ? 'selected' : ''}>
+                  TAMAMLANDI
+                </option>
+
+              </select>
+
+            </div>
+
+            <div>
+
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                TAMAMLANMA TARİHİ
+              </label>
+
+              <input
+                id="aksiyon-tamamlanma"
+                type="date"
+                value="${rak.tamamlanmaTarihi || ''}"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
+
+            </div>
+
+          </div>
+
+          <div style="margin-top:12px">
+
+            <label style="
+              display:block;
+              font-size:10px;
+              font-weight:800;
+              color:#777;
+              margin-bottom:5px">
+              YAPILAN İŞLEM / SONUÇ
+            </label>
+
+            <textarea
+              id="aksiyon-sonuc"
+              rows="2"
+              placeholder="Aksiyon sonucunda ne yapıldı?"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
+                padding:9px;
+                font-size:12px;
+                resize:vertical">${rak.sonuc || ''}</textarea>
+
+          </div>
+
+          <div style="margin-top:12px">
+
+            <label style="
+              display:block;
+              font-size:10px;
+              font-weight:800;
+              color:#777;
+              margin-bottom:5px">
+              ETKİNLİK KONTROLÜ
+            </label>
+
+            <textarea
+              id="aksiyon-etkinlik"
+              rows="2"
+              placeholder="Alınan aksiyon etkili oldu mu? Nasıl doğrulandı?"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
+                padding:9px;
+                font-size:12px;
+                resize:vertical">${rak.etkinlikSonucu || ''}</textarea>
+
+          </div>
+
+          <div style="
+            margin-top:12px;
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px">
+
+            <div>
+
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                ETKİNLİK TARİHİ
+              </label>
+
+              <input
+                id="aksiyon-etkinlik-tarih"
+                type="date"
+                value="${rak.etkinlikTarihi || ''}"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
+
+            </div>
+
+            <div>
+
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                ETKİNLİK DURUMU
+              </label>
+
+              <select id="aksiyon-etkinlik-durum"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
+
+                <option value=""
+                  ${!rak.etkinlikDurumu ? 'selected' : ''}>
+                  — Seçiniz —
+                </option>
+
+                <option value="ETKİLİ"
+                  ${rak.etkinlikDurumu === 'ETKİLİ' ? 'selected' : ''}>
+                  ✓ ETKİLİ
+                </option>
+
+                <option value="ETKİSİZ"
+                  ${rak.etkinlikDurumu === 'ETKİSİZ' ? 'selected' : ''}>
+                  ✕ ETKİSİZ
+                </option>
+
+                <option value="TEKRAR_AKSIYON"
+                  ${rak.etkinlikDurumu === 'TEKRAR_AKSIYON' ? 'selected' : ''}>
+                  ↻ TEKRAR AKSİYON GEREKLİ
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
 
         </div>
+
+      </div>
+
+      <!-- ALT BUTONLAR -->
+      <div style="
+        position:sticky;
+        bottom:0;
+        background:#fff;
+        border-top:1px solid #eee;
+        padding:13px 20px;
+        display:flex;
+        justify-content:flex-end;
+        gap:8px">
+
+        <button
+          onclick="document.getElementById('aksiyonDetayModal')?.remove()"
+          style="
+            background:#f1f1ed;
+            border:1px solid #ddd;
+            color:#555;
+            border-radius:6px;
+            padding:9px 16px;
+            cursor:pointer;
+            font-weight:700">
+          VAZGEÇ
+        </button>
+
+        <button
+          id="aksiyonKaydetBtn"
+          onclick="aksiyonKaydet()"
+          style="
+            background:#f5c400;
+            border:1px solid #d6a900;
+            color:#1a1a1a;
+            border-radius:6px;
+            padding:9px 18px;
+            cursor:pointer;
+            font-weight:800">
+          💾 KAYDET
+        </button>
 
       </div>
 
@@ -9554,11 +9787,322 @@ function aksiyonDetayAc(id) {
 
   document.body.appendChild(modal);
 
+  // ─────────────────────────────────────────────
+  // Modal dışına tıklayınca kapat
+  // ─────────────────────────────────────────────
+
   modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-      modal.remove();
-    }
+    if (e.target === modal) modal.remove();
   });
+
+
+  // ═════════════════════════════════════════════
+  // KAYDET
+  // ═════════════════════════════════════════════
+
+  window.aksiyonKaydet = async function() {
+
+    const btn = document.getElementById('aksiyonKaydetBtn');
+
+    try {
+
+      const durumEl = document.getElementById('aksiyon-durum');
+
+      const yeniDurum = durumEl?.value || 'ACIK';
+
+      const termin =
+        document.getElementById('aksiyon-termin')?.value || '';
+
+      const sorumlu =
+        document.getElementById('aksiyon-sorumlu')?.value.trim() || '';
+
+      const not =
+        document.getElementById('aksiyon-not')?.value.trim() || '';
+
+      const tamamlanmaTarihi =
+        document.getElementById('aksiyon-tamamlanma')?.value || '';
+
+      const sonuc =
+        document.getElementById('aksiyon-sonuc')?.value.trim() || '';
+
+      const etkinlikSonucu =
+        document.getElementById('aksiyon-etkinlik')?.value.trim() || '';
+
+      const etkinlikTarihi =
+        document.getElementById('aksiyon-etkinlik-tarih')?.value || '';
+
+      const etkinlikDurumu =
+        document.getElementById('aksiyon-etkinlik-durum')?.value || '';
+
+
+      // ───────────────────────────────────────
+      // Zorunlu alan kontrolü
+      // ───────────────────────────────────────
+
+      if (!termin) {
+        showToast('⚠️ Aksiyon termini girilmelidir.', 'err');
+        return;
+      }
+
+      if (!sorumlu) {
+        showToast('⚠️ Aksiyon sorumlusu girilmelidir.', 'err');
+        return;
+      }
+
+
+      // ───────────────────────────────────────
+      // Zorunlu aksiyonları kontrol et
+      // ───────────────────────────────────────
+
+      if (cfg.aksiyonlar && cfg.aksiyonlar.length) {
+
+        for (const a of cfg.aksiyonlar) {
+
+          if (!a.zorunlu) continue;
+
+          const el =
+            document.getElementById('aksiyon-alan-' + a.id);
+
+          const value =
+            el?.value?.trim() || '';
+
+          if (!value) {
+
+            showToast(
+              '⚠️ "' + a.label + '" alanı zorunludur.',
+              'err'
+            );
+
+            el?.focus();
+            return;
+          }
+        }
+      }
+
+
+      // ───────────────────────────────────────
+      // Tamamlandıysa tarih otomatik
+      // ───────────────────────────────────────
+
+      let tamamTarih = tamamlanmaTarihi;
+
+      if (yeniDurum === 'TAMAMLANDI' && !tamamTarih) {
+        tamamTarih = bugun;
+      }
+
+
+      // ───────────────────────────────────────
+      // Aksiyonları oluştur
+      // ───────────────────────────────────────
+
+      const aksiyonlar = {};
+
+      if (cfg.aksiyonlar) {
+
+        cfg.aksiyonlar.forEach(a => {
+
+          const el =
+            document.getElementById('aksiyon-alan-' + a.id);
+
+          const value =
+            el?.value?.trim() || '';
+
+          if (value) {
+
+            aksiyonlar[a.id] = {
+              label: a.label,
+              deger: value,
+              zorunlu: !!a.zorunlu
+            };
+
+          }
+
+        });
+
+      }
+
+
+      // ───────────────────────────────────────
+      // Yeni risk aksiyon JSON
+      // ───────────────────────────────────────
+
+      const yeniRak = {
+
+        ...rak,
+
+        seviye:
+          rak.seviye ||
+          kayit.riskSeviye ||
+          '',
+
+        aksiyonlar,
+
+        sorumlu,
+
+        termin,
+
+        not,
+
+        durum: yeniDurum,
+
+        tamamlanmaTarihi:
+          tamamTarih,
+
+        sonuc,
+
+        etkinlikTarihi,
+
+        etkinlikDurumu,
+
+        etkinlikSonucu,
+
+        sonGuncelleme:
+          new Date().toISOString()
+
+      };
+
+
+      // ───────────────────────────────────────
+      // Kayıt nesnesini güncelle
+      // ───────────────────────────────────────
+
+      const guncelKayit = {
+        ...kayit,
+        riskAksiyon:
+          JSON.stringify(yeniRak)
+      };
+
+
+      // ───────────────────────────────────────
+      // Buton kilitle
+      // ───────────────────────────────────────
+
+      if (btn) {
+
+        btn.disabled = true;
+
+        btn.innerHTML =
+          '⏳ KAYDEDİLİYOR...';
+
+        btn.style.opacity = '.65';
+
+      }
+
+
+      showLoading(true);
+
+
+      // ───────────────────────────────────────
+      // GOOGLE SHEETS'E KAYDET
+      // Mevcut saveKayit altyapısını kullanır
+      // ───────────────────────────────────────
+
+      const sonucKayit =
+        await gsKaydet(guncelKayit);
+
+
+      if (!sonucKayit || sonucKayit.ok === false) {
+        throw new Error(
+          sonucKayit?.error ||
+          'Kayıt güncellenemedi.'
+        );
+      }
+
+
+      // ───────────────────────────────────────
+      // Local listeyi güncelle
+      // ───────────────────────────────────────
+
+      const idx =
+        liste.findIndex(
+          k => String(k.id) === String(id)
+        );
+
+      if (idx >= 0) {
+
+        liste[idx] = guncelKayit;
+
+      }
+
+
+      // Global liste de varsa güncelle
+      if (window.kayitlar) {
+
+        const widx =
+          window.kayitlar.findIndex(
+            k => String(k.id) === String(id)
+          );
+
+        if (widx >= 0) {
+          window.kayitlar[widx] = guncelKayit;
+        }
+
+      }
+
+
+      // ───────────────────────────────────────
+      // Modalı kapat
+      // ───────────────────────────────────────
+
+      document
+        .getElementById('aksiyonDetayModal')
+        ?.remove();
+
+
+      // Listeyi yenile
+      if (typeof renderList === 'function') {
+        renderList();
+      }
+
+      // Dashboard varsa yenile
+      if (typeof renderDash === 'function') {
+        try { renderDash(); } catch(e) {}
+      }
+
+      // Risk aksiyon özeti varsa yenile
+      if (typeof renderRiskAksiyonOzet === 'function') {
+        try {
+          renderRiskAksiyonOzet(liste);
+        } catch(e) {}
+      }
+
+
+      showToast(
+        yeniDurum === 'TAMAMLANDI'
+          ? '✅ Aksiyon tamamlandı ve kaydedildi.'
+          : '✅ Aksiyon planı güncellendi.',
+        'ok'
+      );
+
+    } catch (e) {
+
+      console.error('Aksiyon kaydetme hatası:', e);
+
+      showToast(
+        '❌ Aksiyon kaydedilemedi: ' +
+        (e.message || e),
+        'err'
+      );
+
+    } finally {
+
+      showLoading(false);
+
+      const b =
+        document.getElementById('aksiyonKaydetBtn');
+
+      if (b) {
+
+        b.disabled = false;
+        b.innerHTML = '💾 KAYDET';
+        b.style.opacity = '1';
+
+      }
+
+    }
+
+  };
+
 }
 </script>
   <!-- ══ AI RAPOR MODAL ══ -->
