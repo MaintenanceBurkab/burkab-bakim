@@ -9560,7 +9560,196 @@ function aksiyonDetayAc(id) {
     }
   });
 }
-\n\nasync function aksiyonKaydetLocal(id) {\n  const modal = document.getElementById('aksiyonDetayModal');\n  const kayit = (window.kayitlar || kayitlar || [])\n    .find(k => String(k.id) === String(id));\n\n  if (!kayit) {\n    showToast('❌ Kayıt bulunamadı', 'err');\n    return;\n  }\n\n  let rak = {};\n  try {\n    rak = kayit.riskAksiyon ? JSON.parse(kayit.riskAksiyon) : {};\n  } catch (e) {\n    showToast('❌ Mevcut aksiyon verisi okunamadı', 'err');\n    return;\n  }\n\n  rak.aksiyonlar = rak.aksiyonlar || {};\n\n  // Ekrandaki her aksiyon alanını riskAksiyon JSON'una aktar.\n  const cfg = RISK_AKSIYON_MAP[rak.seviye] || {};\n  (cfg.aksiyonlar || []).forEach(a => {\n    const el = document.getElementById('aksiyon-alan-' + a.id);\n    if (!el) return;\n\n    const deger = String(el.value || '').trim();\n    const eski = rak.aksiyonlar[a.id] || {};\n\n    rak.aksiyonlar[a.id] = {\n      label: a.label || a.id,\n      deger: deger,\n      zorunlu: !!a.zorunlu\n    };\n  });\n\n  rak.sorumlu = String(document.getElementById('aksiyon-sorumlu')?.value || '').trim();\n  rak.termin = String(document.getElementById('aksiyon-termin')?.value || '').trim();\n  rak.not = String(document.getElementById('aksiyon-not')?.value || '').trim();\n  rak.durum = String(rak.durum || 'ACIK').toUpperCase();\n\n  // Zorunlu aksiyon alanlarını kontrol et.\n  const eksikler = (cfg.aksiyonlar || [])\n    .filter(a => a.zorunlu)\n    .filter(a => !String(rak.aksiyonlar[a.id]?.deger || '').trim())\n    .map(a => a.label || a.id);\n\n  if (eksikler.length) {\n    showToast('❗ Zorunlu aksiyon alanlarını doldurun: ' + eksikler.join(', '), 'err');\n    return;\n  }\n\n  if (!rak.sorumlu) {\n    showToast('❗ Aksiyon sorumlusu seçilmelidir.', 'err');\n    return;\n  }\n\n  if (!rak.termin) {\n    showToast('❗ Aksiyon termin tarihi girilmelidir.', 'err');\n    return;\n  }\n\n  const guncelKayit = { ...kayit, riskAksiyon: JSON.stringify(rak) };\n\n  try {\n    showLoading(true);\n\n    // Ana kayıt önce Kayitlar'a yazılır. Apps Script tarafındaki\n    // gsKaydet() aynı işlem içinde BakimAksiyonlari senkronizasyonunu yapar.\n    const sonuc = await gsKaydet(guncelKayit);\n\n    // Yerel listeyi de güncelle.\n    const idx = (window.kayitlar || kayitlar || [])\n      .findIndex(k => String(k.id) === String(id));\n    if (idx >= 0) {\n      kayitlar[idx] = { ...kayitlar[idx], riskAksiyon: guncelKayit.riskAksiyon };\n    }\n\n    if (typeof renderKayitlar === 'function') {\n      try { renderKayitlar(); } catch (e) {}\n    }\n\n    if (modal) modal.remove();\n\n    const sync = sonuc?.aksiyonSync;\n    if (sync && sync.ok) {\n      const yeni = Number(sync.inserted || 0);\n      const guncellenen = Number(sync.updated || 0);\n      showToast(\n        `✅ Aksiyon kaydedildi. BakimAksiyonlari: ${yeni} yeni / ${guncellenen} güncellendi.`,\n        'ok'\n      );\n    } else if (sync && !sync.ok) {\n      showToast('⚠️ Ana kayıt kaydedildi fakat BakimAksiyonlari aktarımı başarısız: ' + (sync.error || 'Bilinmeyen hata'), 'err');\n    } else {\n      showToast('✅ Aksiyon kaydedildi.', 'ok');\n    }\n\n  } catch (e) {\n    console.error('aksiyonKaydetLocal:', e);\n    showToast('❌ Aksiyon kaydedilemedi: ' + (e.message || e), 'err');\n  } finally {\n    showLoading(false);\n  }\n}\n\n</script>\n  <!-- ══ AI RAPOR MODAL ══ -->
+
+// ═══════════════════════════════════════════════════════════════
+// AKSİYON KAYDET — riskAksiyon -> Kayitlar -> BakimAksiyonlari
+// ÖNEMLİ: Bu fonksiyon aksiyonDetayAc() tarafından çağrılır.
+// ═══════════════════════════════════════════════════════════════
+async function aksiyonKaydetLocal(id) {
+  const modal = document.getElementById('aksiyonDetayModal');
+  const liste = window.kayitlar || kayitlar || [];
+
+  const kayit = liste.find(k => String(k.id) === String(id));
+
+  if (!kayit) {
+    showToast('❌ Kayıt bulunamadı', 'err');
+    return;
+  }
+
+  let rak = {};
+
+  try {
+    rak = kayit.riskAksiyon
+      ? JSON.parse(kayit.riskAksiyon)
+      : {};
+  } catch (e) {
+    console.error('riskAksiyon JSON:', e);
+    showToast('❌ Mevcut aksiyon verisi okunamadı', 'err');
+    return;
+  }
+
+  rak.aksiyonlar = rak.aksiyonlar || {};
+
+  const cfg = RISK_AKSIYON_MAP[rak.seviye] || {};
+  const aksiyonTanimlari = Array.isArray(cfg.aksiyonlar)
+    ? cfg.aksiyonlar
+    : [];
+
+  // Modalda görünen aksiyon alanlarını riskAksiyon JSON'una aktar.
+  aksiyonTanimlari.forEach(function(a) {
+    const el = document.getElementById('aksiyon-alan-' + a.id);
+    if (!el) return;
+
+    const deger = String(el.value || '').trim();
+
+    rak.aksiyonlar[a.id] = {
+      label: a.label || a.id,
+      deger: deger,
+      zorunlu: !!a.zorunlu
+    };
+  });
+
+  rak.sorumlu = String(
+    document.getElementById('aksiyon-sorumlu')?.value || ''
+  ).trim();
+
+  rak.termin = String(
+    document.getElementById('aksiyon-termin')?.value || ''
+  ).trim();
+
+  rak.not = String(
+    document.getElementById('aksiyon-not')?.value || ''
+  ).trim();
+
+  rak.durum = String(rak.durum || 'ACIK')
+    .trim()
+    .toUpperCase();
+
+  // Zorunlu alan kontrolü.
+  const eksikler = aksiyonTanimlari
+    .filter(function(a) { return !!a.zorunlu; })
+    .filter(function(a) {
+      return !String(
+        rak.aksiyonlar[a.id]?.deger || ''
+      ).trim();
+    })
+    .map(function(a) {
+      return a.label || a.id;
+    });
+
+  if (eksikler.length) {
+    showToast(
+      '❗ Zorunlu aksiyon alanlarını doldurun: ' +
+      eksikler.join(', '),
+      'err'
+    );
+    return;
+  }
+
+  // Sorumlu ve termin bu ekranın aksiyon kaydının temel alanlarıdır.
+  if (!rak.sorumlu) {
+    showToast('❗ Aksiyon sorumlusu girilmelidir.', 'err');
+    return;
+  }
+
+  if (!rak.termin) {
+    showToast('❗ Aksiyon termin tarihi girilmelidir.', 'err');
+    return;
+  }
+
+  const guncelKayit = Object.assign({}, kayit, {
+    riskAksiyon: JSON.stringify(rak)
+  });
+
+  try {
+    if (typeof showLoading === 'function') {
+      showLoading(true);
+    }
+
+    /*
+     * KRİTİK NOKTA:
+     * Burada doğrudan localStorage'a değil,
+     * mevcut gsKaydet() -> saveKayit API'sine gidiyoruz.
+     *
+     * Apps Script tarafındaki gsKaydet():
+     *   1. Kayitlar.riskAksiyon alanını kaydeder.
+     *   2. syncRiskAksiyonlariToBakimAksiyonlari_()
+     *      ile BakimAksiyonlari'na senkronlar.
+     */
+    const sonuc = await gsKaydet(guncelKayit);
+
+    if (!sonuc || !sonuc.ok) {
+      throw new Error(
+        (sonuc && sonuc.error) || 'Sunucu kaydı başarısız.'
+      );
+    }
+
+    // Sunucunun verdiği gerçek form no varsa yerel kayda da işle.
+    if (sonuc.formNo) {
+      guncelKayit.formNo = sonuc.formNo;
+    }
+
+    const idx = liste.findIndex(function(k) {
+      return String(k.id) === String(id);
+    });
+
+    if (idx >= 0) {
+      liste[idx] = Object.assign({}, liste[idx], guncelKayit);
+    }
+
+    if (typeof window.kayitlar !== 'undefined') {
+      window.kayitlar = liste;
+    }
+
+    // Listeyi yeniden çiz.
+    if (typeof renderKayitlar === 'function') {
+      try {
+        renderKayitlar();
+      } catch (renderErr) {
+        console.warn('renderKayitlar:', renderErr);
+      }
+    }
+
+    if (modal) {
+      modal.remove();
+    }
+
+    const sync = sonuc.aksiyonSync;
+
+    if (sync && sync.ok) {
+      showToast(
+        '✅ Aksiyon kaydedildi. ' +
+        'BakimAksiyonlari: ' +
+        Number(sync.inserted || 0) + ' yeni / ' +
+        Number(sync.updated || 0) + ' güncellendi.',
+        'ok'
+      );
+    } else if (sync && !sync.ok) {
+      showToast(
+        '⚠️ Ana kayıt kaydedildi fakat BakimAksiyonlari aktarımı başarısız: ' +
+        (sync.error || 'Bilinmeyen hata'),
+        'err'
+      );
+    } else {
+      showToast('✅ Aksiyon kaydedildi.', 'ok');
+    }
+
+  } catch (e) {
+    console.error('aksiyonKaydetLocal:', e);
+    showToast(
+      '❌ Aksiyon kaydedilemedi: ' +
+      (e && e.message ? e.message : String(e)),
+      'err'
+    );
+  } finally {
+    if (typeof showLoading === 'function') {
+      showLoading(false);
+    }
+  }
+}
+
+</script>
+  <!-- ══ AI RAPOR MODAL ══ -->
 <div id="aiRaporModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;align-items:center;justify-content:center;padding:20px">
   <div style="background:#1c1c1c;color:#eee;border-radius:14px;width:100%;max-width:640px;max-height:88vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.5)">
 
