@@ -9191,7 +9191,191 @@ function ypFormParcaSec(inp){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(inp
 function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.querySelector('.parca-ad')?.dataset.stokKodu,p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));if(p&&ypNum(el.value)>ypKullanilabilir(p)){showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');}}
 const _ypGetParcaListesi=getParcaListesi;
 getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').forEach(row=>{const inp=row.querySelector('.parca-ad'),ad=inp?.value.trim(),stokKodu=inp?.dataset?.stokKodu||'',adet=ypNum(row.querySelector('.parca-adet')?.value),fiyat=ypNum(row.querySelector('.parca-fiyat')?.value),para=row.querySelector('.parca-para')?.value||'₺';if(ad)p.push({stokKodu,ad,adet,fiyat,para,toplam:adet*fiyat});});return JSON.stringify(p);};
+function aksiyonDetayAc(id) {
+  const kayit = (window.kayitlar || kayitlar || []).find(k => String(k.id) === String(id));
 
+  if (!kayit) {
+    showToast('❌ Kayıt bulunamadı', 'error');
+    return;
+  }
+
+  if (!kayit.riskAksiyon || kayit.riskAksiyon === '{}') {
+    showToast('ℹ️ Bu kayıtta aksiyon bilgisi yok', 'info');
+    return;
+  }
+
+  let rak;
+
+  try {
+    rak = JSON.parse(kayit.riskAksiyon);
+  } catch (e) {
+    showToast('❌ Aksiyon verisi okunamadı', 'error');
+    return;
+  }
+
+  const cfg = RISK_AKSIYON_MAP[rak.seviye] || {};
+  const renk = cfg.renk || '#e65100';
+
+  let icerik = '';
+
+  Object.entries(rak.aksiyonlar || {}).forEach(([key, v]) => {
+    icerik += `
+      <div style="
+        margin-bottom:12px;
+        padding:10px;
+        background:#fafafa;
+        border-left:4px solid ${renk};
+        border-radius:5px;">
+        
+        <div style="
+          font-size:10px;
+          font-weight:800;
+          color:${renk};
+          margin-bottom:5px;
+          text-transform:uppercase;">
+          ${v.label || key}
+          ${v.zorunlu ? '<span style="margin-left:6px;background:'+renk+';color:white;padding:2px 5px;border-radius:3px;font-size:9px">ZORUNLU</span>' : ''}
+        </div>
+
+        <div style="font-size:13px;color:#333;">
+          ${v.deger || '—'}
+        </div>
+      </div>
+    `;
+  });
+
+  icerik += `
+    <div style="
+      display:flex;
+      gap:20px;
+      flex-wrap:wrap;
+      padding:10px 0;
+      border-top:1px solid #eee;
+      margin-top:5px;">
+      
+      <div>
+        👤 <strong>Sorumlu</strong><br>
+        ${rak.sorumlu || '—'}
+      </div>
+
+      <div>
+        📅 <strong>Termin</strong><br>
+        ${rak.termin || '—'}
+      </div>
+    </div>
+  `;
+
+  if (rak.not) {
+    icerik += `
+      <div style="
+        margin-top:10px;
+        padding:10px;
+        background:#fff8e1;
+        border-left:3px solid #f5c400;
+        border-radius:5px;">
+        📝 ${rak.not}
+      </div>
+    `;
+  }
+
+  const eski = document.getElementById('aksiyonDetayModal');
+  if (eski) eski.remove();
+
+  const modal = document.createElement('div');
+
+  modal.id = 'aksiyonDetayModal';
+
+  modal.style.cssText = `
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:99999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background:white;
+      width:min(650px,95vw);
+      max-height:85vh;
+      overflow:auto;
+      border-radius:12px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3);">
+
+      <div style="
+        padding:18px 20px;
+        background:${renk};
+        color:white;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;">
+
+        <div>
+          <div style="font-size:11px;opacity:.8;">
+            ${kayit.formNo || 'KAYIT'}
+          </div>
+
+          <div style="font-size:17px;font-weight:800;">
+            ⚠️ AKSİYON PLANI
+          </div>
+
+          <div style="font-size:11px;margin-top:3px;">
+            IATF 4.4 • ${rak.seviye || ''}
+          </div>
+        </div>
+
+        <button onclick="document.getElementById('aksiyonDetayModal').remove()"
+          style="
+            border:0;
+            background:rgba(255,255,255,.2);
+            color:white;
+            width:32px;
+            height:32px;
+            border-radius:50%;
+            cursor:pointer;
+            font-size:18px;">
+          ×
+        </button>
+
+      </div>
+
+      <div style="padding:20px;">
+
+        <div style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:12px;
+          margin-bottom:18px;
+          font-size:12px;">
+
+          <div>
+            <span style="color:#888;">Makine</span><br>
+            <strong>${kayit.makine || '—'}</strong>
+          </div>
+
+          <div>
+            <span style="color:#888;">Bölüm</span><br>
+            <strong>${kayit.bolum || '—'}</strong>
+          </div>
+
+        </div>
+
+        ${icerik}
+
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.remove();
+  });
+}
 </script>
   <!-- ══ AI RAPOR MODAL ══ -->
 <div id="aiRaporModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;align-items:center;justify-content:center;padding:20px">
