@@ -6166,29 +6166,503 @@ function renderPlanlar() {
     .sort((a, b) => new Date(a.tarih) - new Date(b.tarih));
   const tamamlananlar = planlar.filter(p => p.durum === 'tamamlandi').sort((a,b) => new Date(b.tamamlamaTarih||b.tarih) - new Date(a.tamamlamaTarih||a.tarih));
 
-  // Özet bar
-  const gecmis  = aktifler.filter(p => gunFarki(p.tarih) < 0).length;
-  const bugun1  = aktifler.filter(p => gunFarki(p.tarih) <= 1 && gunFarki(p.tarih) >= 0).length;
-  const hafta   = aktifler.filter(p => gunFarki(p.tarih) > 1 && gunFarki(p.tarih) <= 7).length;
-  const diger   = aktifler.filter(p => gunFarki(p.tarih) > 7).length;
-  document.getElementById('planOzetBar').innerHTML =
-    (gecmis  ? `<span style="background:#fde8e8;color:#d32f2f;border:1px solid #d32f2f;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">⛔ ${gecmis} Gecikmiş</span>` : '') +
-    (bugun1  ? `<span style="background:#fff3e0;color:#e65100;border:1px solid #e65100;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">🔔 ${bugun1} Bugün/Yarın</span>` : '') +
-    (hafta   ? `<span style="background:#fffbe6;color:#b8900a;border:1px solid #f5c400;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">⏳ ${hafta} Bu Hafta</span>` : '') +
-    (diger   ? `<span style="background:#e3f2fd;color:#0277bd;border:1px solid #0277bd;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">📅 ${diger} Planlanan</span>` : '') +
-    `<span style="background:#e3f7ee;color:#00875a;border:1px solid #00875a;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">✅ ${tamamlananlar.length} Tamamlandı</span>`;
 
-  // Uyarı bandı
-  const uyariBand = document.getElementById('planUyarilar');
-  let uyariHtml = '';
-  const acilGecmis = aktifler.filter(p => gunFarki(p.tarih) < 0);
-  const acilYakin  = aktifler.filter(p => gunFarki(p.tarih) >= 0 && gunFarki(p.tarih) <= 1);
-  if (acilGecmis.length) {
-    uyariHtml += `<div class="plan-gecmis-band">🚨 <strong>${acilGecmis.length} plan gecikmiş!</strong> → ${acilGecmis.map(p => p.makine).join(', ')}</div>`;
+// ══════════════════════════════════════════════
+// PLAN + AKSİYON ÖZET BAR
+// ══════════════════════════════════════════════
+
+// PLAN ÖZETLERİ
+const gecmis  = aktifler.filter(p => gunFarki(p.tarih) < 0).length;
+const bugun1  = aktifler.filter(p => gunFarki(p.tarih) <= 1 && gunFarki(p.tarih) >= 0).length;
+const hafta   = aktifler.filter(p => gunFarki(p.tarih) > 1 && gunFarki(p.tarih) <= 7).length;
+const diger   = aktifler.filter(p => gunFarki(p.tarih) > 7).length;
+
+
+// ══════════════════════════════════════════════
+// AKSİYONLARI TOPLA
+// ══════════════════════════════════════════════
+
+const aksiyonKayitlari = [];
+
+(window.kayitlar || kayitlar || []).forEach(k => {
+
+  if (!aksiyonGorunurMu(k)) return;
+
+  let rak = null;
+
+  try {
+    rak = JSON.parse(k.riskAksiyon);
+  } catch (e) {
+    return;
   }
-  if (acilYakin.length) {
-    uyariHtml += `<div class="plan-uyari-band">⚠️ <strong>${acilYakin.length} plan bugün/yarın!</strong> → ${acilYakin.map(p => p.makine + ' (' + p.tarih + ')').join(', ')}</div>`;
+
+  if (!rak || !rak.termin) return;
+
+  let termin = String(rak.termin).trim();
+
+  // GG.AA.YYYY → YYYY-MM-DD
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(termin)) {
+    const p = termin.split('.');
+    termin = `${p[2]}-${p[1]}-${p[0]}`;
   }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(termin)) return;
+
+  const fark = gunFarki(termin);
+
+  const durum =
+    String(rak.durum || 'ACIK')
+      .trim()
+      .toUpperCase();
+
+  aksiyonKayitlari.push({
+    id: k.id,
+    formNo: k.formNo || '',
+    makine: k.makine || '',
+    bolum: k.bolum || '',
+    sorumlu: rak.sorumlu || '',
+    termin,
+    fark,
+    durum,
+    seviye: rak.seviye || k.riskSeviye || '',
+    sonuc: rak.sonuc || ''
+  });
+
+});
+
+
+// ══════════════════════════════════════════════
+// AKSİYON DURUMLARI
+// ══════════════════════════════════════════════
+
+const aksToplam =
+  aksiyonKayitlari.length;
+
+const aksTamamlanan =
+  aksiyonKayitlari.filter(a =>
+    a.durum === 'TAMAMLANDI'
+  ).length;
+
+const aksAcik =
+  aksiyonKayitlari.filter(a =>
+    a.durum !== 'TAMAMLANDI'
+  );
+
+const aksGeciken =
+  aksAcik.filter(a =>
+    a.fark < 0
+  );
+
+const aksYaklasan =
+  aksAcik.filter(a =>
+    a.fark >= 0 &&
+    a.fark <= 7
+  );
+
+
+// ══════════════════════════════════════════════
+// ÜST ÖZET BAR
+// ══════════════════════════════════════════════
+
+const ozetEl =
+  document.getElementById('planOzetBar');
+
+if (ozetEl) {
+
+  ozetEl.innerHTML = `
+
+    <!-- PLANLAR -->
+
+    ${
+      gecmis
+        ? `
+          <span style="
+            background:#fde8e8;
+            color:#d32f2f;
+            border:1px solid #d32f2f;
+            border-radius:6px;
+            padding:5px 12px;
+            font-size:12px;
+            font-weight:700">
+            ⛔ ${gecmis} Plan Gecikmiş
+          </span>
+        `
+        : ''
+    }
+
+    ${
+      bugun1
+        ? `
+          <span style="
+            background:#fff3e0;
+            color:#e65100;
+            border:1px solid #e65100;
+            border-radius:6px;
+            padding:5px 12px;
+            font-size:12px;
+            font-weight:700">
+            🔔 ${bugun1} Plan Bugün/Yarın
+          </span>
+        `
+        : ''
+    }
+
+    ${
+      hafta
+        ? `
+          <span style="
+            background:#fffbe6;
+            color:#b8900a;
+            border:1px solid #f5c400;
+            border-radius:6px;
+            padding:5px 12px;
+            font-size:12px;
+            font-weight:700">
+            ⏳ ${hafta} Plan Bu Hafta
+          </span>
+        `
+        : ''
+    }
+
+    ${
+      diger
+        ? `
+          <span style="
+            background:#e3f2fd;
+            color:#0277bd;
+            border:1px solid #0277bd;
+            border-radius:6px;
+            padding:5px 12px;
+            font-size:12px;
+            font-weight:700">
+            📅 ${diger} Planlanan
+          </span>
+        `
+        : ''
+    }
+
+    <span style="
+      background:#e3f7ee;
+      color:#00875a;
+      border:1px solid #00875a;
+      border-radius:6px;
+      padding:5px 12px;
+      font-size:12px;
+      font-weight:700">
+      ✅ ${tamamlananlar.length} Plan Tamamlandı
+    </span>
+
+
+    <!-- AYIRICI -->
+
+    <span style="
+      width:1px;
+      height:26px;
+      background:#ccc;
+      display:inline-block;
+      margin:0 3px">
+    </span>
+
+
+    <!-- AKSİYONLAR -->
+
+    <span style="
+      background:#fff4ec;
+      color:#e65100;
+      border:1px solid #e65100;
+      border-radius:6px;
+      padding:5px 12px;
+      font-size:12px;
+      font-weight:800">
+      🟠 ${aksToplam} AKS Toplam
+    </span>
+
+    <span style="
+      background:${aksGeciken.length ? '#fde8e8' : '#f3f8f5'};
+      color:${aksGeciken.length ? '#d32f2f' : '#00875a'};
+      border:1px solid ${aksGeciken.length ? '#d32f2f' : '#00875a'};
+      border-radius:6px;
+      padding:5px 12px;
+      font-size:12px;
+      font-weight:800">
+      ${aksGeciken.length ? '🔴' : '🟢'}
+      ${aksGeciken.length} AKS Geciken
+    </span>
+
+    <span style="
+      background:${aksYaklasan.length ? '#fff8e1' : '#f3f8f5'};
+      color:${aksYaklasan.length ? '#b8900a' : '#00875a'};
+      border:1px solid ${aksYaklasan.length ? '#f5c400' : '#00875a'};
+      border-radius:6px;
+      padding:5px 12px;
+      font-size:12px;
+      font-weight:800">
+      ${aksYaklasan.length ? '🟡' : '🟢'}
+      ${aksYaklasan.length} AKS 7 Gün İçinde
+    </span>
+
+    <span style="
+      background:#e3f7ee;
+      color:#00875a;
+      border:1px solid #00875a;
+      border-radius:6px;
+      padding:5px 12px;
+      font-size:12px;
+      font-weight:800">
+      🟢 ${aksTamamlanan} AKS Tamamlandı
+    </span>
+
+  `;
+}
+
+
+// ══════════════════════════════════════════════
+// UYARI BANTLARI
+// ══════════════════════════════════════════════
+
+const uyariBand =
+  document.getElementById('planUyarilar');
+
+let uyariHtml = '';
+
+
+// ──────────────────────────────────────────────
+// GECİKEN AKSİYONLAR
+// ──────────────────────────────────────────────
+
+if (aksGeciken.length) {
+
+  const liste =
+    aksGeciken
+      .sort((a,b) => a.fark - b.fark)
+      .slice(0,8);
+
+  uyariHtml += `
+
+    <div style="
+      margin-bottom:8px;
+      padding:10px 14px;
+      border-radius:7px;
+      border:1px solid #d32f2f;
+      background:#fff5f5;
+      color:#8b1e1e;
+      font-size:12px;
+      line-height:1.5;
+      display:flex;
+      align-items:flex-start;
+      gap:9px;
+    ">
+
+      <span style="
+        font-size:16px;
+        line-height:1">
+        🔴
+      </span>
+
+      <div>
+
+        <strong>
+          ${aksGeciken.length} AKSİYON GECİKMİŞ!
+        </strong>
+
+        <div style="
+          margin-top:4px;
+          color:#a94442;
+          font-size:11px">
+
+          ${liste.map(a => `
+            <span style="
+              display:inline-block;
+              margin-right:12px;
+              margin-bottom:3px">
+
+              <strong>
+                ${a.makine || a.formNo || 'Aksiyon'}
+              </strong>
+
+              ${
+                a.formNo
+                  ? ' · ' + a.formNo
+                  : ''
+              }
+
+              →
+              <strong>
+                ${Math.abs(a.fark)} gün gecikmiş
+              </strong>
+
+            </span>
+          `).join('')}
+
+          ${
+            aksGeciken.length > 8
+              ? ` + ${aksGeciken.length - 8} aksiyon daha`
+              : ''
+          }
+
+        </div>
+
+      </div>
+
+    </div>
+
+  `;
+}
+
+
+// ──────────────────────────────────────────────
+// YAKLAŞAN AKSİYONLAR
+// ──────────────────────────────────────────────
+
+if (aksYaklasan.length) {
+
+  const liste =
+    aksYaklasan
+      .sort((a,b) => a.fark - b.fark)
+      .slice(0,8);
+
+  uyariHtml += `
+
+    <div style="
+      margin-bottom:8px;
+      padding:10px 14px;
+      border-radius:7px;
+      border:1px solid #f5c400;
+      background:#fffdf2;
+      color:#806600;
+      font-size:12px;
+      line-height:1.5;
+      display:flex;
+      align-items:flex-start;
+      gap:9px;
+    ">
+
+      <span style="
+        font-size:16px;
+        line-height:1">
+        🟠
+      </span>
+
+      <div>
+
+        <strong>
+          ${aksYaklasan.length} AKSİYON YAKLAŞIYOR!
+        </strong>
+
+        <div style="
+          margin-top:4px;
+          color:#8a7200;
+          font-size:11px">
+
+          ${liste.map(a => `
+
+            <span style="
+              display:inline-block;
+              margin-right:12px;
+              margin-bottom:3px">
+
+              <strong>
+                ${a.makine || a.formNo || 'Aksiyon'}
+              </strong>
+
+              →
+              ${
+                a.fark === 0
+                  ? '<strong>BUGÜN</strong>'
+                  : a.fark === 1
+                    ? '<strong>YARIN</strong>'
+                    : `<strong>${a.fark} gün sonra</strong>`
+              }
+
+              ${
+                a.sorumlu
+                  ? ' · 👤 ' + a.sorumlu
+                  : ''
+              }
+
+            </span>
+
+          `).join('')}
+
+          ${
+            aksYaklasan.length > 8
+              ? ` + ${aksYaklasan.length - 8} aksiyon daha`
+              : ''
+          }
+
+        </div>
+
+      </div>
+
+    </div>
+
+  `;
+}
+
+
+// ──────────────────────────────────────────────
+// PLAN UYARILARI
+// ──────────────────────────────────────────────
+
+const acilGecmis =
+  aktifler.filter(p =>
+    gunFarki(p.tarih) < 0
+  );
+
+const acilYakin =
+  aktifler.filter(p =>
+    gunFarki(p.tarih) >= 0 &&
+    gunFarki(p.tarih) <= 1
+  );
+
+
+if (acilGecmis.length) {
+
+  uyariHtml += `
+
+    <div class="plan-gecmis-band">
+
+      🚨
+      <strong>
+        ${acilGecmis.length} plan gecikmiş!
+      </strong>
+
+      →
+      ${acilGecmis
+        .slice(0,8)
+        .map(p => p.makine)
+        .join(', ')}
+
+    </div>
+
+  `;
+}
+
+
+if (acilYakin.length) {
+
+  uyariHtml += `
+
+    <div class="plan-uyari-band">
+
+      ⚠️
+      <strong>
+        ${acilYakin.length} plan bugün/yarın!
+      </strong>
+
+      →
+      ${acilYakin
+        .slice(0,8)
+        .map(p =>
+          p.makine + ' (' + p.tarih + ')'
+        )
+        .join(', ')}
+
+    </div>
+
+  `;
+}
+
   uyariBand.innerHTML = uyariHtml;
 
   // Plan kartları
@@ -6351,57 +6825,698 @@ function takvimAksiyonGunAc(tarihStr) {
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
+  function gercekAksiyonMu(k) {
 
-function renderTakvim() {
-  const planlar = planlarYukle();
-  const ilkGun = new Date(takvimYil, takvimAy, 1);
-  const sonGun = new Date(takvimYil, takvimAy + 1, 0);
-  const bugun  = new Date(); bugun.setHours(0,0,0,0);
-  const aylar  = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  if (!k || !k.riskAksiyon) return false;
 
-  document.getElementById('takvimAyBaslik').textContent = aylar[takvimAy] + ' ' + takvimYil;
+  let rak;
 
-  const gunleri = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
-  let html = gunleri.map(g => '<div class="takvim-gun-adi">' + g + '</div>').join('');
-
-  // Haftanın başlangıç boşlukları (Pazartesi = 0)
-  const baslangicGun = (ilkGun.getDay() + 6) % 7;
-  for (let i = 0; i < baslangicGun; i++) html += '<div class="takvim-gun bos"></div>';
-
-  for (let gun = 1; gun <= sonGun.getDate(); gun++) {
-    const tarihStr = takvimYil + '-' + String(takvimAy + 1).padStart(2,'0') + '-' + String(gun).padStart(2,'0');
-    const bugunMu  = new Date(tarihStr).toDateString() === bugun.toDateString();
-    const fark     = Math.round((new Date(tarihStr) - bugun) / 86400000);
-
-    const gunPlanlar = planlar.filter(p => p.tarih === tarihStr);
-    const gunAksiyonlar = _takvimAksiyonlar.filter(a => aksiyonTakvimTarih(a.termin) === tarihStr);
-    const tamamlandi = gunPlanlar.some(p => p.durum === 'tamamlandi');
-    const aktif      = gunPlanlar.filter(p => p.durum !== 'tamamlandi');
-
-    let cls = 'takvim-gun normal';
-    if (bugunMu)       cls += ' bugun';
-    if (tamamlandi && !aktif.length) cls += ' tamamlandi';
-    if (aktif.length) {
-      if (fark <= 1 && fark >= 0) cls += ' uyari-1';
-      else if (fark <= 3)         cls += ' uyari-3';
-      else if (fark <= 7)         cls += ' uyari-7';
-      else                        cls += ' plan-var';
-    }
-    if (aktif.length && fark < 0) cls += ' gecmis-plan';
-    if (gunAksiyonlar.length) cls += ' aksiyon-var';
-
-    const tooltipParcalar = [];
-    if (gunPlanlar.length) tooltipParcalar.push('PLAN: ' + gunPlanlar.map(p => p.makine + ': ' + p.gorev).join(' | '));
-    if (gunAksiyonlar.length) tooltipParcalar.push('AKSİYON: ' + gunAksiyonlar.map(a => (a.makine || '—') + ' / ' + (a.aksiyonTuru || 'AKSİYON') + ' / ' + (a.sorumlu || 'Atanmadı')).join(' | '));
-    const tooltip = tooltipParcalar.join('\n');
-    html += `<div class="${cls}" title="${tooltip}" onclick="takvimAksiyonGunAc('${tarihStr}')" style="cursor:${(gunPlanlar.length || gunAksiyonlar.length) ? 'pointer' : 'default'}">
-      <span>${gun}</span>
-      ${aktif.length ? '<div class="takvim-gun-nokta"></div>' : ''}
-      ${gunAksiyonlar.length ? `<div style="margin-top:3px;font-size:9px;font-weight:800;color:#7b1fa2;line-height:1">⚙ ${gunAksiyonlar.length}</div>` : ''}
-    </div>`;
+  try {
+    rak = JSON.parse(k.riskAksiyon);
+  } catch (e) {
+    return false;
   }
 
+  if (!rak || !rak.aksiyonlar) return false;
+
+  return Object.values(rak.aksiyonlar).some(a =>
+    a &&
+    String(a.deger || '').trim() !== ''
+  );
+}
+ function aksiyonGorunurMu(k) {
+
+  // Önce gerçekten aksiyon mu?
+  if (!gercekAksiyonMu(k)) return false;
+
+  // Admin bütün aksiyonları görür
+  if (currentUser && currentUser.role === 'admin') {
+    return true;
+  }
+
+  // Giriş yapan kullanıcı yoksa gösterme
+  if (!currentUser) return false;
+
+  let rak;
+
+  try {
+    rak = JSON.parse(k.riskAksiyon);
+  } catch (e) {
+    return false;
+  }
+
+  const sorumlu = String(rak.sorumlu || '')
+    .trim()
+    .toUpperCase();
+
+  const kullanici = String(currentUser.name || '')
+    .trim()
+    .toUpperCase();
+
+  return sorumlu !== '' && sorumlu === kullanici;
+} 
+function renderTakvim() {
+
+  const planlar = planlarYukle();
+
+  // ─────────────────────────────────────────────
+  // AKSİYONLARI TAKVİM İÇİN HAZIRLA
+  // ─────────────────────────────────────────────
+  const aksiyonlar = [];
+
+  (window.kayitlar || kayitlar || []).forEach(k => {
+
+    if (!aksiyonGorunurMu(k)) return;
+
+    let rak = null;
+
+    try {
+      rak = JSON.parse(k.riskAksiyon);
+    } catch (e) {
+      return;
+    }
+
+    if (!rak || !rak.termin) return;
+
+    // Termin tarihi YYYY-MM-DD olarak tutuluyor.
+    // Eski kayıtlarda farklı format varsa onu da çevirmeye çalış.
+    let tarih = String(rak.termin).trim();
+
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(tarih)) {
+      const p = tarih.split('.');
+      tarih = `${p[2]}-${p[1]}-${p[0]}`;
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih)) return;
+
+    // Aksiyon metinlerini al
+    const aksiyonMetinleri = [];
+
+    if (rak.aksiyonlar && typeof rak.aksiyonlar === 'object') {
+
+      Object.values(rak.aksiyonlar).forEach(a => {
+
+        if (!a) return;
+
+        const metin = String(a.deger || '').trim();
+
+        if (metin) {
+          aksiyonMetinleri.push({
+            label: a.label || 'Aksiyon',
+            deger: metin
+          });
+        }
+
+      });
+    }
+
+    // Hiç aksiyon metni yoksa da kayıt aksiyon olarak kabul edilsin.
+    if (!aksiyonMetinleri.length && rak.not) {
+      aksiyonMetinleri.push({
+        label: 'Aksiyon Notu',
+        deger: rak.not
+      });
+    }
+
+    aksiyonlar.push({
+      id: k.id,
+      formNo: k.formNo || '',
+      makine: k.makine || '',
+      bolum: k.bolum || '',
+      sorumlu: rak.sorumlu || '',
+      termin: tarih,
+      seviye: rak.seviye || k.riskSeviye || '',
+      durum: rak.durum || 'ACIK',
+      tamamlanmaTarihi: rak.tamamlanmaTarihi || '',
+      sonuc: rak.sonuc || '',
+      etkinlikDurumu: rak.etkinlikDurumu || '',
+      aksiyonMetinleri
+    });
+
+  });
+
+
+  // ─────────────────────────────────────────────
+  // TAKVİM
+  // ─────────────────────────────────────────────
+
+  const ilkGun = new Date(takvimYil, takvimAy, 1);
+  const sonGun = new Date(takvimYil, takvimAy + 1, 0);
+
+  const bugun = new Date();
+  bugun.setHours(0,0,0,0);
+
+  const aylar = [
+    'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+    'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
+  ];
+
+  document.getElementById('takvimAyBaslik').textContent =
+    aylar[takvimAy] + ' ' + takvimYil;
+
+
+  const gunleri = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
+
+  let html = gunleri
+    .map(g => '<div class="takvim-gun-adi">' + g + '</div>')
+    .join('');
+
+
+  // Haftanın başlangıç boşlukları
+  const baslangicGun = (ilkGun.getDay() + 6) % 7;
+
+  for (let i = 0; i < baslangicGun; i++) {
+    html += '<div class="takvim-gun bos"></div>';
+  }
+
+
+  // ─────────────────────────────────────────────
+  // GÜNLER
+  // ─────────────────────────────────────────────
+
+  for (let gun = 1; gun <= sonGun.getDate(); gun++) {
+
+    const tarihStr =
+      takvimYil + '-' +
+      String(takvimAy + 1).padStart(2,'0') + '-' +
+      String(gun).padStart(2,'0');
+
+    const bugunMu =
+      new Date(tarihStr).toDateString() === bugun.toDateString();
+
+    const fark =
+      Math.round((new Date(tarihStr) - bugun) / 86400000);
+
+
+    // PLANLAR
+    const gunPlanlar =
+      planlar.filter(p => p.tarih === tarihStr);
+
+    const tamamlandi =
+      gunPlanlar.some(p =>
+        String(p.durum || '').toLowerCase() === 'tamamlandi'
+      );
+
+    const aktif =
+      gunPlanlar.filter(p =>
+        String(p.durum || '').toLowerCase() !== 'tamamlandi'
+      );
+
+
+    // AKSİYONLAR
+    const gunAksiyonlar =
+      aksiyonlar.filter(a => a.termin === tarihStr);
+
+    const acikAksiyonlar =
+      gunAksiyonlar.filter(a =>
+        String(a.durum || '').toUpperCase() !== 'TAMAMLANDI'
+      );
+
+
+    // ───────────────────────────────────────────
+    // GÜN RENK SINIFI
+    // ───────────────────────────────────────────
+
+    let cls = 'takvim-gun normal';
+
+    if (bugunMu) {
+      cls += ' bugun';
+    }
+
+    if (tamamlandi && !aktif.length && !acikAksiyonlar.length) {
+      cls += ' tamamlandi';
+    }
+
+    if (aktif.length) {
+
+      if (fark <= 1 && fark >= 0) {
+        cls += ' uyari-1';
+
+      } else if (fark <= 3) {
+        cls += ' uyari-3';
+
+      } else if (fark <= 7) {
+        cls += ' uyari-7';
+
+      } else {
+        cls += ' plan-var';
+      }
+    }
+
+    if (aktif.length && fark < 0) {
+      cls += ' gecmis-plan';
+    }
+
+
+    // Aksiyon gecikmişse günün görünümünü güçlendir
+    if (acikAksiyonlar.length && fark < 0) {
+      cls += ' aksiyon-gecmis';
+    }
+
+
+    // ───────────────────────────────────────────
+    // TOOLTIP
+    // ───────────────────────────────────────────
+
+    const tooltipParcalari = [];
+
+    gunPlanlar.forEach(p => {
+      tooltipParcalari.push(
+        '🔧 ' + (p.makine || '') + ': ' + (p.gorev || '')
+      );
+    });
+
+    gunAksiyonlar.forEach(a => {
+      tooltipParcalari.push(
+        '🟠 AKS: ' +
+        (a.makine || a.formNo || 'Aksiyon') +
+        ' - ' +
+        (a.sorumlu || 'Sorumlu atanmadı')
+      );
+    });
+
+    const tooltip = tooltipParcalari.join('\n');
+
+
+    // ───────────────────────────────────────────
+    // GÜN KUTUSU
+    // ───────────────────────────────────────────
+
+    html += `
+      <div
+        class="${cls}"
+        title="${tooltip.replace(/"/g,'&quot;')}"
+        onclick="takvimGunAc('${tarihStr}')"
+        style="cursor:pointer;position:relative"
+      >
+
+        <span>${gun}</span>
+
+        ${
+          aktif.length
+            ? '<div class="takvim-gun-nokta"></div>'
+            : ''
+        }
+
+        ${
+          gunAksiyonlar.length
+            ? `
+              <div
+                style="
+                  margin-top:3px;
+                  font-size:9px;
+                  font-weight:800;
+                  color:#e65100;
+                  line-height:1;
+                "
+              >
+                🟠 AKS ${gunAksiyonlar.length}
+              </div>
+            `
+            : ''
+        }
+
+      </div>
+    `;
+  }
+
+
   document.getElementById('takvimGrid').innerHTML = html;
+}
+
+
+// ══════════════════════════════════════════════
+// TAKVİM GÜN DETAYI
+// ══════════════════════════════════════════════
+
+function takvimGunAc(tarihStr) {
+
+  const planlar = planlarYukle();
+
+  const gunPlanlar =
+    planlar.filter(p => p.tarih === tarihStr);
+
+
+  const gunAksiyonlar = [];
+
+  (window.kayitlar || kayitlar || []).forEach(k => {
+
+    if (!aksiyonGorunurMu(k)) return;
+
+    let rak;
+
+    try {
+      rak = JSON.parse(k.riskAksiyon);
+    } catch (e) {
+      return;
+    }
+
+    if (!rak || !rak.termin) return;
+
+    let termin = String(rak.termin).trim();
+
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(termin)) {
+      const p = termin.split('.');
+      termin = `${p[2]}-${p[1]}-${p[0]}`;
+    }
+
+    if (termin !== tarihStr) return;
+
+
+    const aksiyonMetinleri = [];
+
+    if (rak.aksiyonlar && typeof rak.aksiyonlar === 'object') {
+
+      Object.values(rak.aksiyonlar).forEach(a => {
+
+        if (!a) return;
+
+        const metin = String(a.deger || '').trim();
+
+        if (metin) {
+          aksiyonMetinleri.push({
+            label: a.label || 'Aksiyon',
+            deger: metin
+          });
+        }
+
+      });
+    }
+
+    if (!aksiyonMetinleri.length && rak.not) {
+      aksiyonMetinleri.push({
+        label: 'Aksiyon Notu',
+        deger: rak.not
+      });
+    }
+
+
+    gunAksiyonlar.push({
+      id: k.id,
+      formNo: k.formNo || '',
+      makine: k.makine || '',
+      bolum: k.bolum || '',
+      sorumlu: rak.sorumlu || '',
+      durum: rak.durum || 'ACIK',
+      seviye: rak.seviye || '',
+      aksiyonMetinleri
+    });
+
+  });
+
+
+  // Boş günse hiçbir şey açma
+  if (!gunPlanlar.length && !gunAksiyonlar.length) {
+    return;
+  }
+
+
+  const eski = document.getElementById('takvimGunModal');
+
+  if (eski) eski.remove();
+
+
+  const d = new Date(tarihStr + 'T00:00:00');
+
+  const tarihGoster =
+    String(d.getDate()).padStart(2,'0') + '.' +
+    String(d.getMonth()+1).padStart(2,'0') + '.' +
+    d.getFullYear();
+
+
+  let planHtml = '';
+
+  if (gunPlanlar.length) {
+
+    planHtml = `
+      <div style="margin-bottom:18px">
+
+        <div style="
+          font-size:11px;
+          font-weight:800;
+          letter-spacing:.7px;
+          color:#00695c;
+          margin-bottom:8px;
+        ">
+          🔧 PLANLI BAKIMLAR
+        </div>
+
+        ${gunPlanlar.map(p => `
+          <div style="
+            padding:10px 12px;
+            margin-bottom:7px;
+            border:1px solid #ddd;
+            border-left:4px solid #00695c;
+            border-radius:7px;
+            background:#fafafa;
+          ">
+
+            <div style="font-size:13px;font-weight:800">
+              ${p.makine || 'Makine'}
+            </div>
+
+            <div style="
+              font-size:12px;
+              color:#555;
+              margin-top:3px;
+            ">
+              ${p.gorev || 'Planlı bakım'}
+            </div>
+
+            <div style="
+              font-size:10px;
+              color:#888;
+              margin-top:5px;
+            ">
+              ${p.bolum || ''}
+            </div>
+
+          </div>
+        `).join('')}
+
+      </div>
+    `;
+
+  }
+
+
+  let aksiyonHtml = '';
+
+  if (gunAksiyonlar.length) {
+
+    aksiyonHtml = `
+      <div>
+
+        <div style="
+          font-size:11px;
+          font-weight:800;
+          letter-spacing:.7px;
+          color:#e65100;
+          margin-bottom:8px;
+        ">
+          🟠 AKSİYONLAR
+        </div>
+
+        ${gunAksiyonlar.map(a => {
+
+          const tamam =
+            String(a.durum || '').toUpperCase() === 'TAMAMLANDI';
+
+          return `
+            <div
+              style="
+                padding:12px;
+                margin-bottom:8px;
+                border:1px solid ${tamam ? '#00875a44' : '#e6510033'};
+                border-left:4px solid ${tamam ? '#00875a' : '#e65100'};
+                border-radius:7px;
+                background:${tamam ? '#f2faf6' : '#fffaf5'};
+                cursor:pointer;
+              "
+              onclick="aksiyonDetayAc('${String(a.id).replace(/'/g,"\\'")}');"
+            >
+
+              <div style="
+                display:flex;
+                justify-content:space-between;
+                gap:8px;
+                align-items:center;
+              ">
+
+                <div style="
+                  font-size:12px;
+                  font-weight:800;
+                  color:#333;
+                ">
+                  ${a.makine || a.formNo || 'Aksiyon'}
+                </div>
+
+                <span style="
+                  font-size:9px;
+                  font-weight:800;
+                  padding:3px 7px;
+                  border-radius:4px;
+                  background:${tamam ? '#00875a' : '#e65100'};
+                  color:#fff;
+                ">
+                  ${tamam ? 'TAMAMLANDI' : 'AÇIK'}
+                </span>
+
+              </div>
+
+              <div style="
+                font-size:10px;
+                color:#777;
+                margin-top:4px;
+              ">
+                ${a.formNo ? a.formNo + ' · ' : ''}
+                ${a.bolum || ''}
+              </div>
+
+              <div style="
+                display:flex;
+                gap:14px;
+                flex-wrap:wrap;
+                margin-top:7px;
+                font-size:11px;
+                color:#555;
+              ">
+                <span>👤 ${a.sorumlu || 'Sorumlu yok'}</span>
+                <span>⚠️ ${a.seviye || '—'}</span>
+              </div>
+
+              ${
+                a.aksiyonMetinleri.length
+                  ? `
+                    <div style="
+                      margin-top:9px;
+                      padding-top:8px;
+                      border-top:1px solid #eee;
+                    ">
+                      ${a.aksiyonMetinleri.slice(0,2).map(x => `
+                        <div style="
+                          font-size:10px;
+                          color:#777;
+                          margin-bottom:3px;
+                        ">
+                          <strong>${x.label}:</strong>
+                          ${x.deger}
+                        </div>
+                      `).join('')}
+                    </div>
+                  `
+                  : ''
+              }
+
+              <div style="
+                margin-top:8px;
+                font-size:10px;
+                color:#e65100;
+                font-weight:700;
+              ">
+                ✏️ Aksiyon planını aç
+              </div>
+
+            </div>
+          `;
+
+        }).join('')}
+
+      </div>
+    `;
+
+  }
+
+
+  const modal = document.createElement('div');
+
+  modal.id = 'takvimGunModal';
+
+  modal.style.cssText = `
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:99998;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  `;
+
+
+  modal.innerHTML = `
+
+    <div style="
+      background:#fff;
+      width:min(620px,95vw);
+      max-height:88vh;
+      overflow:auto;
+      border-radius:12px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3);
+    ">
+
+      <div style="
+        padding:15px 18px;
+        border-bottom:1px solid #eee;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        position:sticky;
+        top:0;
+        background:#fff;
+        z-index:2;
+      ">
+
+        <div>
+          <div style="
+            font-size:15px;
+            font-weight:800;
+            color:#222;
+          ">
+            📅 ${tarihGoster}
+          </div>
+
+          <div style="
+            font-size:10px;
+            color:#888;
+            margin-top:3px;
+          ">
+            Plan ve aksiyonlar
+          </div>
+        </div>
+
+        <button
+          onclick="document.getElementById('takvimGunModal')?.remove()"
+          style="
+            border:0;
+            background:#f1f1f1;
+            width:30px;
+            height:30px;
+            border-radius:50%;
+            cursor:pointer;
+            font-weight:800;
+          "
+        >
+          ✕
+        </button>
+
+      </div>
+
+      <div style="padding:16px">
+
+        ${planHtml}
+
+        ${aksiyonHtml}
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  document.body.appendChild(modal);
+
 }
 
 function takvimAyDegis(yon) {
@@ -9378,10 +10493,15 @@ function ypFormParcaSec(inp){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(inp
 function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.querySelector('.parca-ad')?.dataset.stokKodu,p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));if(p&&ypNum(el.value)>ypKullanilabilir(p)){showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');}}
 const _ypGetParcaListesi=getParcaListesi;
 getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').forEach(row=>{const inp=row.querySelector('.parca-ad'),ad=inp?.value.trim(),stokKodu=inp?.dataset?.stokKodu||'',adet=ypNum(row.querySelector('.parca-adet')?.value),fiyat=ypNum(row.querySelector('.parca-fiyat')?.value),para=row.querySelector('.parca-para')?.value||'₺';if(ad)p.push({stokKodu,ad,adet,fiyat,para,toplam:adet*fiyat});});return JSON.stringify(p);};
-function aksiyonDetayAc(id) {
+// ══════════════════════════════════════════════════════════════
+// BAKIM RİSK AKSİYON PLANI — DETAY / GÜNCELLE / TAMAMLA
+// IATF 4.4 — Mevcut riskAksiyon alanını kullanır
+// ══════════════════════════════════════════════════════════════
 
-  const kayit = (window.kayitlar || kayitlar || [])
-    .find(k => String(k.id) === String(id));
+async function aksiyonDetayAc(id) {
+
+  const liste = window.kayitlar || kayitlar || [];
+  const kayit = liste.find(k => String(k.id) === String(id));
 
   if (!kayit) {
     showToast('❌ Kayıt bulunamadı', 'error');
@@ -9402,6 +10522,10 @@ function aksiyonDetayAc(id) {
   const cfg = RISK_AKSIYON_MAP[rak.seviye] || {};
   const renk = cfg.renk || '#00875a';
 
+  // ─────────────────────────────────────────────
+  // Mevcut aksiyon alanlarını oluştur
+  // ─────────────────────────────────────────────
+
   let aksiyonHtml = '';
 
   if (cfg.aksiyonlar && cfg.aksiyonlar.length) {
@@ -9413,10 +10537,10 @@ function aksiyonDetayAc(id) {
       return `
         <div style="
           margin-bottom:14px;
-          padding:12px;
+          padding:13px;
           border:1px solid ${renk}33;
           border-left:4px solid ${renk};
-          border-radius:7px;
+          border-radius:8px;
           background:#fafafa">
 
           <div style="
@@ -9429,13 +10553,13 @@ function aksiyonDetayAc(id) {
 
             ${a.zorunlu
               ? `<span style="
-                   margin-left:6px;
-                   background:${renk};
-                   color:white;
-                   padding:2px 6px;
-                   border-radius:3px;
-                   font-size:9px">
-                   ZORUNLU
+                  margin-left:7px;
+                  background:${renk};
+                  color:#fff;
+                  padding:2px 7px;
+                  border-radius:4px;
+                  font-size:9px">
+                  ZORUNLU
                  </span>`
               : ''}
           </div>
@@ -9447,12 +10571,13 @@ function aksiyonDetayAc(id) {
             style="
               width:100%;
               box-sizing:border-box;
-              border:1px solid #ddd;
+              border:1px solid #d8d8d8;
               border-radius:6px;
               padding:9px;
               font-size:12px;
               resize:vertical;
               font-family:inherit;
+              background:#fff;
             ">${mevcut}</textarea>
 
         </div>
@@ -9461,19 +10586,24 @@ function aksiyonDetayAc(id) {
     }).join('');
   }
 
-  const modalEski =
-    document.getElementById('aksiyonDetayModal');
+  // ─────────────────────────────────────────────
+  // Eski modalı temizle
+  // ─────────────────────────────────────────────
 
-  if (modalEski) modalEski.remove();
+  const eski = document.getElementById('aksiyonDetayModal');
+  if (eski) eski.remove();
+
+  // ─────────────────────────────────────────────
+  // Modal
+  // ─────────────────────────────────────────────
 
   const modal = document.createElement('div');
-
   modal.id = 'aksiyonDetayModal';
 
   modal.style.cssText = `
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,.55);
+    background:rgba(0,0,0,.58);
     z-index:99999;
     display:flex;
     align-items:center;
@@ -9481,258 +10611,476 @@ function aksiyonDetayAc(id) {
     padding:20px;
   `;
 
+  const durum = rak.durum || 'ACIK';
+
+  const bugun = new Date().toISOString().split('T')[0];
+
   modal.innerHTML = `
 
     <div style="
-      background:white;
-      width:min(700px,95vw);
-      max-height:90vh;
+      background:#fff;
+      width:min(720px,96vw);
+      max-height:92vh;
       overflow:auto;
-      border-radius:12px;
-      box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      border-radius:14px;
+      box-shadow:0 25px 70px rgba(0,0,0,.35)">
 
       <!-- BAŞLIK -->
-
       <div style="
-        padding:18px 20px;
-        background:${renk};
-        color:white;
+        position:sticky;
+        top:0;
+        z-index:2;
+        background:#fff;
+        padding:17px 20px;
+        border-bottom:1px solid #eee;
         display:flex;
         justify-content:space-between;
         align-items:center">
 
         <div>
-
           <div style="
-            font-size:11px;
-            opacity:.85">
-            ${kayit.formNo || ''}
+            font-size:17px;
+            font-weight:800;
+            color:#222">
+            ⚠️ AKSİYON PLANI
           </div>
 
           <div style="
-            font-size:18px;
-            font-weight:800">
+            font-size:12px;
+            color:#777;
+            margin-top:4px">
 
-            ${cfg.bannerIkon || '⚠️'}
-            AKSİYON PLANI
-
-          </div>
-
-          <div style="
-            font-size:11px;
-            margin-top:3px">
-
-            IATF 4.4 • ${rak.seviye || '—'} RİSK
+            ${kayit.formNo || 'Kayıt'} ·
+            ${kayit.makine || 'Makine belirtilmemiş'}
+            ${kayit.bolum ? ' · ' + kayit.bolum : ''}
 
           </div>
-
         </div>
 
         <button
-          onclick="document.getElementById('aksiyonDetayModal').remove()"
+          onclick="document.getElementById('aksiyonDetayModal')?.remove()"
           style="
-            border:0;
-            background:rgba(255,255,255,.2);
-            color:white;
+            border:none;
+            background:#f1f1f1;
             width:32px;
             height:32px;
             border-radius:50%;
-            cursor:pointer;
-            font-size:18px">
-
+            font-size:21px;
+            color:#666;
+            cursor:pointer">
           ×
-
         </button>
 
       </div>
 
-
-      <!-- İÇERİK -->
-
       <div style="padding:20px">
 
-        <!-- KAYIT BİLGİSİ -->
-
+        <!-- RİSK BİLGİSİ -->
         <div style="
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          gap:15px;
-          margin-bottom:20px;
-          padding-bottom:15px;
-          border-bottom:1px solid #eee">
+          background:${renk}12;
+          border:1px solid ${renk}44;
+          border-left:5px solid ${renk};
+          border-radius:8px;
+          padding:12px 14px;
+          margin-bottom:18px">
 
-          <div>
-            <div style="font-size:10px;color:#888">
-              MAKİNE
+          <div style="
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap">
+
+            <div>
+              <div style="
+                font-size:10px;
+                color:#777;
+                font-weight:700;
+                letter-spacing:.7px">
+                RİSK SEVİYESİ
+              </div>
+
+              <div style="
+                font-size:16px;
+                color:${renk};
+                font-weight:900;
+                margin-top:3px">
+                ${rak.seviye || kayit.riskSeviye || 'BELİRTİLMEMİŞ'}
+              </div>
             </div>
 
-            <strong>
-              ${kayit.makine || '—'}
-            </strong>
-          </div>
-
-          <div>
-            <div style="font-size:10px;color:#888">
-              BÖLÜM
+            <div>
+              <span id="aksiyonDurumBadge"
+                style="
+                  display:inline-block;
+                  padding:5px 10px;
+                  border-radius:5px;
+                  font-size:11px;
+                  font-weight:800;
+                  background:${durum === 'TAMAMLANDI'
+                    ? '#e8f5e9'
+                    : '#fff3cd'};
+                  color:${durum === 'TAMAMLANDI'
+                    ? '#2e7d32'
+                    : '#9a6700'}">
+                ${durum === 'TAMAMLANDI'
+                  ? '✓ TAMAMLANDI'
+                  : '● AÇIK'}
+              </span>
             </div>
 
-            <strong>
-              ${kayit.bolum || '—'}
-            </strong>
           </div>
 
         </div>
 
-
         <!-- AKSİYONLAR -->
-
         <div style="
           font-size:11px;
           font-weight:800;
-          color:#666;
-          margin-bottom:12px;
-          letter-spacing:.7px">
-
+          letter-spacing:.8px;
+          color:#777;
+          margin-bottom:10px">
           AKSİYONLAR
-
         </div>
 
         ${aksiyonHtml}
 
-
         <!-- SORUMLU / TERMİN -->
-
         <div style="
           display:grid;
           grid-template-columns:1fr 1fr;
-          gap:14px;
+          gap:12px;
           margin-top:8px">
 
           <div>
-
             <label style="
               display:block;
               font-size:10px;
-              font-weight:700;
+              font-weight:800;
               color:#777;
               margin-bottom:5px">
-
-              👤 SORUMLU
-
+              SORUMLU
             </label>
 
             <input
               id="aksiyon-sorumlu"
+              type="text"
               value="${rak.sorumlu || ''}"
               placeholder="Aksiyon sorumlusu"
               style="
                 width:100%;
                 box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
                 padding:9px;
-                border:1px solid #ddd;
-                border-radius:6px">
-
+                font-size:12px">
           </div>
 
-
           <div>
-
             <label style="
               display:block;
               font-size:10px;
-              font-weight:700;
+              font-weight:800;
               color:#777;
               margin-bottom:5px">
-
-              📅 TERMİN
-
+              TERMİN
             </label>
 
             <input
-              type="date"
               id="aksiyon-termin"
+              type="date"
               value="${rak.termin || ''}"
               style="
                 width:100%;
                 box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
                 padding:9px;
-                border:1px solid #ddd;
-                border-radius:6px">
-
+                font-size:12px">
           </div>
 
         </div>
 
-
         <!-- NOT -->
-
         <div style="margin-top:14px">
 
           <label style="
             display:block;
             font-size:10px;
-            font-weight:700;
+            font-weight:800;
             color:#777;
             margin-bottom:5px">
-
-            📝 NOT
-
+            AKSİYON NOTU
           </label>
 
           <textarea
             id="aksiyon-not"
             rows="3"
-            placeholder="Ek açıklama..."
+            placeholder="Ek açıklama / takip notu..."
             style="
               width:100%;
               box-sizing:border-box;
-              padding:9px;
-              border:1px solid #ddd;
+              border:1px solid #d5d5d5;
               border-radius:6px;
+              padding:9px;
+              font-size:12px;
               resize:vertical">${rak.not || ''}</textarea>
 
         </div>
 
-
-        <!-- ALT BÖLÜM -->
-
+        <!-- TAMAMLAMA BÖLÜMÜ -->
         <div style="
-          margin-top:20px;
-          padding-top:15px;
-          border-top:1px solid #eee;
-          display:flex;
-          justify-content:flex-end;
-          gap:8px">
+          margin-top:18px;
+          padding:14px;
+          background:#f8f8f5;
+          border:1px solid #e3e1d8;
+          border-radius:9px">
 
-          <button
-            onclick="document.getElementById('aksiyonDetayModal').remove()"
-            style="
-              padding:9px 15px;
-              border:1px solid #ddd;
-              background:white;
-              border-radius:6px;
-              cursor:pointer">
+          <div style="
+            font-size:11px;
+            font-weight:800;
+            letter-spacing:.7px;
+            color:#555;
+            margin-bottom:12px">
+            TAMAMLAMA / ETKİNLİK KONTROLÜ
+          </div>
 
-            Kapat
+          <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px">
 
-          </button>
+            <div>
 
-          <button
-            onclick="aksiyonKaydetLocal(${id})"
-            style="
-              padding:9px 18px;
-              border:0;
-              background:${renk};
-              color:white;
-              border-radius:6px;
-              cursor:pointer;
-              font-weight:700">
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                DURUM
+              </label>
 
-            💾 KAYDET
+              <select id="aksiyon-durum"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
 
-          </button>
+                <option value="ACIK"
+                  ${durum === 'ACIK' ? 'selected' : ''}>
+                  AÇIK
+                </option>
+
+                <option value="TAMAMLANDI"
+                  ${durum === 'TAMAMLANDI' ? 'selected' : ''}>
+                  TAMAMLANDI
+                </option>
+
+              </select>
+
+            </div>
+
+            <div>
+
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                TAMAMLANMA TARİHİ
+              </label>
+
+              <input
+                id="aksiyon-tamamlanma"
+                type="date"
+                value="${rak.tamamlanmaTarihi || ''}"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
+
+            </div>
+
+          </div>
+
+          <div style="margin-top:12px">
+
+            <label style="
+              display:block;
+              font-size:10px;
+              font-weight:800;
+              color:#777;
+              margin-bottom:5px">
+              YAPILAN İŞLEM / SONUÇ
+            </label>
+
+            <textarea
+              id="aksiyon-sonuc"
+              rows="2"
+              placeholder="Aksiyon sonucunda ne yapıldı?"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
+                padding:9px;
+                font-size:12px;
+                resize:vertical">${rak.sonuc || ''}</textarea>
+
+          </div>
+
+          <div style="margin-top:12px">
+
+            <label style="
+              display:block;
+              font-size:10px;
+              font-weight:800;
+              color:#777;
+              margin-bottom:5px">
+              ETKİNLİK KONTROLÜ
+            </label>
+
+            <textarea
+              id="aksiyon-etkinlik"
+              rows="2"
+              placeholder="Alınan aksiyon etkili oldu mu? Nasıl doğrulandı?"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                border:1px solid #d5d5d5;
+                border-radius:6px;
+                padding:9px;
+                font-size:12px;
+                resize:vertical">${rak.etkinlikSonucu || ''}</textarea>
+
+          </div>
+
+          <div style="
+            margin-top:12px;
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:12px">
+
+            <div>
+
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                ETKİNLİK TARİHİ
+              </label>
+
+              <input
+                id="aksiyon-etkinlik-tarih"
+                type="date"
+                value="${rak.etkinlikTarihi || ''}"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
+
+            </div>
+
+            <div>
+
+              <label style="
+                display:block;
+                font-size:10px;
+                font-weight:800;
+                color:#777;
+                margin-bottom:5px">
+                ETKİNLİK DURUMU
+              </label>
+
+              <select id="aksiyon-etkinlik-durum"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  border:1px solid #d5d5d5;
+                  border-radius:6px;
+                  padding:9px;
+                  font-size:12px">
+
+                <option value=""
+                  ${!rak.etkinlikDurumu ? 'selected' : ''}>
+                  — Seçiniz —
+                </option>
+
+                <option value="ETKİLİ"
+                  ${rak.etkinlikDurumu === 'ETKİLİ' ? 'selected' : ''}>
+                  ✓ ETKİLİ
+                </option>
+
+                <option value="ETKİSİZ"
+                  ${rak.etkinlikDurumu === 'ETKİSİZ' ? 'selected' : ''}>
+                  ✕ ETKİSİZ
+                </option>
+
+                <option value="TEKRAR_AKSIYON"
+                  ${rak.etkinlikDurumu === 'TEKRAR_AKSIYON' ? 'selected' : ''}>
+                  ↻ TEKRAR AKSİYON GEREKLİ
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
 
         </div>
+
+      </div>
+
+      <!-- ALT BUTONLAR -->
+      <div style="
+        position:sticky;
+        bottom:0;
+        background:#fff;
+        border-top:1px solid #eee;
+        padding:13px 20px;
+        display:flex;
+        justify-content:flex-end;
+        gap:8px">
+
+        <button
+          onclick="document.getElementById('aksiyonDetayModal')?.remove()"
+          style="
+            background:#f1f1ed;
+            border:1px solid #ddd;
+            color:#555;
+            border-radius:6px;
+            padding:9px 16px;
+            cursor:pointer;
+            font-weight:700">
+          VAZGEÇ
+        </button>
+
+        <button
+          id="aksiyonKaydetBtn"
+          onclick="aksiyonKaydet()"
+          style="
+            background:#f5c400;
+            border:1px solid #d6a900;
+            color:#1a1a1a;
+            border-radius:6px;
+            padding:9px 18px;
+            cursor:pointer;
+            font-weight:800">
+          💾 KAYDET
+        </button>
 
       </div>
 
@@ -9741,11 +11089,337 @@ function aksiyonDetayAc(id) {
 
   document.body.appendChild(modal);
 
+  // ─────────────────────────────────────────────
+  // Modal dışına tıklayınca kapat
+  // ─────────────────────────────────────────────
+
   modal.addEventListener('click', function(e) {
-    if (e.target === modal) {
-      modal.remove();
-    }
+    if (e.target === modal) modal.remove();
   });
+
+
+  // ═════════════════════════════════════════════
+  // KAYDET
+  // ═════════════════════════════════════════════
+
+  window.aksiyonKaydet = async function() {
+
+    const btn = document.getElementById('aksiyonKaydetBtn');
+
+    try {
+
+      const durumEl = document.getElementById('aksiyon-durum');
+
+      const yeniDurum = durumEl?.value || 'ACIK';
+
+      const termin =
+        document.getElementById('aksiyon-termin')?.value || '';
+
+      const sorumlu =
+        document.getElementById('aksiyon-sorumlu')?.value.trim() || '';
+
+      const not =
+        document.getElementById('aksiyon-not')?.value.trim() || '';
+
+      const tamamlanmaTarihi =
+        document.getElementById('aksiyon-tamamlanma')?.value || '';
+
+      const sonuc =
+        document.getElementById('aksiyon-sonuc')?.value.trim() || '';
+
+      const etkinlikSonucu =
+        document.getElementById('aksiyon-etkinlik')?.value.trim() || '';
+
+      const etkinlikTarihi =
+        document.getElementById('aksiyon-etkinlik-tarih')?.value || '';
+
+      const etkinlikDurumu =
+        document.getElementById('aksiyon-etkinlik-durum')?.value || '';
+
+
+      // ───────────────────────────────────────
+      // Zorunlu alan kontrolü
+      // ───────────────────────────────────────
+
+      if (!termin) {
+        showToast('⚠️ Aksiyon termini girilmelidir.', 'err');
+        return;
+      }
+
+      if (!sorumlu) {
+        showToast('⚠️ Aksiyon sorumlusu girilmelidir.', 'err');
+        return;
+      }
+// Tamamlanan aksiyonda yapılan işlem / sonuç zorunlu
+if (yeniDurum === 'TAMAMLANDI' && !sonuc) {
+
+  showToast(
+    '⚠️ Aksiyon tamamlanırken Yapılan İşlem / Sonuç girilmelidir.',
+    'err'
+  );
+
+  const sonucEl = document.getElementById('aksiyon-sonuc');
+
+  if (sonucEl) {
+    sonucEl.focus();
+  }
+
+  return;
+}
+
+      // ───────────────────────────────────────
+      // Zorunlu aksiyonları kontrol et
+      // ───────────────────────────────────────
+
+      if (cfg.aksiyonlar && cfg.aksiyonlar.length) {
+
+        for (const a of cfg.aksiyonlar) {
+
+          if (!a.zorunlu) continue;
+
+          const el =
+            document.getElementById('aksiyon-alan-' + a.id);
+
+          const value =
+            el?.value?.trim() || '';
+
+          if (!value) {
+
+            showToast(
+              '⚠️ "' + a.label + '" alanı zorunludur.',
+              'err'
+            );
+
+            el?.focus();
+            return;
+          }
+        }
+      }
+
+
+      // ───────────────────────────────────────
+      // Tamamlandıysa tarih otomatik
+      // ───────────────────────────────────────
+
+      let tamamTarih = tamamlanmaTarihi;
+
+      if (yeniDurum === 'TAMAMLANDI' && !tamamTarih) {
+        tamamTarih = bugun;
+      }
+
+
+      // ───────────────────────────────────────
+      // Aksiyonları oluştur
+      // ───────────────────────────────────────
+
+      const aksiyonlar = {};
+
+      if (cfg.aksiyonlar) {
+
+        cfg.aksiyonlar.forEach(a => {
+
+          const el =
+            document.getElementById('aksiyon-alan-' + a.id);
+
+          const value =
+            el?.value?.trim() || '';
+
+          if (value) {
+
+            aksiyonlar[a.id] = {
+              label: a.label,
+              deger: value,
+              zorunlu: !!a.zorunlu
+            };
+
+          }
+
+        });
+
+      }
+
+
+      // ───────────────────────────────────────
+      // Yeni risk aksiyon JSON
+      // ───────────────────────────────────────
+
+      const yeniRak = {
+
+        ...rak,
+
+        seviye:
+          rak.seviye ||
+          kayit.riskSeviye ||
+          '',
+
+        aksiyonlar,
+
+        sorumlu,
+
+        termin,
+
+        not,
+
+        durum: yeniDurum,
+
+        tamamlanmaTarihi:
+          tamamTarih,
+
+        sonuc,
+
+        etkinlikTarihi,
+
+        etkinlikDurumu,
+
+        etkinlikSonucu,
+
+        sonGuncelleme:
+          new Date().toISOString()
+
+      };
+
+
+      // ───────────────────────────────────────
+      // Kayıt nesnesini güncelle
+      // ───────────────────────────────────────
+
+      const guncelKayit = {
+        ...kayit,
+        riskAksiyon:
+          JSON.stringify(yeniRak)
+      };
+
+
+      // ───────────────────────────────────────
+      // Buton kilitle
+      // ───────────────────────────────────────
+
+      if (btn) {
+
+        btn.disabled = true;
+
+        btn.innerHTML =
+          '⏳ KAYDEDİLİYOR...';
+
+        btn.style.opacity = '.65';
+
+      }
+
+
+      showLoading(true);
+
+
+      // ───────────────────────────────────────
+      // GOOGLE SHEETS'E KAYDET
+      // Mevcut saveKayit altyapısını kullanır
+      // ───────────────────────────────────────
+
+      const sonucKayit =
+        await gsKaydet(guncelKayit);
+
+
+      if (!sonucKayit || sonucKayit.ok === false) {
+        throw new Error(
+          sonucKayit?.error ||
+          'Kayıt güncellenemedi.'
+        );
+      }
+
+
+      // ───────────────────────────────────────
+      // Local listeyi güncelle
+      // ───────────────────────────────────────
+
+      const idx =
+        liste.findIndex(
+          k => String(k.id) === String(id)
+        );
+
+      if (idx >= 0) {
+
+        liste[idx] = guncelKayit;
+
+      }
+
+
+      // Global liste de varsa güncelle
+      if (window.kayitlar) {
+
+        const widx =
+          window.kayitlar.findIndex(
+            k => String(k.id) === String(id)
+          );
+
+        if (widx >= 0) {
+          window.kayitlar[widx] = guncelKayit;
+        }
+
+      }
+
+
+      // ───────────────────────────────────────
+      // Modalı kapat
+      // ───────────────────────────────────────
+
+      document
+        .getElementById('aksiyonDetayModal')
+        ?.remove();
+
+
+      // Listeyi yenile
+      if (typeof renderList === 'function') {
+        renderList();
+      }
+
+      // Dashboard varsa yenile
+      if (typeof renderDash === 'function') {
+        try { renderDash(); } catch(e) {}
+      }
+
+      // Risk aksiyon özeti varsa yenile
+      if (typeof renderRiskAksiyonOzet === 'function') {
+        try {
+          renderRiskAksiyonOzet(liste);
+        } catch(e) {}
+      }
+
+
+      showToast(
+        yeniDurum === 'TAMAMLANDI'
+          ? '✅ Aksiyon tamamlandı ve kaydedildi.'
+          : '✅ Aksiyon planı güncellendi.',
+        'ok'
+      );
+
+    } catch (e) {
+
+      console.error('Aksiyon kaydetme hatası:', e);
+
+      showToast(
+        '❌ Aksiyon kaydedilemedi: ' +
+        (e.message || e),
+        'err'
+      );
+
+    } finally {
+
+      showLoading(false);
+
+      const b =
+        document.getElementById('aksiyonKaydetBtn');
+
+      if (b) {
+
+        b.disabled = false;
+        b.innerHTML = '💾 KAYDET';
+        b.style.opacity = '1';
+
+      }
+
+    }
+
+  };
+
 }
 
 // ═══════════════════════════════════════════════════════════════
