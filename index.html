@@ -11151,7 +11151,22 @@ async function aksiyonDetayAc(id) {
         showToast('⚠️ Aksiyon sorumlusu girilmelidir.', 'err');
         return;
       }
+// Tamamlanan aksiyonda yapılan işlem / sonuç zorunlu
+if (yeniDurum === 'TAMAMLANDI' && !sonuc) {
 
+  showToast(
+    '⚠️ Aksiyon tamamlanırken Yapılan İşlem / Sonuç girilmelidir.',
+    'err'
+  );
+
+  const sonucEl = document.getElementById('aksiyon-sonuc');
+
+  if (sonucEl) {
+    sonucEl.focus();
+  }
+
+  return;
+}
 
       // ───────────────────────────────────────
       // Zorunlu aksiyonları kontrol et
