@@ -9192,94 +9192,92 @@ function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.que
 const _ypGetParcaListesi=getParcaListesi;
 getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').forEach(row=>{const inp=row.querySelector('.parca-ad'),ad=inp?.value.trim(),stokKodu=inp?.dataset?.stokKodu||'',adet=ypNum(row.querySelector('.parca-adet')?.value),fiyat=ypNum(row.querySelector('.parca-fiyat')?.value),para=row.querySelector('.parca-para')?.value||'₺';if(ad)p.push({stokKodu,ad,adet,fiyat,para,toplam:adet*fiyat});});return JSON.stringify(p);};
 function aksiyonDetayAc(id) {
-  const kayit = (window.kayitlar || kayitlar || []).find(k => String(k.id) === String(id));
+
+  const kayit = (window.kayitlar || kayitlar || [])
+    .find(k => String(k.id) === String(id));
 
   if (!kayit) {
     showToast('❌ Kayıt bulunamadı', 'error');
     return;
   }
 
-  if (!kayit.riskAksiyon || kayit.riskAksiyon === '{}') {
-    showToast('ℹ️ Bu kayıtta aksiyon bilgisi yok', 'info');
-    return;
-  }
-
-  let rak;
+  let rak = {};
 
   try {
-    rak = JSON.parse(kayit.riskAksiyon);
+    rak = kayit.riskAksiyon
+      ? JSON.parse(kayit.riskAksiyon)
+      : {};
   } catch (e) {
     showToast('❌ Aksiyon verisi okunamadı', 'error');
     return;
   }
 
   const cfg = RISK_AKSIYON_MAP[rak.seviye] || {};
-  const renk = cfg.renk || '#e65100';
+  const renk = cfg.renk || '#00875a';
 
-  let icerik = '';
+  let aksiyonHtml = '';
 
-  Object.entries(rak.aksiyonlar || {}).forEach(([key, v]) => {
-    icerik += `
-      <div style="
-        margin-bottom:12px;
-        padding:10px;
-        background:#fafafa;
-        border-left:4px solid ${renk};
-        border-radius:5px;">
-        
+  if (cfg.aksiyonlar && cfg.aksiyonlar.length) {
+
+    aksiyonHtml = cfg.aksiyonlar.map(a => {
+
+      const mevcut = rak.aksiyonlar?.[a.id]?.deger || '';
+
+      return `
         <div style="
-          font-size:10px;
-          font-weight:800;
-          color:${renk};
-          margin-bottom:5px;
-          text-transform:uppercase;">
-          ${v.label || key}
-          ${v.zorunlu ? '<span style="margin-left:6px;background:'+renk+';color:white;padding:2px 5px;border-radius:3px;font-size:9px">ZORUNLU</span>' : ''}
+          margin-bottom:14px;
+          padding:12px;
+          border:1px solid ${renk}33;
+          border-left:4px solid ${renk};
+          border-radius:7px;
+          background:#fafafa">
+
+          <div style="
+            font-size:11px;
+            font-weight:800;
+            color:${renk};
+            margin-bottom:7px">
+
+            ${a.ikon || '•'} ${a.label}
+
+            ${a.zorunlu
+              ? `<span style="
+                   margin-left:6px;
+                   background:${renk};
+                   color:white;
+                   padding:2px 6px;
+                   border-radius:3px;
+                   font-size:9px">
+                   ZORUNLU
+                 </span>`
+              : ''}
+          </div>
+
+          <textarea
+            id="aksiyon-alan-${a.id}"
+            rows="3"
+            placeholder="${a.ph || ''}"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              border:1px solid #ddd;
+              border-radius:6px;
+              padding:9px;
+              font-size:12px;
+              resize:vertical;
+              font-family:inherit;
+            ">${mevcut}</textarea>
+
         </div>
+      `;
 
-        <div style="font-size:13px;color:#333;">
-          ${v.deger || '—'}
-        </div>
-      </div>
-    `;
-  });
-
-  icerik += `
-    <div style="
-      display:flex;
-      gap:20px;
-      flex-wrap:wrap;
-      padding:10px 0;
-      border-top:1px solid #eee;
-      margin-top:5px;">
-      
-      <div>
-        👤 <strong>Sorumlu</strong><br>
-        ${rak.sorumlu || '—'}
-      </div>
-
-      <div>
-        📅 <strong>Termin</strong><br>
-        ${rak.termin || '—'}
-      </div>
-    </div>
-  `;
-
-  if (rak.not) {
-    icerik += `
-      <div style="
-        margin-top:10px;
-        padding:10px;
-        background:#fff8e1;
-        border-left:3px solid #f5c400;
-        border-radius:5px;">
-        📝 ${rak.not}
-      </div>
-    `;
+    }).join('');
   }
 
-  const eski = document.getElementById('aksiyonDetayModal');
-  if (eski) eski.remove();
+  const modalEski =
+    document.getElementById('aksiyonDetayModal');
+
+  if (modalEski) modalEski.remove();
 
   const modal = document.createElement('div');
 
@@ -9297,13 +9295,16 @@ function aksiyonDetayAc(id) {
   `;
 
   modal.innerHTML = `
+
     <div style="
       background:white;
-      width:min(650px,95vw);
-      max-height:85vh;
+      width:min(700px,95vw);
+      max-height:90vh;
       overflow:auto;
       border-radius:12px;
-      box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      box-shadow:0 20px 60px rgba(0,0,0,.3)">
+
+      <!-- BAŞLIK -->
 
       <div style="
         padding:18px 20px;
@@ -9311,23 +9312,37 @@ function aksiyonDetayAc(id) {
         color:white;
         display:flex;
         justify-content:space-between;
-        align-items:center;">
+        align-items:center">
 
         <div>
-          <div style="font-size:11px;opacity:.8;">
-            ${kayit.formNo || 'KAYIT'}
+
+          <div style="
+            font-size:11px;
+            opacity:.85">
+            ${kayit.formNo || ''}
           </div>
 
-          <div style="font-size:17px;font-weight:800;">
-            ⚠️ AKSİYON PLANI
+          <div style="
+            font-size:18px;
+            font-weight:800">
+
+            ${cfg.bannerIkon || '⚠️'}
+            AKSİYON PLANI
+
           </div>
 
-          <div style="font-size:11px;margin-top:3px;">
-            IATF 4.4 • ${rak.seviye || ''}
+          <div style="
+            font-size:11px;
+            margin-top:3px">
+
+            IATF 4.4 • ${rak.seviye || '—'} RİSK
+
           </div>
+
         </div>
 
-        <button onclick="document.getElementById('aksiyonDetayModal').remove()"
+        <button
+          onclick="document.getElementById('aksiyonDetayModal').remove()"
           style="
             border:0;
             background:rgba(255,255,255,.2);
@@ -9336,34 +9351,201 @@ function aksiyonDetayAc(id) {
             height:32px;
             border-radius:50%;
             cursor:pointer;
-            font-size:18px;">
+            font-size:18px">
+
           ×
+
         </button>
 
       </div>
 
-      <div style="padding:20px;">
+
+      <!-- İÇERİK -->
+
+      <div style="padding:20px">
+
+        <!-- KAYIT BİLGİSİ -->
 
         <div style="
           display:grid;
           grid-template-columns:1fr 1fr;
-          gap:12px;
-          margin-bottom:18px;
-          font-size:12px;">
+          gap:15px;
+          margin-bottom:20px;
+          padding-bottom:15px;
+          border-bottom:1px solid #eee">
 
           <div>
-            <span style="color:#888;">Makine</span><br>
-            <strong>${kayit.makine || '—'}</strong>
+            <div style="font-size:10px;color:#888">
+              MAKİNE
+            </div>
+
+            <strong>
+              ${kayit.makine || '—'}
+            </strong>
           </div>
 
           <div>
-            <span style="color:#888;">Bölüm</span><br>
-            <strong>${kayit.bolum || '—'}</strong>
+            <div style="font-size:10px;color:#888">
+              BÖLÜM
+            </div>
+
+            <strong>
+              ${kayit.bolum || '—'}
+            </strong>
           </div>
 
         </div>
 
-        ${icerik}
+
+        <!-- AKSİYONLAR -->
+
+        <div style="
+          font-size:11px;
+          font-weight:800;
+          color:#666;
+          margin-bottom:12px;
+          letter-spacing:.7px">
+
+          AKSİYONLAR
+
+        </div>
+
+        ${aksiyonHtml}
+
+
+        <!-- SORUMLU / TERMİN -->
+
+        <div style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:14px;
+          margin-top:8px">
+
+          <div>
+
+            <label style="
+              display:block;
+              font-size:10px;
+              font-weight:700;
+              color:#777;
+              margin-bottom:5px">
+
+              👤 SORUMLU
+
+            </label>
+
+            <input
+              id="aksiyon-sorumlu"
+              value="${rak.sorumlu || ''}"
+              placeholder="Aksiyon sorumlusu"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:9px;
+                border:1px solid #ddd;
+                border-radius:6px">
+
+          </div>
+
+
+          <div>
+
+            <label style="
+              display:block;
+              font-size:10px;
+              font-weight:700;
+              color:#777;
+              margin-bottom:5px">
+
+              📅 TERMİN
+
+            </label>
+
+            <input
+              type="date"
+              id="aksiyon-termin"
+              value="${rak.termin || ''}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:9px;
+                border:1px solid #ddd;
+                border-radius:6px">
+
+          </div>
+
+        </div>
+
+
+        <!-- NOT -->
+
+        <div style="margin-top:14px">
+
+          <label style="
+            display:block;
+            font-size:10px;
+            font-weight:700;
+            color:#777;
+            margin-bottom:5px">
+
+            📝 NOT
+
+          </label>
+
+          <textarea
+            id="aksiyon-not"
+            rows="3"
+            placeholder="Ek açıklama..."
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:9px;
+              border:1px solid #ddd;
+              border-radius:6px;
+              resize:vertical">${rak.not || ''}</textarea>
+
+        </div>
+
+
+        <!-- ALT BÖLÜM -->
+
+        <div style="
+          margin-top:20px;
+          padding-top:15px;
+          border-top:1px solid #eee;
+          display:flex;
+          justify-content:flex-end;
+          gap:8px">
+
+          <button
+            onclick="document.getElementById('aksiyonDetayModal').remove()"
+            style="
+              padding:9px 15px;
+              border:1px solid #ddd;
+              background:white;
+              border-radius:6px;
+              cursor:pointer">
+
+            Kapat
+
+          </button>
+
+          <button
+            onclick="aksiyonKaydetLocal(${id})"
+            style="
+              padding:9px 18px;
+              border:0;
+              background:${renk};
+              color:white;
+              border-radius:6px;
+              cursor:pointer;
+              font-weight:700">
+
+            💾 KAYDET
+
+          </button>
+
+        </div>
 
       </div>
 
@@ -9373,7 +9555,9 @@ function aksiyonDetayAc(id) {
   document.body.appendChild(modal);
 
   modal.addEventListener('click', function(e) {
-    if (e.target === modal) modal.remove();
+    if (e.target === modal) {
+      modal.remove();
+    }
   });
 }
 </script>
