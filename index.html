@@ -3854,7 +3854,17 @@ function renderList() {
           <div class="kayit-kart-footer">
             <div style="font-size:11px;color:#aaa;font-family:'IBM Plex Mono',monospace">${k.tarihBas||''}</div>
             <div style="display:flex;gap:6px">
-              ${k.riskAksiyon && k.riskAksiyon !== '{}' ? `<span style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);border-radius:4px;color:#e65100;padding:3px 7px;font-size:10px;font-weight:700">AKS</span>` : ''}
+              ${k.riskAksiyon && k.riskAksiyon !== '{}' ? `<button onclick="aksiyonDetayAc(${k.id})"
+style="background:rgba(230,81,0,.1);
+border:1px solid rgba(230,81,0,.35);
+border-radius:4px;
+color:#e65100;
+padding:3px 8px;
+font-size:10px;
+font-weight:700;
+cursor:pointer">
+AKS
+</button>` : ''}
               <button onclick="detayAc(${k.id})" style="background:#004d40;color:#fff;border:none;border-radius:6px;padding:5px 13px;font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer">🔍 Detay</button>
               <button onclick="kayitSil(${k.id})" style="background:#fde8e8;border:1px solid #ffcdd2;border-radius:6px;color:#d32f2f;cursor:pointer;padding:5px 10px;font-size:12px;font-weight:700;font-family:'IBM Plex Sans',sans-serif">SİL</button>
             </div>
