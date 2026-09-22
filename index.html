@@ -6080,7 +6080,7 @@ const aksiyonKayitlari = [];
 
 (window.kayitlar || kayitlar || []).forEach(k => {
 
-  if (!gercekAksiyonMu(k)) return;
+  if (!aksiyonGorunurMu(k)) return;
 
   let rak = null;
 
@@ -6663,6 +6663,37 @@ uyariBand.innerHTML = uyariHtml;
     String(a.deger || '').trim() !== ''
   );
 }
+  function aksiyonGorunurMu(k) {
+
+  // Önce gerçekten aksiyon mu?
+  if (!gercekAksiyonMu(k)) return false;
+
+  // Admin bütün aksiyonları görür
+  if (currentUser && currentUser.role === 'admin') {
+    return true;
+  }
+
+  // Giriş yapan kullanıcı yoksa gösterme
+  if (!currentUser) return false;
+
+  let rak;
+
+  try {
+    rak = JSON.parse(k.riskAksiyon);
+  } catch (e) {
+    return false;
+  }
+
+  const sorumlu = String(rak.sorumlu || '')
+    .trim()
+    .toUpperCase();
+
+  const kullanici = String(currentUser.name || '')
+    .trim()
+    .toUpperCase();
+
+  return sorumlu !== '' && sorumlu === kullanici;
+}
 function renderTakvim() {
 
   const planlar = planlarYukle();
@@ -6674,7 +6705,7 @@ function renderTakvim() {
 
   (window.kayitlar || kayitlar || []).forEach(k => {
 
-    if (!gercekAksiyonMu(k)) return;
+    if (!aksiyonGorunurMu(k)) return;
 
     let rak = null;
 
@@ -6949,7 +6980,7 @@ function takvimGunAc(tarihStr) {
 
   (window.kayitlar || kayitlar || []).forEach(k => {
 
-    if (!gercekAksiyonMu(k)) return;
+    if (!aksiyonGorunurMu(k)) return;
 
     let rak;
 
