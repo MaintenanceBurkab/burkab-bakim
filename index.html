@@ -6080,7 +6080,7 @@ const aksiyonKayitlari = [];
 
 (window.kayitlar || kayitlar || []).forEach(k => {
 
-  if (!k || !k.riskAksiyon) return;
+  if (!gercekAksiyonMu(k)) return;
 
   let rak = null;
 
@@ -6644,6 +6644,25 @@ uyariBand.innerHTML = uyariHtml;
   // Takvimi render et
   renderTakvim();
 }
+  function gercekAksiyonMu(k) {
+
+  if (!k || !k.riskAksiyon) return false;
+
+  let rak;
+
+  try {
+    rak = JSON.parse(k.riskAksiyon);
+  } catch (e) {
+    return false;
+  }
+
+  if (!rak || !rak.aksiyonlar) return false;
+
+  return Object.values(rak.aksiyonlar).some(a =>
+    a &&
+    String(a.deger || '').trim() !== ''
+  );
+}
 function renderTakvim() {
 
   const planlar = planlarYukle();
@@ -6655,7 +6674,7 @@ function renderTakvim() {
 
   (window.kayitlar || kayitlar || []).forEach(k => {
 
-    if (!k || !k.riskAksiyon) return;
+    if (!gercekAksiyonMu(k)) return;
 
     let rak = null;
 
@@ -6930,7 +6949,7 @@ function takvimGunAc(tarihStr) {
 
   (window.kayitlar || kayitlar || []).forEach(k => {
 
-    if (!k || !k.riskAksiyon) return;
+    if (!gercekAksiyonMu(k)) return;
 
     let rak;
 
