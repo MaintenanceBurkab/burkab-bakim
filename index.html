@@ -11107,315 +11107,283 @@ async function aksiyonDetayAc(id) {
     const btn = document.getElementById('aksiyonKaydetBtn');
 
     try {
-
       const durumEl = document.getElementById('aksiyon-durum');
-
-      const yeniDurum = durumEl?.value || 'ACIK';
-
-      const termin =
-        document.getElementById('aksiyon-termin')?.value || '';
-
-      const sorumlu =
-        document.getElementById('aksiyon-sorumlu')?.value.trim() || '';
-
-      const not =
-        document.getElementById('aksiyon-not')?.value.trim() || '';
-
-      const tamamlanmaTarihi =
-        document.getElementById('aksiyon-tamamlanma')?.value || '';
-
-      const sonuc =
-        document.getElementById('aksiyon-sonuc')?.value.trim() || '';
-
-      const etkinlikSonucu =
-        document.getElementById('aksiyon-etkinlik')?.value.trim() || '';
-
-      const etkinlikTarihi =
-        document.getElementById('aksiyon-etkinlik-tarih')?.value || '';
-
-      const etkinlikDurumu =
-        document.getElementById('aksiyon-etkinlik-durum')?.value || '';
-
-
-      // ───────────────────────────────────────
-      // Zorunlu alan kontrolü
-      // ───────────────────────────────────────
+      const yeniDurum = String(durumEl?.value || 'ACIK').trim().toUpperCase();
+      const termin = document.getElementById('aksiyon-termin')?.value || '';
+      const sorumlu = document.getElementById('aksiyon-sorumlu')?.value.trim() || '';
+      const not = document.getElementById('aksiyon-not')?.value.trim() || '';
+      const tamamlanmaTarihi = document.getElementById('aksiyon-tamamlanma')?.value || '';
+      const sonuc = document.getElementById('aksiyon-sonuc')?.value.trim() || '';
+      const etkinlikSonucu = document.getElementById('aksiyon-etkinlik')?.value.trim() || '';
+      const etkinlikTarihi = document.getElementById('aksiyon-etkinlik-tarih')?.value || '';
+      const etkinlikDurumuRaw = document.getElementById('aksiyon-etkinlik-durum')?.value || '';
 
       if (!termin) {
         showToast('⚠️ Aksiyon termini girilmelidir.', 'err');
         return;
       }
-
       if (!sorumlu) {
         showToast('⚠️ Aksiyon sorumlusu girilmelidir.', 'err');
         return;
       }
-// Tamamlanan aksiyonda yapılan işlem / sonuç zorunlu
-if (yeniDurum === 'TAMAMLANDI' && !sonuc) {
-
-  showToast(
-    '⚠️ Aksiyon tamamlanırken Yapılan İşlem / Sonuç girilmelidir.',
-    'err'
-  );
-
-  const sonucEl = document.getElementById('aksiyon-sonuc');
-
-  if (sonucEl) {
-    sonucEl.focus();
-  }
-
-  return;
-}
-
-      // ───────────────────────────────────────
-      // Zorunlu aksiyonları kontrol et
-      // ───────────────────────────────────────
+      if (yeniDurum === 'TAMAMLANDI' && !sonuc) {
+        showToast('⚠️ Aksiyon tamamlanırken Yapılan İşlem / Sonuç girilmelidir.', 'err');
+        document.getElementById('aksiyon-sonuc')?.focus();
+        return;
+      }
 
       if (cfg.aksiyonlar && cfg.aksiyonlar.length) {
-
         for (const a of cfg.aksiyonlar) {
-
           if (!a.zorunlu) continue;
-
-          const el =
-            document.getElementById('aksiyon-alan-' + a.id);
-
-          const value =
-            el?.value?.trim() || '';
-
+          const el = document.getElementById('aksiyon-alan-' + a.id);
+          const value = el?.value?.trim() || '';
           if (!value) {
-
-            showToast(
-              '⚠️ "' + a.label + '" alanı zorunludur.',
-              'err'
-            );
-
+            showToast('⚠️ "' + a.label + '" alanı zorunludur.', 'err');
             el?.focus();
             return;
           }
         }
       }
 
-
-      // ───────────────────────────────────────
-      // Tamamlandıysa tarih otomatik
-      // ───────────────────────────────────────
-
       let tamamTarih = tamamlanmaTarihi;
-
-      if (yeniDurum === 'TAMAMLANDI' && !tamamTarih) {
-        tamamTarih = bugun;
-      }
-
-
-      // ───────────────────────────────────────
-      // Aksiyonları oluştur
-      // ───────────────────────────────────────
+      if (yeniDurum === 'TAMAMLANDI' && !tamamTarih) tamamTarih = bugun;
 
       const aksiyonlar = {};
-
       if (cfg.aksiyonlar) {
-
         cfg.aksiyonlar.forEach(a => {
-
-          const el =
-            document.getElementById('aksiyon-alan-' + a.id);
-
-          const value =
-            el?.value?.trim() || '';
-
+          const el = document.getElementById('aksiyon-alan-' + a.id);
+          const value = el?.value?.trim() || '';
           if (value) {
-
             aksiyonlar[a.id] = {
               label: a.label,
               deger: value,
               zorunlu: !!a.zorunlu
             };
-
           }
-
         });
-
       }
 
-
-      // ───────────────────────────────────────
-      // Yeni risk aksiyon JSON
-      // ───────────────────────────────────────
-
+      // Frontend -> Kayitlar için ana riskAksiyon nesnesi.
       const yeniRak = {
-
         ...rak,
-
-        seviye:
-          rak.seviye ||
-          kayit.riskSeviye ||
-          '',
-
+        seviye: rak.seviye || kayit.riskSeviye || '',
         aksiyonlar,
-
         sorumlu,
-
         termin,
-
         not,
-
         durum: yeniDurum,
-
-        tamamlanmaTarihi:
-          tamamTarih,
-
+        tamamlanmaTarihi: tamamTarih,
+        tamamlayan: yeniDurum === 'TAMAMLANDI'
+          ? (rak.tamamlayan || sorumlu || '')
+          : (rak.tamamlayan || ''),
+        yapilanIslem: sonuc,
         sonuc,
-
         etkinlikTarihi,
-
-        etkinlikDurumu,
-
+        etkinlikDurumu: etkinlikDurumuRaw,
         etkinlikSonucu,
-
-        sonGuncelleme:
-          new Date().toISOString()
-
+        sonGuncelleme: new Date().toISOString()
       };
-
-
-      // ───────────────────────────────────────
-      // Kayıt nesnesini güncelle
-      // ───────────────────────────────────────
 
       const guncelKayit = {
         ...kayit,
-        riskAksiyon:
-          JSON.stringify(yeniRak)
+        riskAksiyon: JSON.stringify(yeniRak)
       };
 
-
-      // ───────────────────────────────────────
-      // Buton kilitle
-      // ───────────────────────────────────────
-
       if (btn) {
-
         btn.disabled = true;
-
-        btn.innerHTML =
-          '⏳ KAYDEDİLİYOR...';
-
+        btn.innerHTML = '⏳ KAYDEDİLİYOR...';
         btn.style.opacity = '.65';
-
       }
-
 
       showLoading(true);
 
-
-      // ───────────────────────────────────────
-      // GOOGLE SHEETS'E KAYDET
-      // Mevcut saveKayit altyapısını kullanır
-      // ───────────────────────────────────────
-
-      const sonucKayit =
-        await gsKaydet(guncelKayit);
-
-
+      // 1) Ana Kayitlar kaydını güncelle.
+      const sonucKayit = await gsKaydet(guncelKayit);
       if (!sonucKayit || sonucKayit.ok === false) {
-        throw new Error(
-          sonucKayit?.error ||
-          'Kayıt güncellenemedi.'
-        );
+        throw new Error(sonucKayit?.error || 'Ana kayıt güncellenemedi.');
       }
 
+      // 2) KRİTİK GÜVENLİK KATMANI:
+      // BakimAksiyonlari satırlarını ayrıca doğrudan güncelliyoruz.
+      // Böylece Kayitlar.riskAksiyon -> sync zincirine bağımlı kalmıyoruz.
+      let aksiyonSatirlari = [];
+      const getAksiyonlar = await gsRequest({
+        action: 'getBakimAksiyonlari',
+        kaynakKayitId: String(kayit.id)
+      });
 
-      // ───────────────────────────────────────
-      // Local listeyi güncelle
-      // ───────────────────────────────────────
-
-      const idx =
-        liste.findIndex(
-          k => String(k.id) === String(id)
-        );
-
-      if (idx >= 0) {
-
-        liste[idx] = guncelKayit;
-
+      if (getAksiyonlar && getAksiyonlar.ok && Array.isArray(getAksiyonlar.data)) {
+        aksiyonSatirlari = getAksiyonlar.data;
       }
 
+      const aksiyonSonuclari = [];
 
-      // Global liste de varsa güncelle
-      if (window.kayitlar) {
+      for (const a of (cfg.aksiyonlar || [])) {
+        const ak = aksiyonlar[a.id];
+        if (!ak || !String(ak.deger || '').trim()) continue;
 
-        const widx =
-          window.kayitlar.findIndex(
-            k => String(k.id) === String(id)
+        const mevcut = aksiyonSatirlari.find(x =>
+          String(x.aksiyonTuru || '').trim() === String(a.label || a.id).trim()
+        );
+
+        const aksiyonId = String(
+          mevcut?.id || ('RAK-' + String(kayit.id) + '-' + String(a.id))
+        );
+
+        const savePayload = {
+          id: aksiyonId,
+          kaynakKayitId: String(kayit.id),
+          formNo: sonucKayit.formNo || kayit.formNo || '',
+          bolum: kayit.bolum || '',
+          makine: kayit.makine || '',
+          riskSeviye: yeniRak.seviye || kayit.riskSeviye || '',
+          aksiyonTuru: a.label || a.id,
+          aksiyon: String(ak.deger || '').trim(),
+          sorumlu,
+          termin,
+          oncelik: yeniRak.seviye || '',
+          durum: 'ACIK',
+          etkinlikDurumu: 'BEKLIYOR',
+          kaynakTipi: 'RISK_AKSIYON',
+          zorunlu: a.zorunlu ? 'EVET' : 'HAYIR'
+        };
+
+        // Tamamlanmış satırı saveBakimAksiyonu ile tekrar AÇIK'a çekmemek için
+        // tamamlanma işleminden sonra ayrıca tamamla endpoint'i çağrılacak.
+        const saveAksiyonSonuc = await gsRequest({
+          action: 'saveBakimAksiyonu',
+          aksiyon: savePayload
+        });
+
+        aksiyonSonuclari.push({
+          id: aksiyonId,
+          save: saveAksiyonSonuc
+        });
+
+        if (!saveAksiyonSonuc || saveAksiyonSonuc.ok === false) {
+          throw new Error(
+            'BakimAksiyonlari kaydı başarısız (' +
+            (a.label || a.id) + '): ' +
+            (saveAksiyonSonuc?.error || 'Bilinmeyen hata')
           );
-
-        if (widx >= 0) {
-          window.kayitlar[widx] = guncelKayit;
         }
 
+        // 3) TAMAMLANDI ise doğrudan tamamla endpoint'i.
+        if (yeniDurum === 'TAMAMLANDI') {
+          const tamamlaSonuc = await gsRequest({
+            action: 'tamamlaBakimAksiyonu',
+            id: aksiyonId,
+            aksiyon: {
+              tamamlayan: yeniRak.tamamlayan || sorumlu,
+              tamamlanmaTarihi: tamamTarih,
+              yapilanIslem: sonuc,
+              kanit: ''
+            }
+          });
+
+          if (!tamamlaSonuc || tamamlaSonuc.ok === false) {
+            throw new Error(
+              'Aksiyon tamamlanamadı (' +
+              (a.label || a.id) + '): ' +
+              (tamamlaSonuc?.error || 'Bilinmeyen hata')
+            );
+          }
+        }
       }
 
+      // 4) Etkinlik kontrolü seçilmişse doğrudan etkinlik endpoint'ine yaz.
+      const etkinlikMap = {
+        'ETKİLİ': 'ETKILI',
+        'ETKILI': 'ETKILI',
+        'KISMEN ETKİLİ': 'KISMEN_ETKILI',
+        'KISMEN_ETKILI': 'KISMEN_ETKILI',
+        'ETKİSİZ': 'ETKISIZ',
+        'ETKISIZ': 'ETKISIZ',
+        'TEKRAR_AKSIYON': 'ETKISIZ'
+      };
 
-      // ───────────────────────────────────────
-      // Modalı kapat
-      // ───────────────────────────────────────
+      const etkinlikKod = etkinlikMap[String(etkinlikDurumuRaw || '').trim().toUpperCase()] || '';
 
-      document
-        .getElementById('aksiyonDetayModal')
-        ?.remove();
+      if (etkinlikKod && yeniDurum === 'TAMAMLANDI') {
+        // Güncel aksiyon satırlarını tekrar al; tamamlanan ID'ler kesin olsun.
+        const guncelAksiyonlar = await gsRequest({
+          action: 'getBakimAksiyonlari',
+          kaynakKayitId: String(kayit.id)
+        });
 
+        const satirlar = (guncelAksiyonlar && guncelAksiyonlar.ok && Array.isArray(guncelAksiyonlar.data))
+          ? guncelAksiyonlar.data
+          : [];
 
-      // Listeyi yenile
-      if (typeof renderList === 'function') {
-        renderList();
+        for (const satir of satirlar) {
+          const ilgili = aksiyonlar && Object.keys(aksiyonlar).some(key =>
+            String(aksiyonlar[key]?.label || key).trim() === String(satir.aksiyonTuru || '').trim()
+          );
+          if (!ilgili) continue;
+
+          const etkinlikKaydetSonuc = await gsRequest({
+            action: 'etkinlikKontroluKaydet',
+            id: satir.id,
+            aksiyon: {
+              etkinlikDurumu: etkinlikKod,
+              etkinlikKontrolEden: sorumlu,
+              etkinlikKontrolTarihi: etkinlikTarihi || bugun,
+              etkinlikNotu: etkinlikSonucu
+            }
+          });
+
+          if (!etkinlikKaydetSonuc || etkinlikKaydetSonuc.ok === false) {
+            throw new Error(
+              'Etkinlik kontrolü kaydedilemedi (' +
+              String(satir.aksiyonTuru || '') + '): ' +
+              (etkinlikKaydetSonuc?.error || 'Bilinmeyen hata')
+            );
+          }
+        }
       }
 
-      // Dashboard varsa yenile
-      if (typeof renderDash === 'function') {
-        try { renderDash(); } catch(e) {}
+      // Local state güncelle.
+      const idx = liste.findIndex(k => String(k.id) === String(id));
+      if (idx >= 0) liste[idx] = guncelKayit;
+      if (window.kayitlar) {
+        const widx = window.kayitlar.findIndex(k => String(k.id) === String(id));
+        if (widx >= 0) window.kayitlar[widx] = guncelKayit;
       }
 
-      // Risk aksiyon özeti varsa yenile
+      document.getElementById('aksiyonDetayModal')?.remove();
+      if (typeof renderList === 'function') renderList();
+      if (typeof renderDash === 'function') { try { renderDash(); } catch(e) {} }
       if (typeof renderRiskAksiyonOzet === 'function') {
-        try {
-          renderRiskAksiyonOzet(liste);
-        } catch(e) {}
+        try { renderRiskAksiyonOzet(liste); } catch(e) {}
       }
 
+      const sync = sonucKayit.aksiyonSync;
+      const directCount = aksiyonSonuclari.filter(x => x.save && x.save.ok).length;
 
       showToast(
         yeniDurum === 'TAMAMLANDI'
-          ? '✅ Aksiyon tamamlandı ve kaydedildi.'
-          : '✅ Aksiyon planı güncellendi.',
+          ? '✅ Aksiyon tamamlandı. BakimAksiyonlari doğrudan güncellendi (' + directCount + ').'
+          : '✅ Aksiyon planı kaydedildi. BakimAksiyonlari güncellendi (' + directCount + ').',
         'ok'
       );
 
+      console.log('AKSİYON KAYIT SONUCU', {
+        anaKayit: sonucKayit,
+        sync,
+        direct: aksiyonSonuclari
+      });
+
     } catch (e) {
-
       console.error('Aksiyon kaydetme hatası:', e);
-
-      showToast(
-        '❌ Aksiyon kaydedilemedi: ' +
-        (e.message || e),
-        'err'
-      );
-
+      showToast('❌ Aksiyon kaydedilemedi: ' + (e.message || e), 'err');
     } finally {
-
       showLoading(false);
-
-      const b =
-        document.getElementById('aksiyonKaydetBtn');
-
+      const b = document.getElementById('aksiyonKaydetBtn');
       if (b) {
-
         b.disabled = false;
         b.innerHTML = '💾 KAYDET';
         b.style.opacity = '1';
-
       }
-
     }
 
   };
