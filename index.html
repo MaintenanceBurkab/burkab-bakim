@@ -153,6 +153,16 @@ tr:last-child td { border-bottom: none; }
 .kpi-val { font-size: 26px; font-weight: 800; font-family: 'IBM Plex Mono', monospace; color: var(--kpi-color, #1a1a1a); line-height: 1.1; }
 .kpi-lbl { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; }
 .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.maliyet-kpi-card { background:var(--white); border:1px solid #d0d0c0; border-radius:10px; padding:14px 16px; box-shadow:0 2px 8px rgba(0,0,0,.06); border-top:4px solid var(--maliyet-color,#0277bd); }
+.maliyet-kpi-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.maliyet-kpi-title { font-size:11px; font-weight:800; color:#555; letter-spacing:.7px; }
+.maliyet-kpi-filter { font-size:9px; color:#888; font-weight:600; }
+.maliyet-doviz-row { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+.maliyet-doviz { background:#f7f5f0; border:1px solid #e1ddd0; border-radius:7px; padding:8px 6px; text-align:center; }
+.maliyet-doviz-label { font-size:10px; font-weight:800; color:#777; margin-bottom:3px; }
+.maliyet-doviz-val { font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:800; color:var(--maliyet-color,#0277bd); white-space:nowrap; }
+@media(max-width:900px){ #maliyetKpiGrid { grid-template-columns:1fr 1fr !important; } }
+@media(max-width:580px){ #maliyetKpiGrid { grid-template-columns:1fr !important; } }
 
 .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 @media(max-width:700px){ .chart-row { grid-template-columns: 1fr; } }
@@ -1458,6 +1468,9 @@ tr:last-child td { border-bottom: none; }
   </div>
 
   <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- MALİYET KPI SATIRI — DASHBOARD FİLTRELERİNE BAĞLI -->
+  <div class="kpi-grid" id="maliyetKpiGrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"></div>
   <div class="chart-row">
     <div class="section chart-box">
       <div class="section-head"><div class="dot"></div>📈 AYLIK ARIZA TRENDİ</div>
@@ -4081,8 +4094,86 @@ function kayitToplamMaliyet(k) {
   return maliyetDovizleri(k)['₺'];
 }
 
+
+function dashboardMaliyetParca(k) {
+  const o = {'₺':0,'$':0,'€':0};
+  if (!k) return o;
+  const arr = parseParcalar(k.parcalar || '');
+  arr.forEach(p => {
+    const para = o[p.para] !== undefined ? p.para : '₺';
+    const toplam = parseFloat(p.toplam);
+    const adet = parseFloat(p.adet) || 0;
+    const fiyat = parseFloat(p.fiyat) || 0;
+    o[para] += Number.isFinite(toplam) ? toplam : (adet * fiyat);
+  });
+  return o;
+}
+
+function dashboardMaliyetIscilik(k) {
+  return {'₺': parseTutar(k && k.iscilikMaliyeti), '$':0, '€':0};
+}
+
+function dashboardMaliyetToplam(k) {
+  const p = dashboardMaliyetParca(k);
+  const i = dashboardMaliyetIscilik(k);
+  return {'₺':p['₺']+i['₺'], '$':p['$']+i['$'], '€':p['€']+i['€']};
+}
+
+function dashboardMaliyetOzet(veri) {
+  const parca = {'₺':0,'$':0,'€':0};
+  const iscilik = {'₺':0,'$':0,'€':0};
+  const toplam = {'₺':0,'$':0,'€':0};
+  (veri || []).forEach(k => {
+    const p = dashboardMaliyetParca(k);
+    const i = dashboardMaliyetIscilik(k);
+    const t = dashboardMaliyetToplam(k);
+    ['₺','$','€'].forEach(para => {
+      parca[para] += p[para];
+      iscilik[para] += i[para];
+      toplam[para] += t[para];
+    });
+  });
+  return {parca, iscilik, toplam};
+}
+
+function dashboardPara(v, para) {
+  return Number(v || 0).toLocaleString('tr-TR', {
+    minimumFractionDigits:2, maximumFractionDigits:2
+  }) + ' ' + para;
+}
+
+function renderDashboardMaliyetKpi(veri) {
+  const el = document.getElementById('maliyetKpiGrid');
+  if (!el) return;
+  const o = dashboardMaliyetOzet(veri);
+  const kartlar = [
+    {baslik:'YEDEK PARÇA MALİYETİ', renk:'#e65100', veri:o.parca},
+    {baslik:'İŞÇİLİK MALİYETİ', renk:'#0277bd', veri:o.iscilik},
+    {baslik:'TOPLAM BAKIM MALİYETİ', renk:'#00875a', veri:o.toplam}
+  ];
+  el.innerHTML = kartlar.map(k => {
+    const aktif = ['₺','$','€'].some(para => k.veri[para] > 0);
+    return '<div class="maliyet-kpi-card" style="--maliyet-color:' + k.renk + '">' +
+      '<div class="maliyet-kpi-head">' +
+        '<div class="maliyet-kpi-title">💰 ' + k.baslik + '</div>' +
+        '<div class="maliyet-kpi-filter">' + (veri.length ? veri.length + ' kayıt' : 'Kayıt yok') + '</div>' +
+      '</div>' +
+      '<div class="maliyet-doviz-row">' +
+        ['₺','$','€'].map(para =>
+          '<div class="maliyet-doviz">' +
+            '<div class="maliyet-doviz-label">' + para + '</div>' +
+            '<div class="maliyet-doviz-val">' + dashboardPara(k.veri[para], para) + '</div>' +
+          '</div>'
+        ).join('') +
+      '</div>' +
+      (!aktif ? '<div style="font-size:9px;color:#999;margin-top:7px;text-align:right">Filtrelenen kayıtlarda maliyet yok</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
 function buildDash() {
   const veri   = filtreliVeri();
+  renderDashboardMaliyetKpi(veri);
   const total  = veri.length;
   const arizaV = veri.filter(k =>
   String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
