@@ -10195,6 +10195,16 @@ function aiRaporModalAc(tip) {
     document.getElementById('aiRaporKeyInput').value = '';
   }
   _aiRaporTypeGridRender();
+  const ab=document.getElementById('aiRaporBaslangic'), az=document.getElementById('aiRaporBitis');
+  if (ab && az) {
+    ab.value=''; az.value='';
+    const z=document.getElementById('dashZamanSelect');
+    if (z && z.value!=='hepsi') {
+      const v=filtreliVeri();
+      const ds=v.map(k=>aiRaporTarihYMD(k.tarihBas)).filter(Boolean).sort();
+      if(ds.length){ab.value=ds[0];az.value=ds[ds.length-1];}
+    }
+  }
   document.getElementById('aiRaporLoading').classList.remove('visible');
   document.getElementById('aiRaporResult').classList.remove('visible');
   document.getElementById('aiRaporModalOverlay').classList.add('open');
@@ -10231,51 +10241,121 @@ function aiRaporKeySave() { const e=document.getElementById('aiRaporKeyStatus');
 
 function aiRaporGetKey() { return 'SERVER_MANAGED'; }
 
-function aiRaporVeriOzetle() {
-  var veri = (typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []);
-  var total = veri.length;
-  var arizaV = veri.filter(function(k) {
-  return String(k.islem || '')
-    .trim()
-    .toUpperCase() === 'ARIZA KAYDI';
-});
-  var sureler = veri.map(function(k){ return parseInt(k.sure)||0; }).filter(function(s){ return s>0; });
-  var mttr = sureler.length ? Math.round(sureler.reduce(function(a,b){return a+b;},0)/sureler.length) : 0;
-  var bolumC = {};
-  veri.forEach(function(k){ bolumC[k.bolum] = (bolumC[k.bolum]||0)+1; });
-  var topBolum = Object.entries(bolumC).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  var makineMap = {};
-  veri.filter(function(k){return k.islem==='ARIZA KAYDI';}).forEach(function(k){ if(k.makine) makineMap[k.makine]=(makineMap[k.makine]||0)+1; });
-  var topMakine = Object.entries(makineMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  var toplamMaliyet = 0;
-  veri.forEach(function(k){ var m = (typeof kayitToplamMaliyet==='function') ? kayitToplamMaliyet(k) : 0; if(m) toplamMaliyet+=m; });
-  var riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
-  veri.forEach(function(k){ if(k.riskSeviye && riskC[k.riskSeviye]!==undefined) riskC[k.riskSeviye]++; });
-  var bugun = yerelYMD(new Date());
-  var bugunK = veri.filter(function(k){ return k.tarihBas===bugun; });
-  var acikK  = (kayitlar||[]).filter(kayitAcikMi);
-  var oeeOzet = (iatfMetrics?.oee || []).map(function(r){
-    return r.group + ':' + (r.oee == null ? 'N/A' : r.oee + '% OEE') + ', ' + r.downtimeDk + 'dk duruş';
+function aiRaporTarihYMD(v) {
+  if (v === null || v === undefined || v === '') return '';
+  if (typeof v === 'string') {
+    const m = v.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+    if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+  }
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return '';
+  return typeof yerelYMD === 'function' ? yerelYMD(d) : d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function aiRaporDonemBilgisi() {
+  const basEl = document.getElementById('aiRaporBaslangic');
+  const bitEl = document.getElementById('aiRaporBitis');
+  const bas = basEl?.value || '';
+  const bit = bitEl?.value || '';
+
+  if (bas || bit) {
+    if (!bas || !bit) throw new Error('Rapor dönemi için başlangıç ve bitiş tarihlerini birlikte seçin.');
+    if (bas > bit) throw new Error('Rapor başlangıç tarihi bitiş tarihinden sonra olamaz.');
+    return {baslangic:bas, bitis:bit, kaynak:'Özel tarih aralığı'};
+  }
+
+  const veri = (typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []);
+  let baslangic='', bitis='';
+  veri.forEach(k=>{
+    const d=aiRaporTarihYMD(k.tarihBas);
+    if(!d) return;
+    if(!baslangic || d<baslangic) baslangic=d;
+    if(!bitis || d>bitis) bitis=d;
   });
-  var zamanEl = document.getElementById('dashZamanSelect');
-  var filtreDonemi = zamanEl ? (zamanEl.options[zamanEl.selectedIndex] || {}).text || 'Hepsi' : 'Hepsi';
   return {
-    toplamKayit: total,
-    arizaSayisi: arizaV.length,
-    mttr_dk: mttr,
-    topBolumler: topBolum.map(function(x){return x[0]+'('+x[1]+')';}).join(', '),
-    topMakineler: topMakine.map(function(x){return x[0]+'('+x[1]+' arıza)';}).join(', '),
-    toplamMaliyet: toplamMaliyet,
-    riskDagilimlari: JSON.stringify(riskC),
-    bugunAriza: bugunK.filter(function(k){return k.islem==='ARIZA KAYDI';}).length,
-    bugunTamDurus: bugunK.filter(function(k){return k.durusEtkisi==='TAM DURUŞ';}).length,
-    acikKayitlar: acikK.length,
-    oeeOzet: oeeOzet.join(' | '),
-    filtreDonemi: filtreDonemi,
-    tarih: new Date().toLocaleDateString('tr-TR')+' '+new Date().toLocaleTimeString('tr-TR'),
-    kritikSayi: riskC['KRİTİK'],
-    yuksekSayi: riskC['YÜKSEK'],
-    maliyetStr: toplamMaliyet.toLocaleString('tr-TR'),
+    baslangic,
+    bitis,
+    kaynak:'Dashboard filtresi',
+    veri
+  };
+}
+
+function aiRaporDonemVerisi() {
+  const bilgi = aiRaporDonemBilgisi();
+  let veri;
+  if (bilgi.kaynak === 'Özel tarih aralığı') {
+    veri = (kayitlar || []).filter(k=>{
+      const d=aiRaporTarihYMD(k.tarihBas);
+      return d && d>=bilgi.baslangic && d<=bilgi.bitis;
+    });
+  } else {
+    veri = bilgi.veri || ((typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []));
+  }
+  return {bilgi, veri};
+}
+
+function aiRaporVeriOzetle() {
+  const paket = aiRaporDonemVerisi();
+  const veri = paket.veri;
+  const bilgi = paket.bilgi;
+  const total = veri.length;
+  const arizaV = veri.filter(k => String(k.islem||'').trim().toUpperCase()==='ARIZA KAYDI');
+  const sureler = veri.map(k=>parseInt(k.sure)||0).filter(s=>s>0);
+  const mttr = sureler.length ? Math.round(sureler.reduce((a,b)=>a+b,0)/sureler.length) : 0;
+
+  const bolumC={};
+  veri.forEach(k=>{const b=String(k.bolum||'BİLİNMİYOR').trim()||'BİLİNMİYOR';bolumC[b]=(bolumC[b]||0)+1;});
+  const topBolum=Object.entries(bolumC).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const makineMap={};
+  arizaV.forEach(k=>{if(k.makine){const m=String(k.makine).trim();makineMap[m]=(makineMap[m]||0)+1;}});
+  const topMakine=Object.entries(makineMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  let toplamMaliyet=0;
+  veri.forEach(k=>{const m=(typeof kayitToplamMaliyet==='function')?kayitToplamMaliyet(k):0;if(m)toplamMaliyet+=m;});
+
+  const riskC={'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
+  veri.forEach(k=>{const r=String(k.riskSeviye||'').trim().toUpperCase();if(riskC[r]!==undefined)riskC[r]++;});
+  const acikK=veri.filter(k=>typeof kayitAcikMi==='function'?kayitAcikMi(k):false);
+
+  const aylik={};
+  veri.forEach(k=>{
+    const d=aiRaporTarihYMD(k.tarihBas); if(!d)return;
+    const ay=d.slice(0,7); aylik[ay]=(aylik[ay]||0)+1;
+  });
+  const aylikDagilim=Object.keys(aylik).sort().map(ay=>ay+': '+aylik[ay]+' kayıt').join(' | ') || 'Kayıt yok';
+
+  const oeeOzet=(iatfMetrics?.oee||[]).map(r=>r.group+': '+(r.oee==null?'N/A':r.oee+'% OEE')+', '+r.downtimeDk+'dk duruş');
+  const bugun=yerelYMD(new Date());
+  const bugunK=veri.filter(k=>aiRaporTarihYMD(k.tarihBas)===bugun);
+
+  let filtreDonemi='Hepsi';
+  const z=document.getElementById('dashZamanSelect');
+  if(z && z.value!=='hepsi') filtreDonemi=(z.options[z.selectedIndex]||{}).text||z.value;
+  if(bilgi.baslangic && bilgi.bitis) filtreDonemi=bilgi.baslangic+' → '+bilgi.bitis;
+
+  return {
+    toplamKayit:total,
+    donemKayitSayisi:total,
+    arizaSayisi:arizaV.length,
+    mttr_dk:mttr,
+    topBolumler:topBolum.map(x=>x[0]+'('+x[1]+')').join(', ')||'Yok',
+    topMakineler:topMakine.map(x=>x[0]+'('+x[1]+' arıza)').join(', ')||'Yok',
+    toplamMaliyet:toplamMaliyet,
+    riskDagilimlari:JSON.stringify(riskC),
+    bugunAriza:bugunK.filter(k=>String(k.islem||'').toUpperCase()==='ARIZA KAYDI').length,
+    bugunTamDurus:bugunK.filter(k=>k.durusEtkisi==='TAM DURUŞ').length,
+    acikKayitlar:acikK.length,
+    oeeOzet:oeeOzet.join(' | ')||'OEE verisi yok',
+    filtreDonemi:filtreDonemi,
+    donemBaslangic:bilgi.baslangic||'—',
+    donemBitis:bilgi.bitis||'—',
+    donemKaynak:bilgi.kaynak,
+    aylikDagilim:aylikDagilim,
+    tarih:new Date().toLocaleDateString('tr-TR')+' '+new Date().toLocaleTimeString('tr-TR'),
+    kritikSayi:riskC['KRİTİK'],
+    yuksekSayi:riskC['YÜKSEK'],
+    maliyetStr:toplamMaliyet.toLocaleString('tr-TR')
   };
 }
 
@@ -10338,11 +10418,23 @@ function aiRaporPromptHazirla() {
       prompt: 'BURKAB A.Ş. — '+d.tarih+' Vardiya Sonu Özeti (07:00-17:00)\n\nArıza:'+d.bugunAriza+' Tam duruş:'+d.bugunTamDurus+'\nAçık kalan:'+d.acikKayitlar+'\nOEE: '+d.oeeOzet+'\nRisk: '+d.riskDagilimlari+'\n\nVardiya teslim raporu formatında:\n## VARDIYA ÖZETİ\nGenel durum 1 paragraf.\n## BUGÜN YAŞANAN OLAYLAR\nÖnemli arıza/duruşlar.\n## AÇIK KALAN İŞLER\nBir sonraki vardiyaya devreden.\n## SONRAKI VARDİYA NOTLARI\n3 önemli not.\n## ONAY\nBakım şefi onay satırı formatı.'
     },
   };
-  return tipConf[_aiRaporSecili] || tipConf.genel_ozet;
+  var secili = tipConf[_aiRaporSecili] || tipConf.genel_ozet;
+  secili.prompt = 'KAYNAK VERİ KURALI: Yalnızca aşağıdaki sistem verilerine dayan. Verilmeyen bir tarihi, sayıyı, ayı veya kaydı tahmin etme. Dönem kaydı 0 ise açıkça veri olmadığını belirt; dönem kaydı 0 değilse veri varmış gibi "veri yok" deme. Aylık dağılımı değiştirme.\n' +
+    '- Rapor dönemi: '+d.donemBaslangic+' → '+d.donemBitis+'\n' +
+    '- Dönem kayıt sayısı: '+d.donemKayitSayisi+'\n' +
+    '- Aylık kayıt dağılımı: '+d.aylikDagilim+'\n' +
+    '- Dönem kaynağı: '+d.donemKaynak+'\n\n' + secili.prompt;
+  return secili;
 }
 
 async function aiRaporCalistir() {
-  var conf = aiRaporPromptHazirla();
+  var conf;
+  try {
+    conf = aiRaporPromptHazirla();
+  } catch(e) {
+    showToast('⚠️ '+e.message,'err');
+    return;
+  }
   var loadingEl=document.getElementById('aiRaporLoading'), resultEl=document.getElementById('aiRaporResult'), runBtn=document.getElementById('aiRaporRunBtn'), detailEl=document.getElementById('aiRaporLoadingDetail');
   document.getElementById('aiRaporResultTitle').textContent=conf.title;
   loadingEl.classList.add('visible'); resultEl.classList.remove('visible'); runBtn.disabled=true; detailEl.textContent=conf.loading;
@@ -11742,6 +11834,20 @@ async function aksiyonKaydetLocal(id) {
       <!-- API anahtarı tarayıcıya verilmez -->
       <div style="margin-bottom:16px;padding:10px 12px;border:1px solid #33443b;border-radius:8px;background:#14231c;color:#9ed7b9;font-size:12px" role="status">
         🔐 AI anahtarı Google Apps Script üzerinde güvenli olarak yönetilir.
+      </div>
+
+      <!-- RAPOR DÖNEMİ -->
+      <div style="margin-bottom:16px;padding:12px;border:1px solid #3b3b3b;border-radius:9px;background:#161616">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#aaa;text-transform:uppercase;margin-bottom:8px">📅 RAPOR DÖNEMİ</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="font-size:11px;color:#aaa">Başlangıç
+            <input id="aiRaporBaslangic" type="date" style="display:block;width:100%;margin-top:5px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px">
+          </label>
+          <label style="font-size:11px;color:#aaa">Bitiş
+            <input id="aiRaporBitis" type="date" style="display:block;width:100%;margin-top:5px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px">
+          </label>
+        </div>
+        <div style="font-size:10px;color:#777;margin-top:7px">Boş bırakırsanız mevcut Dashboard filtresindeki kayıtlar kullanılır. Belirli bir ayı raporlamak için tarihleri açıkça seçin.</div>
       </div>
 
       <!-- RAPOR TİPİ SEÇİMİ -->
