@@ -10428,27 +10428,58 @@ function aiRaporPromptHazirla() {
 }
 
 async function aiRaporCalistir() {
-  var conf;
-  try {
-    conf = aiRaporPromptHazirla();
-  } catch(e) {
-    showToast('⚠️ '+e.message,'err');
+  const basEl=document.getElementById('aiRaporBaslangic');
+  const bitEl=document.getElementById('aiRaporBitis');
+  const bas=basEl?.value||'';
+  const bit=bitEl?.value||'';
+  if(!bas || !bit){
+    showToast('📅 Önce rapor başlangıç ve bitiş tarihlerini seçin.','err');
+    basEl?.focus();
     return;
   }
-  var loadingEl=document.getElementById('aiRaporLoading'), resultEl=document.getElementById('aiRaporResult'), runBtn=document.getElementById('aiRaporRunBtn'), detailEl=document.getElementById('aiRaporLoadingDetail');
-  document.getElementById('aiRaporResultTitle').textContent=conf.title;
-  loadingEl.classList.add('visible'); resultEl.classList.remove('visible'); runBtn.disabled=true; detailEl.textContent=conf.loading;
+  if(bas>bit){
+    showToast('⚠️ Başlangıç tarihi bitiş tarihinden sonra olamaz.','err');
+    return;
+  }
+
+  const tipler=AI_RAPOR_TIPLERI[_aiRaporTip]||[];
+  const cfg=tipler.find(t=>t.id===_aiRaporSecili)||tipler[0]||{label:'AI Rapor',desc:''};
+  const loadingEl=document.getElementById('aiRaporLoading');
+  const resultEl=document.getElementById('aiRaporResult');
+  const runBtn=document.getElementById('aiRaporRunBtn');
+  const detailEl=document.getElementById('aiRaporLoadingDetail');
+
+  document.getElementById('aiRaporResultTitle').textContent=cfg.ikon+' '+cfg.label;
+  loadingEl.classList.add('visible');
+  resultEl.classList.remove('visible');
+  runBtn.disabled=true;
+  detailEl.textContent='Google Sheets verileri seçilen tarih aralığında doğrudan sunucudan okunuyor...';
+
   try {
-    var res=await gsRequest({action:'handleAI',mesaj:conf.prompt,gecmis:[]});
-    if(!res?.ok)throw new Error(res?.error||'AI yanıtı alınamadı.');
-    _aiRaporSonuc=res.yanit||'';
+    const res=await gsRequest({
+      action:'aiRaporOlustur',
+      baslangic:bas,
+      bitis:bit,
+      tip:_aiRaporSecili
+    });
+    if(!res?.ok) throw new Error(res?.error||'AI raporu oluşturulamadı.');
+
+    const oz=res.veriOzeti||{};
+    const dogrulama='📌 VERİ DOĞRULAMA — '+(oz.baslangic||bas)+' → '+(oz.bitis||bit)+
+      ' | '+(Number(oz.toplamKayit)||0)+' kayıt | '+(Number(oz.arizaSayisi)||0)+' arıza'+
+      (oz.aylikDagilim ? ' | '+oz.aylikDagilim : '');
+
+    _aiRaporSonuc=(dogrulama+'\n\n'+(res.yanit||'')).trim();
     document.getElementById('aiRaporResultContent').innerHTML=aiRaporRenderMd(_aiRaporSonuc);
     resultEl.classList.add('visible');
   } catch(e) {
     _aiRaporSonuc='Hata: '+e.message;
     document.getElementById('aiRaporResultContent').innerHTML='<span style="color:#ff6060">❌ '+aiEscapeHtml(e.message)+'</span>';
     resultEl.classList.add('visible');
-  } finally { loadingEl.classList.remove('visible'); runBtn.disabled=false; }
+  } finally {
+    loadingEl.classList.remove('visible');
+    runBtn.disabled=false;
+  }
 }
 
 function aiRaporRenderMd(text) {
@@ -11847,7 +11878,7 @@ async function aksiyonKaydetLocal(id) {
             <input id="aiRaporBitis" type="date" style="display:block;width:100%;margin-top:5px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px">
           </label>
         </div>
-        <div style="font-size:10px;color:#777;margin-top:7px">Boş bırakırsanız mevcut Dashboard filtresindeki kayıtlar kullanılır. Belirli bir ayı raporlamak için tarihleri açıkça seçin.</div>
+        <div style="font-size:10px;color:#777;margin-top:7px">AI raporu artık Dashboard sayısından değil, doğrudan Google Sheets <b>Kayitlar</b> verisinden ve seçtiğiniz tarih aralığından oluşturulur. Tarihleri mutlaka seçin.</div>
       </div>
 
       <!-- RAPOR TİPİ SEÇİMİ -->
