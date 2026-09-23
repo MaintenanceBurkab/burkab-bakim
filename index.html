@@ -9748,9 +9748,38 @@ function tedSil(id) {
 }
 
 async function gsTedarikcisenkron(liste) {
+  // Tedarikçi senkronizasyonu: güncel Apps Script'teki saveTedarikci
+  // endpoint'ini kullanır. Eski syncTedarikci action'ı backend'de yoktu.
   try {
-    await gsRequest({ action:'syncTedarikci', sheet:'Tedarikci', planlar: liste });
-  } catch(e) {}
+    const listeGuvenli = Array.isArray(liste) ? liste : [];
+    for (const t of listeGuvenli) {
+      const kayit = {
+        ID: t.id || '',
+        'Firma Adi': t.firma || '',
+        'Kategori': t.kategori || '',
+        'Durum': t.durum || 'ONAYLANDI',
+        'Yetkili Kisi': t.yetkili || '',
+        'Telefon': t.tel || '',
+        'E-Posta': t.mail || '',
+        'Web / Adres': t.adres || '',
+        'Son Degerlendirme': t.degerlendirme || '',
+        'Sonraki Degerlendirme': t.sonraki || '',
+        'Temin Suresi (gun)': t.sure || 0,
+        'Notlar / Kosullar': t.not || ''
+      };
+      const sonuc = await gsRequest({ action:'saveTedarikci', kayit });
+      if (!sonuc || !sonuc.ok) {
+        throw new Error(sonuc?.error || ('Tedarikçi kaydedilemedi: ' + (t.firma || t.id || 'bilinmeyen')));
+      }
+    }
+    setSyncUI("online", "Tedarikçiler Google Sheets\'e kaydedildi ✓");
+    setTimeout(() => setSyncUI('hidden'), 2000);
+    return { ok:true };
+  } catch(e) {
+    console.error('Tedarikçi Google Sheets senkronizasyon hatası:', e);
+    setSyncUI('offline', 'Tedarikçi Sheets kaydı başarısız');
+    throw e;
+  }
 }
 
 // Sheets'ten tedarikçi verilerini çek
