@@ -6705,6 +6705,7 @@ if (acilYakin.length) {
         <div style="font-size:13px;font-weight:600;color:#333;margin-bottom:8px">📋 ${p.gorev}</div>
         ${p.notlar ? '<div style="font-size:12px;color:#666;background:#f7f5f0;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-style:italic">' + p.notlar + '</div>' : ''}
         <div class="plan-aksiyonlar">
+          <button onclick="planAksiyonlariAc(${JSON.stringify(String(p.id))})" style="border:1px solid #7b1fa2;background:#f5eafa;color:#7b1fa2;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer">⚙️ AKSİYONLAR</button>
           <span class="plan-sonraki">${(() => {
             if (!p.periyot) return '';
             const _pc = {
@@ -7912,6 +7913,7 @@ function islemAlOnayla(id) {
 // KALİBRASYON SİSTEMİ
 // ══════════════════════════════════════════════
 const KAL_KEY = 'burkab_kalibrasyon_v1';
+const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwRPDHyAfhz0CI4CeyT6w2VbDkwRXegB1CIK1hJld7p8oDHtQmcFHdqwRS-MJGdII-3/exec';
 
 function kalYukle() { try { return JSON.parse(localStorage.getItem(KAL_KEY) || '[]'); } catch { return []; } }
 function kalKaydet(list) { try { localStorage.setItem(KAL_KEY, JSON.stringify(list)); } catch {} }
@@ -7938,12 +7940,6 @@ function renderKalibrasyon() {
   const cihazlar = kalYukle();
   const tbody = document.getElementById('kal-tbody');
   if (!tbody) return;
-
-  // İlk açılışta Sheets ↔ localStorage senkronizasyonunu bir kez başlat.
-  if (!window._kalSheetsSenkronBasladi) {
-    window._kalSheetsSenkronBasladi = true;
-    kalSheetsSenkronizeEt();
-  }
 
   // Banner: gecikmiş/yaklaşan
   const banner = document.getElementById('kal-banner');
@@ -8081,7 +8077,7 @@ function kalModalKapat() {
   if (o) o.classList.remove('open');
 }
 
-async function kalFormKaydet() {
+function kalFormKaydet() {
   const no      = document.getElementById('kal-no').value.trim();
   const adi     = document.getElementById('kal-adi').value.trim();
   const bolum   = document.getElementById('kal-bolum').value;
@@ -8097,31 +8093,20 @@ async function kalFormKaydet() {
   const sonraki  = kalSonrakiHesapla(sonTarih, periyot);
 
   const cihazlar = kalYukle();
-  const kayit = { no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not };
-
   if (editId) {
     const idx = cihazlar.findIndex(x => x.id === editId);
-    if (idx >= 0) {
-      cihazlar[idx] = { ...cihazlar[idx], ...kayit };
-    }
+    if (idx >= 0) cihazlar[idx] = { ...cihazlar[idx], no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not };
+    showToast('✅ Cihaz güncellendi!', 'ok');
   } else {
-    cihazlar.push({ id: 'K' + Date.now(), ...kayit });
+    cihazlar.push({ id: 'K' + Date.now(), no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not });
+    showToast('✅ Cihaz eklendi!', 'ok');
+    // Google Sheets'e de yaz
+    kalSheetsYaz({ no, adi, bolum, labTur, sonTarih, periyot, sonraki: override||sonraki, sertifika, not });
   }
-
-  // Önce local kaydı koru; ardından aynı kaydı Apps Script üzerinden Sheets'e upsert et.
   kalKaydet(cihazlar);
   adminLogEkle(`Kalibrasyon ${editId ? 'güncellendi' : 'eklendi'}: ${adi} (${no})`);
   kalModalKapat();
   renderKalibrasyon();
-
-  try {
-    const sonuc = await kalSheetsYaz(kayit);
-    if (!sonuc || !sonuc.ok) throw new Error(sonuc?.error || 'Sheets kaydı başarısız');
-    showToast(`☁️ Kalibrasyon → Sheets'e ${sonuc.mode === 'updated' ? 'güncellendi' : 'kaydedildi'} ✓`, 'ok');
-  } catch (e) {
-    console.error('Kalibrasyon Sheets senkronizasyon hatası:', e);
-    showToast('⚠️ Cihaz local kaydedildi; Google Sheets senkronizasyonu başarısız.', 'err');
-  }
 }
 
 function kalDuzenle(id) { kalModalAc(id); }
@@ -8139,87 +8124,53 @@ function kalSil(id) {
 const KAL_COLS = ['CihazNo','CihazAdi','Bolum','LabTur','SonTarih','Periyot',
                   'SonrakiTarih','SertifikaNo','Not','Kullanici','Zaman'];
 
-// ── Kalibrasyon → Google Sheets ────────────────────────────
-// Güncel Apps Script'teki saveKalibrasyon() action'ını kullanır.
-async function kalSheetsYaz(veri) {
-  const kayit = {
-    CihazNo:     veri.no,
-    CihazAdi:    veri.adi,
-    Bolum:       veri.bolum,
-    LabTur:      veri.labTur,
-    SonTarih:    veri.sonTarih,
-    Periyot:     String(veri.periyot || ''),
-    SonrakiTarih: veri.sonraki || '',
-    SertifikaNo: veri.sertifika || '',
-    Not:         veri.not || '',
-    Kullanici:   currentUser ? currentUser.name : '—'
-  };
+function kalSheetsYaz(veri) {
+  // Apps Script'e GET ile gönder (no-cors POST'tan daha güvenilir)
+  const row = [
+    veri.no, veri.adi, veri.bolum, veri.labTur,
+    veri.sonTarih, String(veri.periyot), veri.sonraki || '',
+    veri.sertifika || '', veri.not || '',
+    currentUser ? currentUser.name : '—',
+    new Date().toLocaleString('tr-TR')
+  ];
 
-  const sonuc = await gsRequest({ action: 'saveKalibrasyon', kayit });
-  if (!sonuc || !sonuc.ok) {
-    throw new Error(sonuc?.error || 'Kalibrasyon Sheets kaydı başarısız');
-  }
-  return sonuc;
-}
+  // Önce init (başlık satırı)
+  const initCb = 'kal_init_' + Date.now();
+  const initScript = document.createElement('script');
+  window[initCb] = () => { delete window[initCb]; initScript.remove(); };
+  initScript.onerror = () => { delete window[initCb]; initScript.remove(); };
+  const initParams = new URLSearchParams({
+    callback: initCb,
+    action: 'init',
+    sheet: 'Kalibrasyon',
+    headers: JSON.stringify(KAL_COLS)
+  });
+  initScript.src = GS_URL + '?' + initParams.toString();
+  document.head.appendChild(initScript);
 
-// ── İlk açılış senkronizasyonu ─────────────────────────────
-// 1) Sheets'te veri varsa local'e aktarır.
-// 2) Local'de daha önce tutulmuş cihazları Sheets'e upsert eder.
-// Böylece mevcut cihazlar kaybolmaz ve boş Kalibrasyon sayfası doldurulur.
-async function kalSheetsSenkronizeEt() {
-  try {
-    const localListe = kalYukle();
-    const sonuc = await gsRequest({ action: 'getKalibrasyon' });
-    if (!sonuc || !sonuc.ok) throw new Error(sonuc?.error || 'Kalibrasyon verisi alınamadı');
-
-    const sheetListe = Array.isArray(sonuc.data) ? sonuc.data : [];
-    const map = new Map();
-
-    // Önce Sheets kayıtlarını al.
-    sheetListe.forEach(row => {
-      const no = String(row.CihazNo || '').trim();
-      if (!no) return;
-      const periyot = parseInt(row.Periyot, 10) || 180;
-      const sonTarih = String(row.SonTarih || '').substring(0, 10);
-      map.set(no, {
-        id: 'K' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-        no,
-        adi: String(row.CihazAdi || ''),
-        bolum: String(row.Bolum || ''),
-        labTur: String(row.LabTur || 'İç'),
-        sonTarih,
-        periyot,
-        sonraki: String(row.SonrakiTarih || '') || kalSonrakiHesapla(sonTarih, periyot),
-        sonrakiOverride: null,
-        sertifika: String(row.SertifikaNo || ''),
-        not: String(row.Not || '')
-      });
+  // Sonra save (veri satırı)
+  setTimeout(() => {
+    const saveCb = 'kal_save_' + Date.now();
+    const saveScript = document.createElement('script');
+    window[saveCb] = (res) => {
+      delete window[saveCb]; saveScript.remove();
+      showToast('☁️ Kalibrasyon → Sheets\'e kaydedildi ✓', 'ok');
+    };
+    saveScript.onerror = () => {
+      delete window[saveCb]; saveScript.remove();
+      showToast('⚠️ Sheets bağlantısı yok — local\'de kaydedildi', 'err');
+    };
+    const saveParams = new URLSearchParams({
+      callback: saveCb,
+      action: 'save',
+      sheet: 'Kalibrasyon',
+      headers: JSON.stringify(KAL_COLS),
+      row: JSON.stringify(row)
     });
-
-    // Local kayıt varsa mevcut kullanıcı verisini koruyarak merge et.
-    localListe.forEach(local => {
-      const no = String(local.no || '').trim();
-      if (!no) return;
-      map.set(no, { ...map.get(no), ...local });
-    });
-
-    const merged = Array.from(map.values());
-    if (merged.length) {
-      kalKaydet(merged);
-      renderKalibrasyon();
-
-      // Local'de olup Sheets'te olmayanlar dahil tüm kayıtları upsert et.
-      for (const c of merged) {
-        await kalSheetsYaz(c);
-      }
-    }
-  } catch (e) {
-    // Senkronizasyon başarısız olsa bile mevcut local kayıtlar çalışmaya devam eder.
-    console.warn('Kalibrasyon Sheets senkronizasyonu:', e);
-    setTimeout(() => {
-      showToast('⚠️ Kalibrasyon local çalışıyor; Sheets senkronizasyonu kurulamadı.', 'err');
-    }, 300);
-  }
+    saveScript.src = GS_URL + '?' + saveParams.toString();
+    document.head.appendChild(saveScript);
+    setTimeout(() => { delete window[saveCb]; saveScript.remove(); }, 10000);
+  }, 800);
 }
 
 // ══════════════════════════════════════════════
@@ -9566,63 +9517,20 @@ function egitimSil(id) {
 
 async function gsEgitimSenkron(liste) {
   try {
-    // Güncel backend'de yazma işlemi syncEgitim ile değil saveEgitim ile yapılır.
-    // Önce mevcut sertifikaları okuyup, tekrar kayıt oluşmasını önlüyoruz.
-    let mevcut = { personeller: [], sertifikalar: [] };
-    try {
-      const durum = await gsRequest({ action:'syncEgitim' });
-      if (durum && durum.ok) mevcut = durum;
-    } catch (e) {}
-
-    // Personel eğitim kartlarını tek tek upsert et.
-    for (const p of (liste || [])) {
-      await gsRequest({
-        action: 'saveEgitim',
-        kayit: {
-          PersonelID: p.id || ('eg_' + Date.now()),
-          'Ad Soyad': p.ad || '',
-          Pozisyon: p.pozisyon || '',
-          Bolum: p.bolum || '',
-          'Ise Baslama': p.iseBaslama || '',
-          'Sertifika Sayisi': (p.sertifikalar || []).length,
-          'Sertifika Detay': (p.sertifikalar || []).map(s =>
-            `${s.ad}(${s.tarih || '?'}→${s.yenileme || '?'})`
-          ).join(' | '),
-          Notlar: p.not || ''
-        }
-      });
-    }
-
-    // Sertifikaları yalnızca Sheets'te bulunmuyorsa ekle.
-    const mevcutSert = Array.isArray(mevcut.sertifikalar) ? mevcut.sertifikalar : [];
-    const sertKey = s => [
-      String(s.PersonelID || s.personelId || '').trim(),
-      String(s['Sertifika Adi'] || s.sertifikaAdi || s.ad || '').trim(),
-      String(s['Alinma Tarihi'] || s.alinmaTarihi || s.tarih || '').trim(),
-      String(s['Yenileme Tarihi'] || s.yenilemeTarihi || s.yenileme || '').trim()
-    ].join('|');
-    const mevcutKeys = new Set(mevcutSert.map(sertKey));
-
-    for (const p of (liste || [])) {
-      for (const s of (p.sertifikalar || [])) {
-        const kayit = {
-          tip: 'sertifika',
-          PersonelID: p.id || '',
-          PersonelAd: p.ad || '',
-          SertifikaAdi: s.ad || '',
-          AlinmaTarihi: s.tarih || '',
-          YenilemeTarihi: s.yenileme || '',
-          Durum: s.durum || 'GEÇERLİ'
-        };
-        if (!mevcutKeys.has(sertKey(kayit))) {
-          await gsRequest({ action:'saveEgitim', kayit });
-          mevcutKeys.add(sertKey(kayit));
-        }
+    const satirlar = liste.map(p => [
+      p.id, p.ad, p.pozisyon, p.bolum, p.iseBaslama,
+      (p.sertifikalar||[]).length,
+      (p.sertifikalar||[]).map(s=>`${s.ad}(${s.tarih||'?'}→${s.yenileme||'?'})`).join(' | '),
+      p.guncelleme
+    ]);
+    await gsRequest({ action:'syncEgitim', sheet:'Egitim', rows: satirlar });
+    // Her personelin sertifikalarını ayrı ayrı kaydet
+    for (const p of liste) {
+      for (const s of (p.sertifikalar||[])) {
+        await gsRequest({ action:'saveEgitimSertifika', personelId: p.id, personelAd: p.ad, sertifika: s });
       }
     }
-  } catch(e) {
-    console.warn('Eğitim Google Sheets senkronizasyonu:', e);
-  }
+  } catch(e) {}
 }
 
 // Sheets'ten eğitim verilerini çek
@@ -9651,12 +9559,7 @@ function gsEgitimYukle() {
         });
         if (gelen.length) egKaydet(gelen);
         resolve(gelen);
-      } else {
-        const lokal = egYukle();
-        // Sheets'te henüz eğitim kaydı yoksa mevcut yerel kayıtları tek seferde aktar.
-        if (lokal.length) gsEgitimSenkron(lokal);
-        resolve(lokal);
-      }
+      } else resolve(egYukle());
     };
     script.onerror = () => { delete window[cb]; script.remove(); resolve(egYukle()); };
     script.src = GS_URL + '?callback=' + cb + '&sheet=Egitim';
@@ -9796,38 +9699,9 @@ function tedSil(id) {
 }
 
 async function gsTedarikcisenkron(liste) {
-  // Tedarikçi senkronizasyonu: güncel Apps Script'teki saveTedarikci
-  // endpoint'ini kullanır. Eski syncTedarikci action'ı backend'de yoktu.
   try {
-    const listeGuvenli = Array.isArray(liste) ? liste : [];
-    for (const t of listeGuvenli) {
-      const kayit = {
-        ID: t.id || '',
-        'Firma Adi': t.firma || '',
-        'Kategori': t.kategori || '',
-        'Durum': t.durum || 'ONAYLANDI',
-        'Yetkili Kisi': t.yetkili || '',
-        'Telefon': t.tel || '',
-        'E-Posta': t.mail || '',
-        'Web / Adres': t.adres || '',
-        'Son Degerlendirme': t.degerlendirme || '',
-        'Sonraki Degerlendirme': t.sonraki || '',
-        'Temin Suresi (gun)': t.sure || 0,
-        'Notlar / Kosullar': t.not || ''
-      };
-      const sonuc = await gsRequest({ action:'saveTedarikci', kayit });
-      if (!sonuc || !sonuc.ok) {
-        throw new Error(sonuc?.error || ('Tedarikçi kaydedilemedi: ' + (t.firma || t.id || 'bilinmeyen')));
-      }
-    }
-    setSyncUI("online", "Tedarikçiler Google Sheets\'e kaydedildi ✓");
-    setTimeout(() => setSyncUI('hidden'), 2000);
-    return { ok:true };
-  } catch(e) {
-    console.error('Tedarikçi Google Sheets senkronizasyon hatası:', e);
-    setSyncUI('offline', 'Tedarikçi Sheets kaydı başarısız');
-    throw e;
-  }
+    await gsRequest({ action:'syncTedarikci', sheet:'Tedarikci', planlar: liste });
+  } catch(e) {}
 }
 
 // Sheets'ten tedarikçi verilerini çek
@@ -9892,8 +9766,14 @@ function iyBasariOrani(hedef) {
   }
 }
 
-function renderIyilestirme() {
-  const liste = iyYukle();
+async function renderIyilestirme() {
+  let liste = iyYukle();
+  // Sayfa açıldığında gerçek KPI değerlerini mevcut BURKAB kayıtlarından üret.
+  try {
+    if (liste.length) liste = await iyGerceklesenleriGuncelle(liste);
+  } catch(e) {
+    console.warn('KPI gerçekleşen değerleri hesaplanamadı:', e);
+  }
   ensureChartJs(() => { _renderIyilestirmeIcerik(liste); });
 }
 
@@ -10041,6 +9921,13 @@ function iyHedefKaydet() {
     const idx = liste.findIndex(x => x.id === mevId);
     if (idx >= 0) liste[idx] = yeni; else liste.push(yeni);
   } else { liste.push(yeni); }
+  // Standart KPI'larda gerçekleşen değer sistem verisinden otomatik hesaplanır.
+  const standartKpi = ['MTTR','MTBF','KULLANILABILIRLIK','ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'].includes(String(yeni.kpiTur || '').toUpperCase());
+  if (standartKpi) yeni.gerceklesen = iyGerceklesenHesapla(yeni);
+  if (mevId) {
+    const idx2 = liste.findIndex(x => x.id === yeni.id);
+    if (idx2 >= 0) liste[idx2] = yeni;
+  }
   iyKaydetLS(liste);
   iyModalKapat();
   renderIyilestirme();
@@ -10057,10 +9944,126 @@ function iyHedefSil(id) {
   showToast('🗑️ Hedef silindi.', 'ok');
 }
 
+// Sürekli İyileştirme — gerçek KPI gerçekleşen değerlerini BURKAB verisinden hesaplar.
+// Standart KPI'lar manuel girilmez; seçilen döneme ait gerçek bakım kayıtlarından türetilir.
+// OEE için mevcut modülde tek bir aylık hesap fonksiyonu bulunmadığından manuel giriş korunur.
+function iyDonemKayitlari(donem) {
+  const liste = (typeof kayitlar !== 'undefined' && Array.isArray(kayitlar)) ? kayitlar : [];
+  return liste.filter(k => {
+    const s = String(k?.tarihBas || k?.tarih || '').trim();
+    return s && s.slice(0,7) === String(donem || '');
+  });
+}
+
+function iyGerceklesenHesapla(hedef) {
+  const donem = String(hedef?.donem || '').trim();
+  const veri = iyDonemKayitlari(donem);
+  const arizalar = arizaKayitlari(veri);
+
+  switch (String(hedef?.kpiTur || '').toUpperCase()) {
+    case 'MTTR': {
+      if (!arizalar.length) return null;
+      const v = makineMTTR(arizalar);
+      return v > 0 ? v : null;
+    }
+    case 'MTBF': {
+      if (!arizalar.length) return null;
+      const v = dashboardMTBF(arizalar);
+      return v > 0 ? Math.round(v / 60 * 10) / 10 : null;
+    }
+    case 'KULLANILABILIRLIK': {
+      if (!arizalar.length) return 100;
+      const mttr = makineMTTR(arizalar);
+      const mtbfDk = dashboardMTBF(arizalar);
+      if (mtbfDk > 0 && mttr >= 0) {
+        const mtbfSaat = mtbfDk / 60;
+        const mttrSaat = mttr / 60;
+        return Math.min(99.9, Math.round(mtbfSaat / (mtbfSaat + mttrSaat) * 1000) / 10);
+      }
+      return 0;
+    }
+    case 'ARIZA_SAYISI':
+      return arizalar.length;
+    case 'MALIYET': {
+      let toplam = 0;
+      let bulundu = false;
+      veri.forEach(k => {
+        const n = Number(kayitToplamMaliyet(k));
+        if (Number.isFinite(n) && n > 0) {
+          toplam += n;
+          bulundu = true;
+        }
+      });
+      return bulundu ? Math.round(toplam * 100) / 100 : null;
+    }
+    case 'PLANLI_BAKIM_ORANI': {
+      const planlar = (typeof planlarYukle === 'function') ? planlarYukle() : [];
+      const donemPlanlari = planlar.filter(p => String(p?.tarih || '').slice(0,7) === donem);
+      if (!donemPlanlari.length) return null;
+      const tamamlanan = donemPlanlari.filter(p =>
+        String(p?.durum || '').toLowerCase().replaceAll('ı','i') === 'tamamlandi'
+      ).length;
+      return Math.round(tamamlanan / donemPlanlari.length * 1000) / 10;
+    }
+    case 'OEE':
+      return null;
+    default:
+      return null;
+  }
+}
+
+async function iyGerceklesenleriGuncelle(liste) {
+  const guncel = liste.map(h => {
+    const standart = ['MTTR','MTBF','KULLANILABILIRLIK','ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'].includes(String(h.kpiTur || '').toUpperCase());
+    if (!standart) return h;
+    const gercek = iyGerceklesenHesapla(h);
+    return Object.assign({}, h, { gerceklesen: gercek });
+  });
+  iyKaydetLS(guncel);
+
+  // Hesaplanan gerçekleşen değerleri kalıcı olarak Google Sheets'e de yaz.
+  for (const h of guncel) {
+    try {
+      const payload = {
+        ID: h.id,
+        'KPI Turu': h.kpiTur,
+        'Ozel KPI Adi': h.kpiOzel,
+        'Donem (YIL-AY)': h.donem,
+        'Hedef Deger': h.hedef,
+        'Gerceklesen Deger': h.gerceklesen == null ? '' : h.gerceklesen,
+        'Birim': h.birim,
+        'Hedef Yonu': h.yon,
+        'Notlar / Aksiyon': h.not
+      };
+      await gsRequest({ action:'saveIyilestirme', kayit: payload });
+    } catch(e) {
+      console.warn('KPI gerçekleşen değeri Sheets\'e yazılamadı:', e);
+    }
+  }
+  return guncel;
+}
+
+// Sheets'e doğru kayıt action'ı ile yaz
 async function gsIyilestirmeSenkron(liste) {
   try {
-    await gsRequest({ action:'syncIyilestirme', sheet:'Iyilestirme', planlar: liste });
-  } catch(e) {}
+    for (const h of liste) {
+      const payload = {
+        ID: h.id,
+        'KPI Turu': h.kpiTur,
+        'Ozel KPI Adi': h.kpiOzel,
+        'Donem (YIL-AY)': h.donem,
+        'Hedef Deger': h.hedef,
+        'Gerceklesen Deger': h.gerceklesen == null ? '' : h.gerceklesen,
+        'Birim': h.birim,
+        'Hedef Yonu': h.yon,
+        'Notlar / Aksiyon': h.not
+      };
+      const sonuc = await gsRequest({ action:'saveIyilestirme', kayit: payload });
+      if (!sonuc?.ok) throw new Error(sonuc?.error || 'KPI kaydedilemedi');
+    }
+  } catch(e) {
+    console.warn('İyileştirme senkronizasyonu:', e);
+  }
 }
 
 // Sheets'ten iyileştirme verilerini çek
