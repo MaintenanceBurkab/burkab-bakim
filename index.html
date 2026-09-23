@@ -153,16 +153,6 @@ tr:last-child td { border-bottom: none; }
 .kpi-val { font-size: 26px; font-weight: 800; font-family: 'IBM Plex Mono', monospace; color: var(--kpi-color, #1a1a1a); line-height: 1.1; }
 .kpi-lbl { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; }
 .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.maliyet-kpi-card { background:var(--white); border:1px solid #d0d0c0; border-radius:10px; padding:14px 16px; box-shadow:0 2px 8px rgba(0,0,0,.06); border-top:4px solid var(--maliyet-color,#0277bd); }
-.maliyet-kpi-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
-.maliyet-kpi-title { font-size:11px; font-weight:800; color:#555; letter-spacing:.7px; }
-.maliyet-kpi-filter { font-size:9px; color:#888; font-weight:600; }
-.maliyet-doviz-row { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
-.maliyet-doviz { background:#f7f5f0; border:1px solid #e1ddd0; border-radius:7px; padding:8px 6px; text-align:center; }
-.maliyet-doviz-label { font-size:10px; font-weight:800; color:#777; margin-bottom:3px; }
-.maliyet-doviz-val { font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:800; color:var(--maliyet-color,#0277bd); white-space:nowrap; }
-@media(max-width:900px){ #maliyetKpiGrid { grid-template-columns:1fr 1fr !important; } }
-@media(max-width:580px){ #maliyetKpiGrid { grid-template-columns:1fr !important; } }
 
 .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 @media(max-width:700px){ .chart-row { grid-template-columns: 1fr; } }
@@ -1468,9 +1458,6 @@ tr:last-child td { border-bottom: none; }
   </div>
 
   <div class="kpi-grid" id="kpiGrid"></div>
-
-  <!-- MALİYET KPI SATIRI — DASHBOARD FİLTRELERİNE BAĞLI -->
-  <div class="kpi-grid" id="maliyetKpiGrid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px"></div>
   <div class="chart-row">
     <div class="section chart-box">
       <div class="section-head"><div class="dot"></div>📈 AYLIK ARIZA TRENDİ</div>
@@ -3823,7 +3810,7 @@ function renderList() {
           '<td>' + (k.riskSeviye ? '<span class="badge ' + (riskBadge[k.riskSeviye]||'') + '">' + k.riskSeviye + '</span>' : '<span style="color:#bbb">—</span>') + '</td>' +
           '<td style="white-space:nowrap">' +
           '<div style="display:flex;gap:4px;align-items:center">' +
-          (k.riskAksiyon && k.riskAksiyon !== '{}' && k.riskAksiyon !== '' ? '<button onclick="aksiyonDetayAc(' + k.id + ')" title="Risk aksiyonunu aç" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);border-radius:4px;color:#e65100;cursor:pointer;padding:4px 8px;font-size:10px;font-weight:700;font-family:IBM Plex Sans,sans-serif">AKS</button>' : '') +
+          (k.riskAksiyon && k.riskAksiyon !== '{}' && k.riskAksiyon !== '' ? '<span title="Risk aksiyonu" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);border-radius:4px;color:#e65100;padding:2px 5px;font-size:10px;font-weight:700">AKS</span>' : '') +
           '<button onclick="detayAc(' + k.id + ')" style="background:#e3f2fd;border:1px solid #bbdefb;border-radius:5px;color:#0277bd;cursor:pointer;padding:4px 10px;font-size:12px;font-weight:700;font-family:\'IBM Plex Sans\',sans-serif;transition:background .12s" onmouseover="this.style.background=\'#bbdefb\'" onmouseout="this.style.background=\'#e3f2fd\'">🔍 DETAY</button>' +
           '<button onclick="kayitSil(' + k.id + ')" style="background:#fde8e8;border:1px solid #ffcdd2;border-radius:5px;color:#d32f2f;cursor:pointer;padding:4px 8px;font-size:12px;font-weight:700;font-family:\'IBM Plex Sans\',sans-serif;transition:background .12s" onmouseover="this.style.background=\'#ffcdd2\'" onmouseout="this.style.background=\'#fde8e8\'">SİL</button>' +
           '</div></td></tr>';
@@ -4007,29 +3994,14 @@ function parseTutar(str) {
 function maliyetDovizleri(k) {
   const o = {'₺':0,'$':0,'€':0};
   if (!k) return o;
-
-  // PARÇA MALİYETİ yalnızca parcalar alanındaki gerçek parçalardan okunur.
-  // Özellikle parcalar = [] ise toplamMaliyet alanı PARÇA MALİYETİNE eklenmez.
-  // Böylece işçilik tutarı ikinci kez parça gibi görünmez.
-  const rawParcalar = String(k.parcalar ?? '').trim();
-  let arr = [];
-  let yapisalParcaAlaniVar = false;
-  try {
-    const parsed = JSON.parse(rawParcalar);
-    if (Array.isArray(parsed)) {
-      arr = parsed;
-      yapisalParcaAlaniVar = true;
-    }
-  } catch(e) {}
-
+  const arr = parseParcalar(k.parcalar || '');
   arr.forEach(p => {
     const para = o[p.para] !== undefined ? p.para : '₺';
     o[para] += (parseFloat(p.toplam) || ((parseFloat(p.adet)||0)*(parseFloat(p.fiyat)||0)) || 0);
   });
 
-  // Sadece gerçekten eski formatta parcalar alanı olmayan kayıtlarda
-  // toplamMaliyet'i parça maliyeti olarak kullan. [] / boş JSON burada fallback değildir.
-  if (!yapisalParcaAlaniVar && k.toplamMaliyet) {
+  // Eski kayıtlarda parcalar JSON yoksa toplamMaliyet metninden sembolleri oku.
+  if (!arr.length && k.toplamMaliyet) {
     const metin = String(k.toplamMaliyet);
     ['₺','$','€'].forEach(para => {
       const re = new RegExp('([0-9][0-9.,]*)\\s*\\'+para);
@@ -4038,8 +4010,7 @@ function maliyetDovizleri(k) {
     });
     if (!o['₺'] && !o['$'] && !o['€']) o['₺'] = parseTutar(metin);
   }
-
-  // İşçilik ayrı bir kalemdir; yalnızca iscilikMaliyeti alanından gelir.
+  // İşçilik mevcut sistemde ISCILIK_UCRETI üzerinden TL'dir.
   o['₺'] += parseTutar(k.iscilikMaliyeti);
   return o;
 }
@@ -4048,28 +4019,16 @@ function formatPara(v, para) {
   return v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + para;
 }
 function formatParcaMaliyet(k) {
+  const o = maliyetDovizleri(k);
+  // İşçiliği parça satırından ayırmak için tekrar sadece parça JSON'unu hesapla.
   const p = {'₺':0,'$':0,'€':0};
-  const rawParcalar = String(k?.parcalar ?? '').trim();
-  let arr = [];
-  let yapisalParcaAlaniVar = false;
-  try {
-    const parsed = JSON.parse(rawParcalar);
-    if (Array.isArray(parsed)) {
-      arr = parsed;
-      yapisalParcaAlaniVar = true;
-    }
-  } catch(e) {}
-
-  arr.forEach(x => {
+  parseParcalar(k?.parcalar || '').forEach(x => {
     const para = p[x.para] !== undefined ? x.para : '₺';
     p[para] += parseFloat(x.toplam) || ((parseFloat(x.adet)||0)*(parseFloat(x.fiyat)||0)) || 0;
   });
-
   const out=[];
   ['₺','$','€'].forEach(para=>{if(p[para]>0)out.push(formatPara(p[para],para));});
-
-  // Yalnızca eski, yapısal parça alanı bulunmayan kayıtlarda fallback.
-  if(!yapisalParcaAlaniVar && rawParcalar && k?.toplamMaliyet) return String(k.toplamMaliyet);
+  if(!out.length && k?.toplamMaliyet) return String(k.toplamMaliyet);
   return out.join(' + ') || '0,00 ₺';
 }
 function formatToplamMaliyet(k) {
@@ -4085,7 +4044,7 @@ function formatMaliyetOzetListe(list) {
 }
 function maliyetVarMi(k) {
   const o = maliyetDovizleri(k);
-  return o['₺']>0 || o['$']>0 || o['€']>0;
+  return o['₺']>0 || o['$']>0 || o['€']>0 || String(k?.toplamMaliyet||'').trim()!=='';
 }
 
 // Eski kodun sayısal kullandığı yerler için TL bileşenini döndürür.
@@ -4094,86 +4053,8 @@ function kayitToplamMaliyet(k) {
   return maliyetDovizleri(k)['₺'];
 }
 
-
-function dashboardMaliyetParca(k) {
-  const o = {'₺':0,'$':0,'€':0};
-  if (!k) return o;
-  const arr = parseParcalar(k.parcalar || '');
-  arr.forEach(p => {
-    const para = o[p.para] !== undefined ? p.para : '₺';
-    const toplam = parseFloat(p.toplam);
-    const adet = parseFloat(p.adet) || 0;
-    const fiyat = parseFloat(p.fiyat) || 0;
-    o[para] += Number.isFinite(toplam) ? toplam : (adet * fiyat);
-  });
-  return o;
-}
-
-function dashboardMaliyetIscilik(k) {
-  return {'₺': parseTutar(k && k.iscilikMaliyeti), '$':0, '€':0};
-}
-
-function dashboardMaliyetToplam(k) {
-  const p = dashboardMaliyetParca(k);
-  const i = dashboardMaliyetIscilik(k);
-  return {'₺':p['₺']+i['₺'], '$':p['$']+i['$'], '€':p['€']+i['€']};
-}
-
-function dashboardMaliyetOzet(veri) {
-  const parca = {'₺':0,'$':0,'€':0};
-  const iscilik = {'₺':0,'$':0,'€':0};
-  const toplam = {'₺':0,'$':0,'€':0};
-  (veri || []).forEach(k => {
-    const p = dashboardMaliyetParca(k);
-    const i = dashboardMaliyetIscilik(k);
-    const t = dashboardMaliyetToplam(k);
-    ['₺','$','€'].forEach(para => {
-      parca[para] += p[para];
-      iscilik[para] += i[para];
-      toplam[para] += t[para];
-    });
-  });
-  return {parca, iscilik, toplam};
-}
-
-function dashboardPara(v, para) {
-  return Number(v || 0).toLocaleString('tr-TR', {
-    minimumFractionDigits:2, maximumFractionDigits:2
-  }) + ' ' + para;
-}
-
-function renderDashboardMaliyetKpi(veri) {
-  const el = document.getElementById('maliyetKpiGrid');
-  if (!el) return;
-  const o = dashboardMaliyetOzet(veri);
-  const kartlar = [
-    {baslik:'YEDEK PARÇA MALİYETİ', renk:'#e65100', veri:o.parca},
-    {baslik:'İŞÇİLİK MALİYETİ', renk:'#0277bd', veri:o.iscilik},
-    {baslik:'TOPLAM BAKIM MALİYETİ', renk:'#00875a', veri:o.toplam}
-  ];
-  el.innerHTML = kartlar.map(k => {
-    const aktif = ['₺','$','€'].some(para => k.veri[para] > 0);
-    return '<div class="maliyet-kpi-card" style="--maliyet-color:' + k.renk + '">' +
-      '<div class="maliyet-kpi-head">' +
-        '<div class="maliyet-kpi-title">💰 ' + k.baslik + '</div>' +
-        '<div class="maliyet-kpi-filter">' + (veri.length ? veri.length + ' kayıt' : 'Kayıt yok') + '</div>' +
-      '</div>' +
-      '<div class="maliyet-doviz-row">' +
-        ['₺','$','€'].map(para =>
-          '<div class="maliyet-doviz">' +
-            '<div class="maliyet-doviz-label">' + para + '</div>' +
-            '<div class="maliyet-doviz-val">' + dashboardPara(k.veri[para], para) + '</div>' +
-          '</div>'
-        ).join('') +
-      '</div>' +
-      (!aktif ? '<div style="font-size:9px;color:#999;margin-top:7px;text-align:right">Filtrelenen kayıtlarda maliyet yok</div>' : '') +
-    '</div>';
-  }).join('');
-}
-
 function buildDash() {
   const veri   = filtreliVeri();
-  renderDashboardMaliyetKpi(veri);
   const total  = veri.length;
   const arizaV = veri.filter(k =>
   String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
@@ -8031,7 +7912,6 @@ function islemAlOnayla(id) {
 // KALİBRASYON SİSTEMİ
 // ══════════════════════════════════════════════
 const KAL_KEY = 'burkab_kalibrasyon_v1';
-const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwRPDHyAfhz0CI4CeyT6w2VbDkwRXegB1CIK1hJld7p8oDHtQmcFHdqwRS-MJGdII-3/exec';
 
 function kalYukle() { try { return JSON.parse(localStorage.getItem(KAL_KEY) || '[]'); } catch { return []; } }
 function kalKaydet(list) { try { localStorage.setItem(KAL_KEY, JSON.stringify(list)); } catch {} }
@@ -8058,6 +7938,12 @@ function renderKalibrasyon() {
   const cihazlar = kalYukle();
   const tbody = document.getElementById('kal-tbody');
   if (!tbody) return;
+
+  // İlk açılışta Sheets ↔ localStorage senkronizasyonunu bir kez başlat.
+  if (!window._kalSheetsSenkronBasladi) {
+    window._kalSheetsSenkronBasladi = true;
+    kalSheetsSenkronizeEt();
+  }
 
   // Banner: gecikmiş/yaklaşan
   const banner = document.getElementById('kal-banner');
@@ -8195,7 +8081,7 @@ function kalModalKapat() {
   if (o) o.classList.remove('open');
 }
 
-function kalFormKaydet() {
+async function kalFormKaydet() {
   const no      = document.getElementById('kal-no').value.trim();
   const adi     = document.getElementById('kal-adi').value.trim();
   const bolum   = document.getElementById('kal-bolum').value;
@@ -8211,20 +8097,31 @@ function kalFormKaydet() {
   const sonraki  = kalSonrakiHesapla(sonTarih, periyot);
 
   const cihazlar = kalYukle();
+  const kayit = { no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not };
+
   if (editId) {
     const idx = cihazlar.findIndex(x => x.id === editId);
-    if (idx >= 0) cihazlar[idx] = { ...cihazlar[idx], no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not };
-    showToast('✅ Cihaz güncellendi!', 'ok');
+    if (idx >= 0) {
+      cihazlar[idx] = { ...cihazlar[idx], ...kayit };
+    }
   } else {
-    cihazlar.push({ id: 'K' + Date.now(), no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not });
-    showToast('✅ Cihaz eklendi!', 'ok');
-    // Google Sheets'e de yaz
-    kalSheetsYaz({ no, adi, bolum, labTur, sonTarih, periyot, sonraki: override||sonraki, sertifika, not });
+    cihazlar.push({ id: 'K' + Date.now(), ...kayit });
   }
+
+  // Önce local kaydı koru; ardından aynı kaydı Apps Script üzerinden Sheets'e upsert et.
   kalKaydet(cihazlar);
   adminLogEkle(`Kalibrasyon ${editId ? 'güncellendi' : 'eklendi'}: ${adi} (${no})`);
   kalModalKapat();
   renderKalibrasyon();
+
+  try {
+    const sonuc = await kalSheetsYaz(kayit);
+    if (!sonuc || !sonuc.ok) throw new Error(sonuc?.error || 'Sheets kaydı başarısız');
+    showToast(`☁️ Kalibrasyon → Sheets'e ${sonuc.mode === 'updated' ? 'güncellendi' : 'kaydedildi'} ✓`, 'ok');
+  } catch (e) {
+    console.error('Kalibrasyon Sheets senkronizasyon hatası:', e);
+    showToast('⚠️ Cihaz local kaydedildi; Google Sheets senkronizasyonu başarısız.', 'err');
+  }
 }
 
 function kalDuzenle(id) { kalModalAc(id); }
@@ -8242,53 +8139,87 @@ function kalSil(id) {
 const KAL_COLS = ['CihazNo','CihazAdi','Bolum','LabTur','SonTarih','Periyot',
                   'SonrakiTarih','SertifikaNo','Not','Kullanici','Zaman'];
 
-function kalSheetsYaz(veri) {
-  // Apps Script'e GET ile gönder (no-cors POST'tan daha güvenilir)
-  const row = [
-    veri.no, veri.adi, veri.bolum, veri.labTur,
-    veri.sonTarih, String(veri.periyot), veri.sonraki || '',
-    veri.sertifika || '', veri.not || '',
-    currentUser ? currentUser.name : '—',
-    new Date().toLocaleString('tr-TR')
-  ];
+// ── Kalibrasyon → Google Sheets ────────────────────────────
+// Güncel Apps Script'teki saveKalibrasyon() action'ını kullanır.
+async function kalSheetsYaz(veri) {
+  const kayit = {
+    CihazNo:     veri.no,
+    CihazAdi:    veri.adi,
+    Bolum:       veri.bolum,
+    LabTur:      veri.labTur,
+    SonTarih:    veri.sonTarih,
+    Periyot:     String(veri.periyot || ''),
+    SonrakiTarih: veri.sonraki || '',
+    SertifikaNo: veri.sertifika || '',
+    Not:         veri.not || '',
+    Kullanici:   currentUser ? currentUser.name : '—'
+  };
 
-  // Önce init (başlık satırı)
-  const initCb = 'kal_init_' + Date.now();
-  const initScript = document.createElement('script');
-  window[initCb] = () => { delete window[initCb]; initScript.remove(); };
-  initScript.onerror = () => { delete window[initCb]; initScript.remove(); };
-  const initParams = new URLSearchParams({
-    callback: initCb,
-    action: 'init',
-    sheet: 'Kalibrasyon',
-    headers: JSON.stringify(KAL_COLS)
-  });
-  initScript.src = GS_URL + '?' + initParams.toString();
-  document.head.appendChild(initScript);
+  const sonuc = await gsRequest({ action: 'saveKalibrasyon', kayit });
+  if (!sonuc || !sonuc.ok) {
+    throw new Error(sonuc?.error || 'Kalibrasyon Sheets kaydı başarısız');
+  }
+  return sonuc;
+}
 
-  // Sonra save (veri satırı)
-  setTimeout(() => {
-    const saveCb = 'kal_save_' + Date.now();
-    const saveScript = document.createElement('script');
-    window[saveCb] = (res) => {
-      delete window[saveCb]; saveScript.remove();
-      showToast('☁️ Kalibrasyon → Sheets\'e kaydedildi ✓', 'ok');
-    };
-    saveScript.onerror = () => {
-      delete window[saveCb]; saveScript.remove();
-      showToast('⚠️ Sheets bağlantısı yok — local\'de kaydedildi', 'err');
-    };
-    const saveParams = new URLSearchParams({
-      callback: saveCb,
-      action: 'save',
-      sheet: 'Kalibrasyon',
-      headers: JSON.stringify(KAL_COLS),
-      row: JSON.stringify(row)
+// ── İlk açılış senkronizasyonu ─────────────────────────────
+// 1) Sheets'te veri varsa local'e aktarır.
+// 2) Local'de daha önce tutulmuş cihazları Sheets'e upsert eder.
+// Böylece mevcut cihazlar kaybolmaz ve boş Kalibrasyon sayfası doldurulur.
+async function kalSheetsSenkronizeEt() {
+  try {
+    const localListe = kalYukle();
+    const sonuc = await gsRequest({ action: 'getKalibrasyon' });
+    if (!sonuc || !sonuc.ok) throw new Error(sonuc?.error || 'Kalibrasyon verisi alınamadı');
+
+    const sheetListe = Array.isArray(sonuc.data) ? sonuc.data : [];
+    const map = new Map();
+
+    // Önce Sheets kayıtlarını al.
+    sheetListe.forEach(row => {
+      const no = String(row.CihazNo || '').trim();
+      if (!no) return;
+      const periyot = parseInt(row.Periyot, 10) || 180;
+      const sonTarih = String(row.SonTarih || '').substring(0, 10);
+      map.set(no, {
+        id: 'K' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        no,
+        adi: String(row.CihazAdi || ''),
+        bolum: String(row.Bolum || ''),
+        labTur: String(row.LabTur || 'İç'),
+        sonTarih,
+        periyot,
+        sonraki: String(row.SonrakiTarih || '') || kalSonrakiHesapla(sonTarih, periyot),
+        sonrakiOverride: null,
+        sertifika: String(row.SertifikaNo || ''),
+        not: String(row.Not || '')
+      });
     });
-    saveScript.src = GS_URL + '?' + saveParams.toString();
-    document.head.appendChild(saveScript);
-    setTimeout(() => { delete window[saveCb]; saveScript.remove(); }, 10000);
-  }, 800);
+
+    // Local kayıt varsa mevcut kullanıcı verisini koruyarak merge et.
+    localListe.forEach(local => {
+      const no = String(local.no || '').trim();
+      if (!no) return;
+      map.set(no, { ...map.get(no), ...local });
+    });
+
+    const merged = Array.from(map.values());
+    if (merged.length) {
+      kalKaydet(merged);
+      renderKalibrasyon();
+
+      // Local'de olup Sheets'te olmayanlar dahil tüm kayıtları upsert et.
+      for (const c of merged) {
+        await kalSheetsYaz(c);
+      }
+    }
+  } catch (e) {
+    // Senkronizasyon başarısız olsa bile mevcut local kayıtlar çalışmaya devam eder.
+    console.warn('Kalibrasyon Sheets senkronizasyonu:', e);
+    setTimeout(() => {
+      showToast('⚠️ Kalibrasyon local çalışıyor; Sheets senkronizasyonu kurulamadı.', 'err');
+    }, 300);
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -10195,16 +10126,6 @@ function aiRaporModalAc(tip) {
     document.getElementById('aiRaporKeyInput').value = '';
   }
   _aiRaporTypeGridRender();
-  const ab=document.getElementById('aiRaporBaslangic'), az=document.getElementById('aiRaporBitis');
-  if (ab && az) {
-    ab.value=''; az.value='';
-    const z=document.getElementById('dashZamanSelect');
-    if (z && z.value!=='hepsi') {
-      const v=filtreliVeri();
-      const ds=v.map(k=>aiRaporTarihYMD(k.tarihBas)).filter(Boolean).sort();
-      if(ds.length){ab.value=ds[0];az.value=ds[ds.length-1];}
-    }
-  }
   document.getElementById('aiRaporLoading').classList.remove('visible');
   document.getElementById('aiRaporResult').classList.remove('visible');
   document.getElementById('aiRaporModalOverlay').classList.add('open');
@@ -10241,121 +10162,51 @@ function aiRaporKeySave() { const e=document.getElementById('aiRaporKeyStatus');
 
 function aiRaporGetKey() { return 'SERVER_MANAGED'; }
 
-function aiRaporTarihYMD(v) {
-  if (v === null || v === undefined || v === '') return '';
-  if (typeof v === 'string') {
-    const m = v.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
-    if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
-  }
-  const d = v instanceof Date ? v : new Date(v);
-  if (isNaN(d.getTime())) return '';
-  return typeof yerelYMD === 'function' ? yerelYMD(d) : d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-function aiRaporDonemBilgisi() {
-  const basEl = document.getElementById('aiRaporBaslangic');
-  const bitEl = document.getElementById('aiRaporBitis');
-  const bas = basEl?.value || '';
-  const bit = bitEl?.value || '';
-
-  if (bas || bit) {
-    if (!bas || !bit) throw new Error('Rapor dönemi için başlangıç ve bitiş tarihlerini birlikte seçin.');
-    if (bas > bit) throw new Error('Rapor başlangıç tarihi bitiş tarihinden sonra olamaz.');
-    return {baslangic:bas, bitis:bit, kaynak:'Özel tarih aralığı'};
-  }
-
-  const veri = (typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []);
-  let baslangic='', bitis='';
-  veri.forEach(k=>{
-    const d=aiRaporTarihYMD(k.tarihBas);
-    if(!d) return;
-    if(!baslangic || d<baslangic) baslangic=d;
-    if(!bitis || d>bitis) bitis=d;
-  });
-  return {
-    baslangic,
-    bitis,
-    kaynak:'Dashboard filtresi',
-    veri
-  };
-}
-
-function aiRaporDonemVerisi() {
-  const bilgi = aiRaporDonemBilgisi();
-  let veri;
-  if (bilgi.kaynak === 'Özel tarih aralığı') {
-    veri = (kayitlar || []).filter(k=>{
-      const d=aiRaporTarihYMD(k.tarihBas);
-      return d && d>=bilgi.baslangic && d<=bilgi.bitis;
-    });
-  } else {
-    veri = bilgi.veri || ((typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []));
-  }
-  return {bilgi, veri};
-}
-
 function aiRaporVeriOzetle() {
-  const paket = aiRaporDonemVerisi();
-  const veri = paket.veri;
-  const bilgi = paket.bilgi;
-  const total = veri.length;
-  const arizaV = veri.filter(k => String(k.islem||'').trim().toUpperCase()==='ARIZA KAYDI');
-  const sureler = veri.map(k=>parseInt(k.sure)||0).filter(s=>s>0);
-  const mttr = sureler.length ? Math.round(sureler.reduce((a,b)=>a+b,0)/sureler.length) : 0;
-
-  const bolumC={};
-  veri.forEach(k=>{const b=String(k.bolum||'BİLİNMİYOR').trim()||'BİLİNMİYOR';bolumC[b]=(bolumC[b]||0)+1;});
-  const topBolum=Object.entries(bolumC).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  const makineMap={};
-  arizaV.forEach(k=>{if(k.makine){const m=String(k.makine).trim();makineMap[m]=(makineMap[m]||0)+1;}});
-  const topMakine=Object.entries(makineMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  let toplamMaliyet=0;
-  veri.forEach(k=>{const m=(typeof kayitToplamMaliyet==='function')?kayitToplamMaliyet(k):0;if(m)toplamMaliyet+=m;});
-
-  const riskC={'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
-  veri.forEach(k=>{const r=String(k.riskSeviye||'').trim().toUpperCase();if(riskC[r]!==undefined)riskC[r]++;});
-  const acikK=veri.filter(k=>typeof kayitAcikMi==='function'?kayitAcikMi(k):false);
-
-  const aylik={};
-  veri.forEach(k=>{
-    const d=aiRaporTarihYMD(k.tarihBas); if(!d)return;
-    const ay=d.slice(0,7); aylik[ay]=(aylik[ay]||0)+1;
+  var veri = (typeof filtreliVeri === 'function') ? filtreliVeri() : (kayitlar || []);
+  var total = veri.length;
+  var arizaV = veri.filter(function(k) {
+  return String(k.islem || '')
+    .trim()
+    .toUpperCase() === 'ARIZA KAYDI';
+});
+  var sureler = veri.map(function(k){ return parseInt(k.sure)||0; }).filter(function(s){ return s>0; });
+  var mttr = sureler.length ? Math.round(sureler.reduce(function(a,b){return a+b;},0)/sureler.length) : 0;
+  var bolumC = {};
+  veri.forEach(function(k){ bolumC[k.bolum] = (bolumC[k.bolum]||0)+1; });
+  var topBolum = Object.entries(bolumC).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  var makineMap = {};
+  veri.filter(function(k){return k.islem==='ARIZA KAYDI';}).forEach(function(k){ if(k.makine) makineMap[k.makine]=(makineMap[k.makine]||0)+1; });
+  var topMakine = Object.entries(makineMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+  var toplamMaliyet = 0;
+  veri.forEach(function(k){ var m = (typeof kayitToplamMaliyet==='function') ? kayitToplamMaliyet(k) : 0; if(m) toplamMaliyet+=m; });
+  var riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
+  veri.forEach(function(k){ if(k.riskSeviye && riskC[k.riskSeviye]!==undefined) riskC[k.riskSeviye]++; });
+  var bugun = yerelYMD(new Date());
+  var bugunK = veri.filter(function(k){ return k.tarihBas===bugun; });
+  var acikK  = (kayitlar||[]).filter(kayitAcikMi);
+  var oeeOzet = (iatfMetrics?.oee || []).map(function(r){
+    return r.group + ':' + (r.oee == null ? 'N/A' : r.oee + '% OEE') + ', ' + r.downtimeDk + 'dk duruş';
   });
-  const aylikDagilim=Object.keys(aylik).sort().map(ay=>ay+': '+aylik[ay]+' kayıt').join(' | ') || 'Kayıt yok';
-
-  const oeeOzet=(iatfMetrics?.oee||[]).map(r=>r.group+': '+(r.oee==null?'N/A':r.oee+'% OEE')+', '+r.downtimeDk+'dk duruş');
-  const bugun=yerelYMD(new Date());
-  const bugunK=veri.filter(k=>aiRaporTarihYMD(k.tarihBas)===bugun);
-
-  let filtreDonemi='Hepsi';
-  const z=document.getElementById('dashZamanSelect');
-  if(z && z.value!=='hepsi') filtreDonemi=(z.options[z.selectedIndex]||{}).text||z.value;
-  if(bilgi.baslangic && bilgi.bitis) filtreDonemi=bilgi.baslangic+' → '+bilgi.bitis;
-
+  var zamanEl = document.getElementById('dashZamanSelect');
+  var filtreDonemi = zamanEl ? (zamanEl.options[zamanEl.selectedIndex] || {}).text || 'Hepsi' : 'Hepsi';
   return {
-    toplamKayit:total,
-    donemKayitSayisi:total,
-    arizaSayisi:arizaV.length,
-    mttr_dk:mttr,
-    topBolumler:topBolum.map(x=>x[0]+'('+x[1]+')').join(', ')||'Yok',
-    topMakineler:topMakine.map(x=>x[0]+'('+x[1]+' arıza)').join(', ')||'Yok',
-    toplamMaliyet:toplamMaliyet,
-    riskDagilimlari:JSON.stringify(riskC),
-    bugunAriza:bugunK.filter(k=>String(k.islem||'').toUpperCase()==='ARIZA KAYDI').length,
-    bugunTamDurus:bugunK.filter(k=>k.durusEtkisi==='TAM DURUŞ').length,
-    acikKayitlar:acikK.length,
-    oeeOzet:oeeOzet.join(' | ')||'OEE verisi yok',
-    filtreDonemi:filtreDonemi,
-    donemBaslangic:bilgi.baslangic||'—',
-    donemBitis:bilgi.bitis||'—',
-    donemKaynak:bilgi.kaynak,
-    aylikDagilim:aylikDagilim,
-    tarih:new Date().toLocaleDateString('tr-TR')+' '+new Date().toLocaleTimeString('tr-TR'),
-    kritikSayi:riskC['KRİTİK'],
-    yuksekSayi:riskC['YÜKSEK'],
-    maliyetStr:toplamMaliyet.toLocaleString('tr-TR')
+    toplamKayit: total,
+    arizaSayisi: arizaV.length,
+    mttr_dk: mttr,
+    topBolumler: topBolum.map(function(x){return x[0]+'('+x[1]+')';}).join(', '),
+    topMakineler: topMakine.map(function(x){return x[0]+'('+x[1]+' arıza)';}).join(', '),
+    toplamMaliyet: toplamMaliyet,
+    riskDagilimlari: JSON.stringify(riskC),
+    bugunAriza: bugunK.filter(function(k){return k.islem==='ARIZA KAYDI';}).length,
+    bugunTamDurus: bugunK.filter(function(k){return k.durusEtkisi==='TAM DURUŞ';}).length,
+    acikKayitlar: acikK.length,
+    oeeOzet: oeeOzet.join(' | '),
+    filtreDonemi: filtreDonemi,
+    tarih: new Date().toLocaleDateString('tr-TR')+' '+new Date().toLocaleTimeString('tr-TR'),
+    kritikSayi: riskC['KRİTİK'],
+    yuksekSayi: riskC['YÜKSEK'],
+    maliyetStr: toplamMaliyet.toLocaleString('tr-TR'),
   };
 }
 
@@ -10418,68 +10269,25 @@ function aiRaporPromptHazirla() {
       prompt: 'BURKAB A.Ş. — '+d.tarih+' Vardiya Sonu Özeti (07:00-17:00)\n\nArıza:'+d.bugunAriza+' Tam duruş:'+d.bugunTamDurus+'\nAçık kalan:'+d.acikKayitlar+'\nOEE: '+d.oeeOzet+'\nRisk: '+d.riskDagilimlari+'\n\nVardiya teslim raporu formatında:\n## VARDIYA ÖZETİ\nGenel durum 1 paragraf.\n## BUGÜN YAŞANAN OLAYLAR\nÖnemli arıza/duruşlar.\n## AÇIK KALAN İŞLER\nBir sonraki vardiyaya devreden.\n## SONRAKI VARDİYA NOTLARI\n3 önemli not.\n## ONAY\nBakım şefi onay satırı formatı.'
     },
   };
-  var secili = tipConf[_aiRaporSecili] || tipConf.genel_ozet;
-  secili.prompt = 'KAYNAK VERİ KURALI: Yalnızca aşağıdaki sistem verilerine dayan. Verilmeyen bir tarihi, sayıyı, ayı veya kaydı tahmin etme. Dönem kaydı 0 ise açıkça veri olmadığını belirt; dönem kaydı 0 değilse veri varmış gibi "veri yok" deme. Aylık dağılımı değiştirme.\n' +
-    '- Rapor dönemi: '+d.donemBaslangic+' → '+d.donemBitis+'\n' +
-    '- Dönem kayıt sayısı: '+d.donemKayitSayisi+'\n' +
-    '- Aylık kayıt dağılımı: '+d.aylikDagilim+'\n' +
-    '- Dönem kaynağı: '+d.donemKaynak+'\n\n' + secili.prompt;
-  return secili;
+  return tipConf[_aiRaporSecili] || tipConf.genel_ozet;
 }
 
 async function aiRaporCalistir() {
-  const basEl=document.getElementById('aiRaporBaslangic');
-  const bitEl=document.getElementById('aiRaporBitis');
-  const bas=basEl?.value||'';
-  const bit=bitEl?.value||'';
-  if(!bas || !bit){
-    showToast('📅 Önce rapor başlangıç ve bitiş tarihlerini seçin.','err');
-    basEl?.focus();
-    return;
-  }
-  if(bas>bit){
-    showToast('⚠️ Başlangıç tarihi bitiş tarihinden sonra olamaz.','err');
-    return;
-  }
-
-  const tipler=AI_RAPOR_TIPLERI[_aiRaporTip]||[];
-  const cfg=tipler.find(t=>t.id===_aiRaporSecili)||tipler[0]||{label:'AI Rapor',desc:''};
-  const loadingEl=document.getElementById('aiRaporLoading');
-  const resultEl=document.getElementById('aiRaporResult');
-  const runBtn=document.getElementById('aiRaporRunBtn');
-  const detailEl=document.getElementById('aiRaporLoadingDetail');
-
-  document.getElementById('aiRaporResultTitle').textContent=cfg.ikon+' '+cfg.label;
-  loadingEl.classList.add('visible');
-  resultEl.classList.remove('visible');
-  runBtn.disabled=true;
-  detailEl.textContent='Google Sheets verileri seçilen tarih aralığında doğrudan sunucudan okunuyor...';
-
+  var conf = aiRaporPromptHazirla();
+  var loadingEl=document.getElementById('aiRaporLoading'), resultEl=document.getElementById('aiRaporResult'), runBtn=document.getElementById('aiRaporRunBtn'), detailEl=document.getElementById('aiRaporLoadingDetail');
+  document.getElementById('aiRaporResultTitle').textContent=conf.title;
+  loadingEl.classList.add('visible'); resultEl.classList.remove('visible'); runBtn.disabled=true; detailEl.textContent=conf.loading;
   try {
-    const res=await gsRequest({
-      action:'aiRaporOlustur',
-      baslangic:bas,
-      bitis:bit,
-      tip:_aiRaporSecili
-    });
-    if(!res?.ok) throw new Error(res?.error||'AI raporu oluşturulamadı.');
-
-    const oz=res.veriOzeti||{};
-    const dogrulama='📌 VERİ DOĞRULAMA — '+(oz.baslangic||bas)+' → '+(oz.bitis||bit)+
-      ' | '+(Number(oz.toplamKayit)||0)+' kayıt | '+(Number(oz.arizaSayisi)||0)+' arıza'+
-      (oz.aylikDagilim ? ' | '+oz.aylikDagilim : '');
-
-    _aiRaporSonuc=(dogrulama+'\n\n'+(res.yanit||'')).trim();
+    var res=await gsRequest({action:'handleAI',mesaj:conf.prompt,gecmis:[]});
+    if(!res?.ok)throw new Error(res?.error||'AI yanıtı alınamadı.');
+    _aiRaporSonuc=res.yanit||'';
     document.getElementById('aiRaporResultContent').innerHTML=aiRaporRenderMd(_aiRaporSonuc);
     resultEl.classList.add('visible');
   } catch(e) {
     _aiRaporSonuc='Hata: '+e.message;
     document.getElementById('aiRaporResultContent').innerHTML='<span style="color:#ff6060">❌ '+aiEscapeHtml(e.message)+'</span>';
     resultEl.classList.add('visible');
-  } finally {
-    loadingEl.classList.remove('visible');
-    runBtn.disabled=false;
-  }
+  } finally { loadingEl.classList.remove('visible'); runBtn.disabled=false; }
 }
 
 function aiRaporRenderMd(text) {
@@ -11865,20 +11673,6 @@ async function aksiyonKaydetLocal(id) {
       <!-- API anahtarı tarayıcıya verilmez -->
       <div style="margin-bottom:16px;padding:10px 12px;border:1px solid #33443b;border-radius:8px;background:#14231c;color:#9ed7b9;font-size:12px" role="status">
         🔐 AI anahtarı Google Apps Script üzerinde güvenli olarak yönetilir.
-      </div>
-
-      <!-- RAPOR DÖNEMİ -->
-      <div style="margin-bottom:16px;padding:12px;border:1px solid #3b3b3b;border-radius:9px;background:#161616">
-        <div style="font-size:11px;font-weight:800;letter-spacing:.6px;color:#aaa;text-transform:uppercase;margin-bottom:8px">📅 RAPOR DÖNEMİ</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <label style="font-size:11px;color:#aaa">Başlangıç
-            <input id="aiRaporBaslangic" type="date" style="display:block;width:100%;margin-top:5px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px">
-          </label>
-          <label style="font-size:11px;color:#aaa">Bitiş
-            <input id="aiRaporBitis" type="date" style="display:block;width:100%;margin-top:5px;background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:8px">
-          </label>
-        </div>
-        <div style="font-size:10px;color:#777;margin-top:7px">AI raporu artık Dashboard sayısından değil, doğrudan Google Sheets <b>Kayitlar</b> verisinden ve seçtiğiniz tarih aralığından oluşturulur. Tarihleri mutlaka seçin.</div>
       </div>
 
       <!-- RAPOR TİPİ SEÇİMİ -->
