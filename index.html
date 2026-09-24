@@ -2582,7 +2582,7 @@ async function syncPending() {
   setSyncUI('syncing', list.length + ' kayıt gönderiliyor...');
   for (const rec of list) {
     try {
-      await gsRequest({ action: 'add', row: rec });
+      await gsRequest({ action: 'saveKayit', kayit: rec });
       await idbDelete(rec.id);
       pendingCount = Math.max(0, pendingCount - 1);
     } catch { break; }
