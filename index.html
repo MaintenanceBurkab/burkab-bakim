@@ -3901,87 +3901,112 @@ function ensureChartJs(cb) {
 
 // ── DASHBOARD ZAMAN FİLTRESİ ──────────────────────
 let dashZamanFiltre = 'hepsi';
+let dashRenderToken = 0;
 
 function dashZamanDegis(sel) {
-  dashZamanFiltre = sel.value;
+  dashZamanFiltre = sel?.value || 'hepsi';
   renderDash();
 }
 
 function dashFiltreTemizle() {
-  dashZamanFiltre = 'bugun';
-  document.getElementById('dashZamanSelect').value = 'hepsi';
-  document.getElementById('dashBolumSelect').value = '';
-  document.getElementById('dashIslemSelect').value = '';
-  document.getElementById('dashRiskSelect').value = '';
+  dashZamanFiltre = 'hepsi';
+  const z = document.getElementById('dashZamanSelect');
+  const b = document.getElementById('dashBolumSelect');
+  const i = document.getElementById('dashIslemSelect');
+  const r = document.getElementById('dashRiskSelect');
+  if (z) z.value = 'hepsi';
+  if (b) b.value = '';
+  if (i) i.value = '';
+  if (r) r.value = '';
   renderDash();
 }
+
+// Dashboard'un bütün grafik/KPI/özet bölümleri aynı filtrelenmiş veri kümesini kullanır.
+// Tarihlerde toISOString() kullanılmaz; UTC kayması nedeniyle bir gün/ay kayması oluşmaz.
+function dashTarihYMD(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) return yerelYMD(v);
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  // Google Sheets/HTML date değerlerinin en güvenli hali: YYYY-MM-DD...
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[1] + '-' + iso[2] + '-' + iso[3];
+  // Türkçe tarih ihtimali: DD.MM.YYYY
+  const tr = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
+  if (tr) return tr[3] + '-' + String(tr[2]).padStart(2,'0') + '-' + String(tr[1]).padStart(2,'0');
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? '' : yerelYMD(d);
+}
+
+function dashSeciliFiltreBilgisi() {
+  return {
+    zaman: dashZamanFiltre,
+    bolum: (document.getElementById('dashBolumSelect')?.value || '').trim(),
+    islem: (document.getElementById('dashIslemSelect')?.value || '').trim(),
+    risk:  (document.getElementById('dashRiskSelect')?.value || '').trim()
+  };
+}
+
 function filtreliVeri() {
+  // Ekrandaki seçim ile dahili filtre durumunu her render'da senkron tut.
+  const zamanSelect = document.getElementById('dashZamanSelect');
+  if (zamanSelect && zamanSelect.value) dashZamanFiltre = zamanSelect.value;
   const now = new Date();
   const today = yerelYMD(now);
   let baslangic = null, bitis = null;
+
   if (dashZamanFiltre === 'bugun') {
-    baslangic = today; 
-    bitis = today;
-  } 
-  else if (dashZamanFiltre === 'bu_hafta') {
+    baslangic = today; bitis = today;
+  } else if (dashZamanFiltre === 'bu_hafta') {
     const paz = new Date(now);
+    paz.setHours(12,0,0,0);
     paz.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    baslangic = yerelYMD(paz);
-    bitis = today;
-  } 
-  else if (dashZamanFiltre === 'bu_ay') {
+    baslangic = yerelYMD(paz); bitis = today;
+  } else if (dashZamanFiltre === 'bu_ay') {
     baslangic = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-01';
     bitis = today;
-  } 
-  else if (dashZamanFiltre === 'gecen_ay') {
+  } else if (dashZamanFiltre === 'gecen_ay') {
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    baslangic = yerelYMD(prevMonth);
-    bitis = yerelYMD(lastDayOfPrevMonth);
-  } 
-  else if (dashZamanFiltre === 'gecen_yil') {
+    baslangic = yerelYMD(prevMonth); bitis = yerelYMD(lastDayOfPrevMonth);
+  } else if (dashZamanFiltre === 'gecen_yil') {
     const gy = now.getFullYear() - 1;
-    baslangic = gy + '-01-01'; 
-    bitis = gy + '-12-31';
+    baslangic = gy + '-01-01'; bitis = gy + '-12-31';
   }
 
-  const secBolum = (document.getElementById('dashBolumSelect')?.value || '').trim();
-  const secIslem = (document.getElementById('dashIslemSelect')?.value || '').trim();
-  const secRisk  = (document.getElementById('dashRiskSelect')?.value  || '').trim();
-  let sonuc = kayitlar.slice();
- if (baslangic && bitis) {
+  const f = dashSeciliFiltreBilgisi();
+  let sonuc = Array.isArray(kayitlar) ? kayitlar.slice() : [];
+
+  if (baslangic && bitis) {
     sonuc = sonuc.filter(k => {
-      if (!k.tarihBas) return false;
-      const d = k.tarihBas instanceof Date ? k.tarihBas : new Date(k.tarihBas);
-      if (isNaN(d)) return false;
-      const dStr = d.toISOString().split('T')[0];
-      return dStr >= baslangic && dStr <= bitis;
+      const dStr = dashTarihYMD(k?.tarihBas);
+      return dStr && dStr >= baslangic && dStr <= bitis;
     });
   }
-  if (secBolum) {
-    sonuc = sonuc.filter(k => k.bolum === secBolum);
-  }
-  if (secIslem) {
-    sonuc = sonuc.filter(k => k.islem === secIslem);
-  }
-  if (secRisk) {
-    sonuc = sonuc.filter(k => k.riskSeviye === secRisk);
-  }
+  if (f.bolum) sonuc = sonuc.filter(k => trNorm(k?.bolum) === trNorm(f.bolum));
+  if (f.islem) sonuc = sonuc.filter(k => trNorm(k?.islem) === trNorm(f.islem));
+  if (f.risk)  sonuc = sonuc.filter(k => trNorm(k?.riskSeviye) === trNorm(f.risk));
+
   const el = document.getElementById('dashFiltreBilgi');
   if (el) {
     const zamanEtiket = {
       bugun:'Bugün', bu_hafta:'Bu Hafta', bu_ay:'Bu Ay',
       gecen_ay:'Geçen Ay', gecen_yil:'Geçen Yıl', hepsi:'Tümü'
-    }[dashZamanFiltre] || dashZamanFiltre;
-    el.textContent = sonuc.length + ' kayıt · ' + zamanEtiket;
+    }[dashZamanFiltre] || 'Tümü';
+    const detay = [f.bolum, f.islem, f.risk].filter(Boolean);
+    el.textContent = sonuc.length + ' kayıt · ' + zamanEtiket + (detay.length ? ' · ' + detay.join(' · ') : '');
   }
   return sonuc;
 }
 
 function renderDash() {
+  const token = ++dashRenderToken;
   ensureChartJs(() => {
-    buildDash();
-    renderRiskAksiyonOzet(filtreliVeri());
+    // Kullanıcı filtreleri değiştirirken birden fazla render beklemede kalabilir.
+    // Yalnızca son render'ın verisini ekrana bas.
+    if (token !== dashRenderToken) return;
+    const veri = filtreliVeri();
+    buildDash(veri);
+    renderRiskAksiyonOzet(veri);
   });
 }
 
@@ -4065,8 +4090,8 @@ function kayitToplamMaliyet(k) {
   return maliyetDovizleri(k)['₺'];
 }
 
-function buildDash() {
-  const veri   = filtreliVeri();
+function buildDash(veriArg) {
+  const veri   = Array.isArray(veriArg) ? veriArg : filtreliVeri();
   const total  = veri.length;
   const arizaV = veri.filter(k =>
   String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
@@ -4111,8 +4136,9 @@ function buildDash() {
   const ayMap = {};
   veri.forEach(k => {
     if (!k.tarihBas) return;
-    const d = new Date(k.tarihBas);
-    const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');   // ★ GERİ EKLENDİ
+    const tarih = dashTarihYMD(k.tarihBas);
+    if (!tarih) return;
+    const ay = tarih.slice(0,7);   // Yerel YYYY-MM bucket
     if (!ayMap[ay]) ayMap[ay] = { ariza: 0, bakim: 0 };
 
     const islem = String(k.islem || '').trim().toUpperCase();
@@ -4199,8 +4225,9 @@ function buildDash() {
   const malMap = {'₺':{}, '$':{}, '€':{}};
   veri.forEach(k => {
     if (!k.tarihBas) return;
-    const d = new Date(k.tarihBas);
-    const ay = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const tarih = dashTarihYMD(k.tarihBas);
+    if (!tarih) return;
+    const ay = tarih.slice(0,7);
     const o = maliyetDovizleri(k);
     Object.keys(malMap).forEach(para => {
       if (o[para] > 0) malMap[para][ay] = (malMap[para][ay]||0) + o[para];
