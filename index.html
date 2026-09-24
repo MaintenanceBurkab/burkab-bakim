@@ -4003,12 +4003,12 @@ function maliyetDovizleri(k) {
   // Parça JSON'u olmayan eski kayıtlarda toplamMaliyet metni varsa,
   // yalnızca gerçek parça tutarını almaya çalış. İşçilik ayrı alanda eklenir.
   if (!arr.length && k.toplamMaliyet) {
-    const metin = String(k.toplamMaliyet);
     ['₺','$','€'].forEach(para => {
-      const re = new RegExp('([0-9][0-9.,]*)\s*\'+para);
-      const m = metin.match(re);
-      if (m) o[para] += parseTutar(m[1]);
-    });
+  const escPara = para === '$' ? '\\$' : para;
+  const re = new RegExp('([0-9][0-9.,]*)\\s*' + escPara);
+  const m = metin.match(re);
+  if (m) o[para] += parseTutar(m[1]);
+});
     if (!o['₺'] && !o['$'] && !o['€']) o['₺'] = parseTutar(metin);
 
     // Eski kayıtta toplamMaliyet yalnızca işçilik olarak yazılmışsa,
