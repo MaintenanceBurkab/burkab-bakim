@@ -145,7 +145,7 @@ tr:last-child td { border-bottom: none; }
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
-.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
 @media(max-width:900px){ .kpi-grid { grid-template-columns: repeat(3,1fr); } }
 @media(max-width:580px){ .kpi-grid { grid-template-columns: repeat(2,1fr); } }
 
@@ -4080,7 +4080,8 @@ function buildDash() {
     '<div class="kpi-card" style="--kpi-color:#d32f2f"><div class="kpi-val">' + arizaV.length + '</div><div class="kpi-lbl">Arıza Kaydı</div></div>' +
     '<div class="kpi-card" style="--kpi-color:#0277bd"><div class="kpi-val">' + mttr + '<span style="font-size:14px;font-weight:400"> dk</span></div><div class="kpi-lbl">MTTR</div><div class="kpi-sub">Ort. Onarım Süresi</div></div>' +
     '<div class="kpi-card" style="--kpi-color:#00875a"><div class="kpi-val">' + mtbf + '<span style="font-size:14px;font-weight:400"> sa</span></div><div class="kpi-lbl">MTBF</div><div class="kpi-sub">Arızalar Arası Süre</div></div>' +
-    '<div class="kpi-card" style="--kpi-color:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"><div class="kpi-val">%' + avail + '</div><div class="kpi-lbl">KULLANILABİLİRLİK</div><div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + avail + '%;background:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"></div></div></div>';
+    '<div class="kpi-card" style="--kpi-color:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"><div class="kpi-val">%' + avail + '</div><div class="kpi-lbl">KULLANILABİLİRLİK</div><div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + avail + '%;background:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"></div></div></div>' +
+    '<div class="kpi-card" style="--kpi-color:#b8900a"><div class="kpi-val" style="font-size:20px">' + topMaliyet + '</div><div class="kpi-lbl">TOPLAM MALİYET</div><div class="kpi-sub">Seçili dönem</div></div>';
 
   if (total === 0) {
     ['Trend','Islem','MTTR','Bolum','Risk','Maliyet'].forEach(id => {
