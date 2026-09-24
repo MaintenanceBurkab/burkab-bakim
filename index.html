@@ -4000,15 +4000,23 @@ function maliyetDovizleri(k) {
     o[para] += (parseFloat(p.toplam) || ((parseFloat(p.adet)||0)*(parseFloat(p.fiyat)||0)) || 0);
   });
 
-  // Eski kayıtlarda parcalar JSON yoksa toplamMaliyet metninden sembolleri oku.
+  // Parça JSON'u olmayan eski kayıtlarda toplamMaliyet metni varsa,
+  // yalnızca gerçek parça tutarını almaya çalış. İşçilik ayrı alanda eklenir.
   if (!arr.length && k.toplamMaliyet) {
     const metin = String(k.toplamMaliyet);
     ['₺','$','€'].forEach(para => {
-      const re = new RegExp('([0-9][0-9.,]*)\\s*\\'+para);
+      const re = new RegExp('([0-9][0-9.,]*)\s*\'+para);
       const m = metin.match(re);
       if (m) o[para] += parseTutar(m[1]);
     });
     if (!o['₺'] && !o['$'] && !o['€']) o['₺'] = parseTutar(metin);
+
+    // Eski kayıtta toplamMaliyet yalnızca işçilik olarak yazılmışsa,
+    // bunu parça maliyeti kabul etme.
+    const isc = parseTutar(k.iscilikMaliyeti);
+    if (isc > 0 && Math.abs(o['₺'] - isc) < 0.01) {
+      o['₺'] = 0;
+    }
   }
   // İşçilik mevcut sistemde ISCILIK_UCRETI üzerinden TL'dir.
   o['₺'] += parseTutar(k.iscilikMaliyeti);
@@ -4019,16 +4027,19 @@ function formatPara(v, para) {
   return v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + para;
 }
 function formatParcaMaliyet(k) {
-  const o = maliyetDovizleri(k);
-  // İşçiliği parça satırından ayırmak için tekrar sadece parça JSON'unu hesapla.
+  // PARÇA MALİYETİ yalnızca gerçekten tanımlanmış parçalardan hesaplanır.
+  // toplamMaliyet alanı işçilikle doldurulmuş eski kayıtlarda artık parça yerine
+  // işçilik tutarını göstermeyeceğiz.
   const p = {'₺':0,'$':0,'€':0};
   parseParcalar(k?.parcalar || '').forEach(x => {
     const para = p[x.para] !== undefined ? x.para : '₺';
-    p[para] += parseFloat(x.toplam) || ((parseFloat(x.adet)||0)*(parseFloat(x.fiyat)||0)) || 0;
+    const toplam = parseFloat(x.toplam);
+    const adet = parseFloat(x.adet)||0;
+    const fiyat = parseFloat(x.fiyat)||0;
+    p[para] += Number.isFinite(toplam) && toplam > 0 ? toplam : adet * fiyat;
   });
   const out=[];
   ['₺','$','€'].forEach(para=>{if(p[para]>0)out.push(formatPara(p[para],para));});
-  if(!out.length && k?.toplamMaliyet) return String(k.toplamMaliyet);
   return out.join(' + ') || '0,00 ₺';
 }
 function formatToplamMaliyet(k) {
