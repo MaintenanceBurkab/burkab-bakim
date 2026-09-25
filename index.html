@@ -10148,7 +10148,51 @@ function gsIyilestirmeYukle() {
 }
 
 let _sicilMakine='';let _sicilData=null;let _sicilSekme='gecmis';
-async function makineSicilAc(makine){_sicilMakine=String(makine||'').trim();if(!_sicilMakine)return;const m=document.getElementById('makineSicilModal');if(!m)return;m.style.display='flex';document.getElementById('sicilBaslik').textContent='MAKİNE SİCİL KARTI — '+_sicilMakine;document.getElementById('sicilKpiGrid').innerHTML='<div style="grid-column:1/-1;padding:25px;text-align:center;color:#888">⏳ Makine geçmişi ve KPI hesaplanıyor...</div>';try{const r=await gsRequest({action:'getMakineSicil',makine:_sicilMakine});if(!r?.ok)throw new Error(r?.error||'Makine sicil verisi alınamadı');_sicilData=r.data||{};_sicilSekme='gecmis';sicilRender();}catch(e){document.getElementById('sicilKpiGrid').innerHTML='<div style="grid-column:1/-1;color:#c62828;padding:18px">❌ '+(e.message||e)+'</div>';}}
+async function makineSicilAc(makine){
+  _sicilMakine=String(makine||'').trim();if(!_sicilMakine)return;
+  const m=document.getElementById('makineSicilModal');if(!m)return;m.style.display='flex';
+  document.getElementById('sicilBaslik').textContent='MAKİNE SİCİL KARTI — '+_sicilMakine;
+  document.getElementById('sicilKpiGrid').innerHTML='<div style="grid-column:1/-1;padding:25px;text-align:center;color:#888">⏳ Makine geçmişi ve KPI hesaplanıyor...</div>';
+  try{
+    const r=await gsRequest({action:'getMakineSicil',makine:_sicilMakine});
+    if(!r?.ok) throw new Error(r?.error||'Makine sicil verisi alınamadı');
+    _sicilData=r.data||{};_sicilSekme='gecmis';sicilRender();
+  }catch(e){
+    // Eski Web App deployment'larında getMakineSicil henüz yoksa, mevcut okuma API'leriyle aynı sicili yerelde oluştur.
+    const msg=String(e?.message||e||'');
+    if(/Bilinmeyen işlem|getMakineSicil/i.test(msg)){
+      try{
+        const rs=await Promise.all([
+          gsRequest({action:'getAll',sheet:'Ekipman'}),
+          gsRequest({action:'getAll',sheet:'Kayitlar'}),
+          gsRequest({action:'getAll',sheet:'Duruslar'}),
+          gsRequest({action:'getAll',sheet:'Bakim'})
+        ]);
+        const eqRows=Array.isArray(rs[0]?.data)?rs[0].data:[];
+        const kayRows=Array.isArray(rs[1]?.data)?rs[1].data:[];
+        const durRows=Array.isArray(rs[2]?.data)?rs[2].data:[];
+        const bakRows=Array.isArray(rs[3]?.data)?rs[3].data:[];
+        const eq=eqRows.find(x=>String(x.makine||'').trim()===_sicilMakine)||null;
+        const mk=String(_sicilMakine);
+        const kay=kayRows.filter(x=>String(x.makine||'').trim()===mk);
+        const dur=durRows.filter(x=>String(x.makine||'').trim()===mk);
+        const bak=bakRows.filter(x=>String(x.makine||'').trim()===mk);
+        function mins(k){
+          const n=Number(String(k.sure||'').replace(',','.'))||0;if(n>0)return n;
+          const a=String(k.arizaBas||k.onarimBas||'').trim(),b=String(k.arizaBit||k.onarimBit||'').trim();if(!a||!b)return 0;
+          try{const d1=new Date(String(k.tarihBas||'').slice(0,10)+'T'+a.slice(0,5)+':00');const d2=new Date(String(k.tarihBit||k.tarihBas||'').slice(0,10)+'T'+b.slice(0,5)+':00');return Math.max(0,Math.round((d2-d1)/60000));}catch(_){return 0;}
+        }
+        const real=kay.filter(k=>String(k.islem||'').trim().toUpperCase()==='ARIZA KAYDI'&&['TAM DURUŞ','KISMİ DURUŞ'].includes(String(k.durusEtkisi||'').trim().toUpperCase())&&String(k.durum||'').trim().toUpperCase()!=='İPTAL'&&mins(k)>0).map(k=>({id:String(k.id||''),formNo:String(k.formNo||''),tarih:String(k.tarihBas||'').slice(0,10),bitis:String(k.tarihBit||k.tarihBas||'').slice(0,10),arizaTuru:String(k.arizaTuru||''),arizaKodu:String(k.arizaKodu||''),konu:String(k.konu||''),durusEtkisi:String(k.durusEtkisi||''),sureDk:mins(k),riskSeviye:String(k.riskSeviye||''),yapilan:String(k.yapilan||''),bakimci:String(k.bakimci||''),maliyet:String(k.toplamBakimMaliyeti||k.toplamMaliyet||'')})).sort((a,b)=>a.tarih.localeCompare(b.tarih));
+        const toplam=real.reduce((a,x)=>a+x.sureDk,0);const mttr=real.length?Math.round(toplam/real.length):0;
+        let mtbf=0;if(real.length>=2){let fark=0;for(let i=1;i<real.length;i++){const a=new Date(real[i-1].tarih+'T00:00:00'),b=new Date(real[i].tarih+'T00:00:00');fark+=Math.max(0,b-a);}mtbf=Math.round(fark/(real.length-1)/60000);}
+        const gecmis=kay.map(k=>({formNo:String(k.formNo||''),tarih:String(k.tarihBas||'').slice(0,10),islem:String(k.islem||''),arizaTuru:String(k.arizaTuru||''),konu:String(k.konu||''),durusEtkisi:String(k.durusEtkisi||''),sureDk:mins(k),durum:String(k.durum||''),maliyet:String(k.toplamBakimMaliyeti||k.toplamMaliyet||''),yapilan:String(k.yapilan||'')})).sort((a,b)=>String(b.tarih).localeCompare(String(a.tarih)));
+        _sicilData={makine:mk,ekipman:eq,toplamKayit:kay.length,toplamBakim:bak.length,gercekArizaSayisi:real.length,toplamGercekArizaDk:toplam,mttrDk:mttr,mtbfDk:mtbf,sonAriza:real.length?real[real.length-1]:null,ilkAriza:real.length?real[0]:null,gercekArizalar:real,duruslar:dur,gecmis:gecmis,bakimlar:bak};
+        _sicilSekme='gecmis';sicilRender();return;
+      }catch(fallbackErr){document.getElementById('sicilKpiGrid').innerHTML='<div style="grid-column:1/-1;color:#c62828;padding:18px">❌ Makine sicili alınamadı: '+(fallbackErr.message||fallbackErr)+'</div>';return;}
+    }
+    document.getElementById('sicilKpiGrid').innerHTML='<div style="grid-column:1/-1;color:#c62828;padding:18px">❌ '+msg+'</div>';
+  }
+}
 function makineSicilKapat(){const m=document.getElementById('makineSicilModal');if(m)m.style.display='none';}
 function sicilSekme(sec,btn){_sicilSekme=sec;document.querySelectorAll('#makineSicilModal .ek-filtre-btn').forEach(b=>b.classList.remove('ek-filtre-aktif'));if(btn)btn.classList.add('ek-filtre-aktif');sicilRenderIcerik();}
 function sicilEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
