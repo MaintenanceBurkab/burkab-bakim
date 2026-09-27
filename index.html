@@ -882,6 +882,61 @@ tr:last-child td { border-bottom: none; }
 .yp-alert-tab{animation:ypTabPulse 1.25s infinite}@keyframes ypTabPulse{0%,100%{background:transparent}50%{background:rgba(211,47,47,.28);color:#fff;border-bottom-color:#d32f2f}}
 .yp-stock-info{font-size:10px;font-weight:700;margin-top:3px;color:#666}.yp-stock-info.bad{color:#d32f2f}.yp-select{min-width:180px}
 
+
+/* ===== EKİPMAN / MAKİNE SİCİL KARTI — PROFESYONEL RENK SİSTEMİ ===== */
+#makineSicilModal .sicil-shell{background:#f4f7fb;border-radius:16px;overflow:hidden}
+#makineSicilModal .sicil-head{background:linear-gradient(90deg,#1b2630,#2d3b47);color:#fff;padding:17px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+#makineSicilModal .sicil-head-title{font-size:17px;font-weight:800}
+#makineSicilModal .sicil-head-sub{font-size:11px;opacity:.78;margin-top:3px}
+#makineSicilModal .sicil-head-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:10px;font-weight:900;border:1px solid #a9dfc2;background:#dff6e9;color:#08733f}
+#makineSicilModal .sicil-close{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer}
+#makineSicilModal .sicil-body{padding:18px;max-height:82vh;overflow:auto;background:#f4f7fb}
+#makineSicilModal .sicil-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:15px}
+#makineSicilModal .sicil-kpi{background:#fff;border:1px solid #d8e2ea;border-top:4px solid var(--kpi,#178a5b);border-radius:10px;padding:11px 9px;text-align:center;box-shadow:0 2px 8px rgba(25,50,70,.05)}
+#makineSicilModal .sicil-kpi.green{--kpi:#0b9b5b;background:#f0fbf5}
+#makineSicilModal .sicil-kpi.red{--kpi:#d83b3b;background:#fff4f4}
+#makineSicilModal .sicil-kpi.orange{--kpi:#e98a00;background:#fff8ea}
+#makineSicilModal .sicil-kpi.blue{--kpi:#1687d4;background:#f0f8ff}
+#makineSicilModal .sicil-kpi.purple{--kpi:#7a35c7;background:#f8f2ff}
+#makineSicilModal .sicil-kpi-value{font-size:21px;font-weight:900;color:#24323d;line-height:1.15}
+#makineSicilModal .sicil-kpi-label{font-size:9px;font-weight:800;color:#6e7b84;margin-top:4px;letter-spacing:.7px}
+#makineSicilModal .sicil-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:15px}
+#makineSicilModal .sicil-info-card{background:#fff;border:1px solid #d8e2ea;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(25,50,70,.04)}
+#makineSicilModal .sicil-info-head{padding:10px 14px;font-size:12px;font-weight:900;letter-spacing:.5px}
+#makineSicilModal .sicil-info-head.blue{background:linear-gradient(90deg,#dff1ff,#cfe9ff);color:#075ca9;border-bottom:1px solid #b9ddfa}
+#makineSicilModal .sicil-info-head.red{background:linear-gradient(90deg,#ffe5e5,#fff1f1);color:#b72b2b;border-bottom:1px solid #efc1c1}
+#makineSicilModal .sicil-info-content{padding:10px 14px}
+#makineSicilModal .sicil-field-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #edf1f4;padding:6px 0;font-size:11px}
+#makineSicilModal .sicil-field-row:last-child{border-bottom:none}
+#makineSicilModal .sicil-field-label{color:#74808a}
+#makineSicilModal .sicil-field-value{font-weight:800;color:#26343e;text-align:right}
+#makineSicilModal .sicil-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+#makineSicilModal .sicil-tab{border:1px solid #d5dfe7;border-radius:8px;background:#fff;padding:8px 12px;font-size:11px;font-weight:800;color:#64727d;cursor:pointer;transition:all .15s}
+#makineSicilModal .sicil-tab.active.blue{background:#e0f2ff;border-color:#a8d8fb;color:#0867b7}
+#makineSicilModal .sicil-tab.active.red{background:#ffe4e4;border-color:#efadad;color:#c22b2b}
+#makineSicilModal .sicil-tab.active.orange{background:#fff0d4;border-color:#edcb8a;color:#b96500}
+#makineSicilModal .sicil-tab.active.purple{background:#eee2ff;border-color:#d1b2f5;color:#6822bb}
+#makineSicilModal .sicil-tab.ai{background:#08785b;color:#fff;border-color:#08785b}
+#makineSicilModal .sicil-table-wrap{background:#fff;border:1px solid #d8e2ea;border-radius:10px;overflow:auto;box-shadow:0 2px 8px rgba(25,50,70,.04)}
+#makineSicilModal .sicil-table{width:100%;border-collapse:collapse;font-size:11px}
+#makineSicilModal .sicil-table th{padding:8px 9px;text-align:left;white-space:nowrap;font-size:9px;letter-spacing:.6px;text-transform:uppercase}
+#makineSicilModal .sicil-table th.blue{background:#dceefe;color:#0a5f9f}
+#makineSicilModal .sicil-table th.red{background:#ffe3e3;color:#ad2929}
+#makineSicilModal .sicil-table th.orange{background:#fff0d4;color:#a85b00}
+#makineSicilModal .sicil-table th.purple{background:#eee1ff;color:#6520b7}
+#makineSicilModal .sicil-table td{padding:8px 9px;border-bottom:1px solid #edf1f4;vertical-align:top}
+#makineSicilModal .sicil-table tbody tr:hover td{background:#f8fbfd}
+#makineSicilModal .sicil-badge{display:inline-block;padding:3px 7px;border-radius:5px;font-size:9px;font-weight:900;white-space:nowrap}
+#makineSicilModal .sicil-badge.green{background:#e2f8ee;color:#08733f}
+#makineSicilModal .sicil-badge.red{background:#fde5e5;color:#c22b2b}
+#makineSicilModal .sicil-badge.orange{background:#fff0d8;color:#a85b00}
+#makineSicilModal .sicil-badge.blue{background:#e0f2ff;color:#0867b7}
+#makineSicilModal .sicil-badge.purple{background:#eee2ff;color:#6822bb}
+#makineSicilModal .sicil-ai{margin-top:12px;border:1px solid #b8d9d2;background:#f0fbf7;border-radius:10px;padding:14px;white-space:pre-wrap;line-height:1.55;color:#285b4d}
+#makineSicilModal .sicil-empty{background:#fff;border:1px dashed #bfd2df;border-radius:10px;padding:24px;text-align:center;color:#7b8790}
+@media(max-width:900px){#makineSicilModal .sicil-kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){#makineSicilModal .sicil-info-grid{grid-template-columns:1fr}#makineSicilModal .sicil-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+
 </style>
 </head>
 <body>
@@ -2170,13 +2225,34 @@ tr:last-child td { border-bottom: none; }
 </div>
 
 <!-- ── MAKİNE SİCİL KARTI / BAKIM GEÇMİŞİ MODAL ── -->
-<div id="makineSicilModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:1200;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto">
-<div style="background:#fff;border-radius:16px;width:100%;max-width:1100px;box-shadow:0 24px 80px rgba(0,0,0,.35);margin:auto;overflow:hidden">
-<div style="background:linear-gradient(90deg,#263238,#37474f);color:#fff;padding:17px 22px;display:flex;align-items:center;justify-content:space-between"><div><div id="sicilBaslik" style="font-size:17px;font-weight:800">MAKİNE SİCİL KARTI</div><div style="font-size:11px;opacity:.75;margin-top:3px">Bakım geçmişi · Gerçek arıza KPI · MTTR · MTBF · Duruş</div></div><button onclick="makineSicilKapat()" style="background:rgba(255,255,255,.14);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer">✕</button></div>
-<div style="padding:20px;max-height:82vh;overflow:auto"><div id="sicilKpiGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px"><div id="sicilKimlik" style="border:1px solid #e1e5e8;border-radius:10px;padding:14px"></div><div id="sicilArizaOzeti" style="border:1px solid #e1e5e8;border-radius:10px;padding:14px"></div></div>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="ek-filtre-btn ek-filtre-aktif" onclick="sicilSekme('gecmis',this)">📚 Bakım / İşlem Geçmişi</button><button class="ek-filtre-btn" onclick="sicilSekme('ariza',this)">🚨 Gerçek Arızalar</button><button class="ek-filtre-btn" onclick="sicilSekme('durus',this)">⛔ Duruşlar</button><button class="ek-filtre-btn" onclick="sicilSekme('revizyon',this)">🔧 Revizyonlar</button><button onclick="makineSicilAI()" style="background:#004d40;color:#fff;border:none;border-radius:7px;padding:8px 13px;font-weight:700;cursor:pointer">🤖 AI Makine Analizi</button></div>
-<div id="sicilIcerik"></div><div id="sicilAI" style="display:none;margin-top:14px;border:1px solid #b8d9d2;background:#f4fbf9;border-radius:10px;padding:14px;white-space:pre-wrap;line-height:1.5"></div></div></div></div>
+<div id="makineSicilModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:1200;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto">
+<div class="sicil-shell" style="width:100%;max-width:1100px;box-shadow:0 24px 80px rgba(0,0,0,.35);margin:auto">
+<div class="sicil-head">
+  <div>
+    <div id="sicilBaslik" class="sicil-head-title">MAKİNE SİCİL KARTI</div>
+    <div class="sicil-head-sub">Bakım geçmişi · Gerçek arıza KPI · MTTR · MTBF · Duruş</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:9px">
+    <span id="sicilDurumRozet" class="sicil-head-status">● AKTİF</span>
+    <button onclick="makineSicilKapat()" class="sicil-close">✕</button>
+  </div>
+</div>
+<div class="sicil-body">
+  <div id="sicilKpiGrid" class="sicil-kpi-grid"></div>
+  <div class="sicil-info-grid">
+    <div id="sicilKimlik" class="sicil-info-card"></div>
+    <div id="sicilArizaOzeti" class="sicil-info-card"></div>
+  </div>
+  <div class="sicil-tabs">
+    <button class="sicil-tab active blue" onclick="sicilSekme('gecmis',this)">📚 Bakım / İşlem Geçmişi</button>
+    <button class="sicil-tab red" onclick="sicilSekme('ariza',this)">🚨 Gerçek Arızalar</button>
+    <button class="sicil-tab orange" onclick="sicilSekme('durus',this)">⛔ Duruşlar</button>
+    <button class="sicil-tab purple" onclick="sicilSekme('revizyon',this)">🔧 Revizyonlar</button>
+    <button class="sicil-tab ai" onclick="makineSicilAI()">🤖 AI Makine Analizi</button>
+  </div>
+  <div id="sicilIcerik"></div>
+  <div id="sicilAI" class="sicil-ai" style="display:none"></div>
+</div></div></div>
 
 <!-- ── ADMİN PANELİ TAB ── -->
 <div class="tab-pane" id="tab-admin">
@@ -10194,12 +10270,56 @@ async function makineSicilAc(makine){
   }
 }
 function makineSicilKapat(){const m=document.getElementById('makineSicilModal');if(m)m.style.display='none';}
-function sicilSekme(sec,btn){_sicilSekme=sec;document.querySelectorAll('#makineSicilModal .ek-filtre-btn').forEach(b=>b.classList.remove('ek-filtre-aktif'));if(btn)btn.classList.add('ek-filtre-aktif');sicilRenderIcerik();}
+function sicilSekme(sec,btn){_sicilSekme=sec;document.querySelectorAll('#makineSicilModal .sicil-tab').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active '+(btn.classList.contains('red')?'red':btn.classList.contains('orange')?'orange':btn.classList.contains('purple')?'purple':'blue'));sicilRenderIcerik();}
 function sicilEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function sicilKpi(v,l){return `<div style="background:#f7f8f8;border:1px solid #e3e7e8;border-radius:9px;padding:11px;text-align:center"><div style="font-size:21px;font-weight:800;color:#263238">${v}</div><div style="font-size:10px;color:#777;margin-top:3px">${l}</div></div>`;}
-function sicilRender(){const d=_sicilData||{},e=d.ekipman||{};document.getElementById('sicilKpiGrid').innerHTML=[sicilKpi(d.gercekArizaSayisi||0,'GERÇEK ARIZA'),sicilKpi((d.toplamGercekArizaDk||0)+' dk','ARIZA DURUŞU'),sicilKpi((d.mttrDk||0)+' dk','MTTR'),sicilKpi(d.mtbfDk?d.mtbfDk+' dk':'—','MTBF'),sicilKpi(d.toplamKayit||0,'TOPLAM KAYIT'),sicilKpi(d.toplamBakim||0,'BAKIM KAYDI')].join('');document.getElementById('sicilKimlik').innerHTML='<div style="font-weight:800;margin-bottom:9px">Ekipman Kimliği</div>'+[['Makine',e.makine||_sicilMakine],['Bölüm',e.bolum],['Tür',e.tur],['Marka/Model',e.marka],['Seri No',e.serino],['Durum',e.durum],['Konum',e.konum],['Sorumlu',e.sorumlubakimci]].map(x=>`<div style="display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:5px 0;font-size:12px"><span style="color:#777">${sicilEsc(x[0])}</span><b>${sicilEsc(x[1]||'—')}</b></div>`).join('');const son=d.sonAriza;document.getElementById('sicilArizaOzeti').innerHTML='<div style="font-weight:800;margin-bottom:9px">Arıza Özeti</div>'+(son?`<div style="font-size:12px;line-height:1.7"><b>Son arıza:</b> ${sicilEsc(son.tarih)} · ${sicilEsc(son.formNo)}<br><b>Tür:</b> ${sicilEsc(son.arizaTuru||son.arizaKodu||'—')}<br><b>Süre:</b> ${son.sureDk} dk · <b>Etkisi:</b> ${sicilEsc(son.durusEtkisi)}<br><b>Konu:</b> ${sicilEsc(son.konu||'—')}</div>`:'<div style="color:#888;font-size:12px">Üretimi etkileyen gerçek arıza kaydı bulunamadı.</div>');sicilRenderIcerik();}
-function sicilTablo(rows,cols){if(!rows?.length)return '<div style="padding:22px;text-align:center;color:#888;border:1px dashed #ddd;border-radius:9px">Kayıt bulunamadı.</div>';return `<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>${cols.map(c=>`<th style="text-align:left;padding:8px;border-bottom:2px solid #ddd;background:#f7f8f8">${c[0]}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>'<tr>'+cols.map(c=>`<td style="padding:8px;border-bottom:1px solid #eee">${sicilEsc(typeof c[1]==='function'?c[1](r):r[c[1]])}</td>`).join('')+'</tr>').join('')}</tbody></table></div>`;}
-function sicilRenderIcerik(){const d=_sicilData||{},el=document.getElementById('sicilIcerik');if(!el)return;if(_sicilSekme==='ariza')el.innerHTML=sicilTablo(d.gercekArizalar,[['Tarih','tarih'],['Form','formNo'],['Tür',r=>r.arizaTuru||r.arizaKodu||'—'],['Etkisi','durusEtkisi'],['Süre',r=>r.sureDk+' dk'],['Risk','riskSeviye'],['Yapılan','yapilan']]);else if(_sicilSekme==='durus')el.innerHTML=sicilTablo(d.duruslar,[['Tarih','tarih'],['Saat','saat'],['Bölüm','bolum'],['Neden','neden'],['Süre',r=>(r.sureDk||r.hesaplananDk||0)+' dk'],['Durum','durum']]);else if(_sicilSekme==='revizyon'){const e=d.ekipman||{};el.innerHTML=sicilTablo(e.revizyonlar||[],[['Tarih','tarih'],['Açıklama','aciklama'],['Yapan','yapan']]);}else el.innerHTML=sicilTablo(d.gecmis,[['Tarih','tarih'],['Form','formNo'],['İşlem','islem'],['Arıza Türü','arizaTuru'],['Duruş','durusEtkisi'],['Süre',r=>(r.sureDk||0)+' dk'],['Durum','durum'],['Yapılan','yapilan']]);}
+function sicilKpi(v,l,c){return `<div class="sicil-kpi ${c||'green'}"><div class="sicil-kpi-value">${v}</div><div class="sicil-kpi-label">${l}</div></div>`;}
+function sicilRender(){
+  const d=_sicilData||{},e=d.ekipman||{};
+  const durum=String(e.durum||'AKTİF').trim().toUpperCase();
+  const durumRenk=/ARIZA|KRİTİK/.test(durum)?'red':/BAKIM|UYARI/.test(durum)?'orange':'green';
+  const roz=document.getElementById('sicilDurumRozet');
+  if(roz){
+    roz.textContent='● '+durum;
+    roz.style.background=durumRenk==='red'?'#ffe3e3':durumRenk==='orange'?'#fff0d4':'#dff6e9';
+    roz.style.color=durumRenk==='red'?'#b72b2b':durumRenk==='orange'?'#a85b00':'#08733f';
+    roz.style.borderColor=durumRenk==='red'?'#efb1b1':durumRenk==='orange'?'#edcb8a':'#a9dfc2';
+  }
+  document.getElementById('sicilKpiGrid').innerHTML=[
+    sicilKpi(d.gercekArizaSayisi||0,'GERÇEK ARIZA','red'),
+    sicilKpi((d.toplamGercekArizaDk||0)+' dk','ARIZA DURUŞU','red'),
+    sicilKpi((d.mttrDk||0)+' dk','MTTR','orange'),
+    sicilKpi(d.mtbfDk?d.mtbfDk+' dk':'—','MTBF','blue'),
+    sicilKpi(d.toplamKayit||0,'TOPLAM KAYIT','purple'),
+    sicilKpi(d.toplamBakim||0,'BAKIM KAYDI','green')
+  ].join('');
+  document.getElementById('sicilKimlik').innerHTML='<div class="sicil-info-head blue">⚙️ Ekipman Kimliği</div><div class="sicil-info-content">'+
+    [['Makine',e.makine||_sicilMakine],['Bölüm',e.bolum],['Tür',e.tur],['Marka/Model',e.marka],['Seri No',e.serino],['Durum',e.durum],['Konum',e.konum],['Sorumlu',e.sorumlubakimci]]
+    .map(x=>`<div class="sicil-field-row"><span class="sicil-field-label">${sicilEsc(x[0])}</span><b class="sicil-field-value">${sicilEsc(x[1]||'—')}</b></div>`).join('')+'</div>';
+  const son=d.sonAriza;
+  document.getElementById('sicilArizaOzeti').innerHTML='<div class="sicil-info-head red">🚨 Arıza Özeti</div><div class="sicil-info-content">'+
+    (son?`<div style="font-size:11px;line-height:1.8"><div><b>Son arıza:</b> ${sicilEsc(son.tarih)} · ${sicilEsc(son.formNo)}</div><div><b>Tür:</b> ${sicilEsc(son.arizaTuru||son.arizaKodu||'—')}</div><div><b>Süre:</b> <span class="sicil-badge red">${son.sureDk} dk</span> · <b>Etkisi:</b> ${sicilEsc(son.durusEtkisi)}</div><div><b>Konu:</b> ${sicilEsc(son.konu||'—')}</div></div>`:'<div style="color:#6f7b84;font-size:11px;padding:6px 0">Üretimi etkileyen gerçek arıza kaydı bulunamadı.</div>')+'</div>';
+  sicilRenderIcerik();
+}
+function sicilTablo(rows,cols,theme){
+  if(!rows?.length)return '<div class="sicil-empty">Kayıt bulunamadı.</div>';
+  const th=theme||'blue';
+  return `<div class="sicil-table-wrap"><table class="sicil-table"><thead><tr>${cols.map(c=>`<th class="${th}">${c[0]}</th>`).join('')}</tr></thead><tbody>${
+    rows.map(r=>'<tr>'+cols.map(c=>{
+      const raw=typeof c[1]==='function'?c[1](r):r[c[1]], label=String(raw??'');
+      let val=sicilEsc(label);
+      if(c[0]==='Durum'&&label){
+        const u=label.toUpperCase(), bc=/TAMAM|AKTİF|UYGUN|TAMAMLANDI/.test(u)?'green':/ARIZA|KRİTİK|İPTAL/.test(u)?'red':/BEKL|UYARI|DURUŞ/.test(u)?'orange':/REVİZYON/.test(u)?'purple':'blue';
+        val=`<span class="sicil-badge ${bc}">${val}</span>`;
+      }
+      if(c[0]==='Etkisi'&&label){
+        const u=label.toUpperCase(), bc=/TAM DURUŞ/.test(u)?'red':/KISMİ/.test(u)?'orange':'blue';
+        val=`<span class="sicil-badge ${bc}">${val}</span>`;
+      }
+      return `<td>${val}</td>`;
+    }).join('')+'</tr>').join('')
+  }</tbody></table></div>`;
+}
+function sicilRenderIcerik(){const d=_sicilData||{},el=document.getElementById('sicilIcerik');if(!el)return;if(_sicilSekme==='ariza')el.innerHTML=sicilTablo(d.gercekArizalar,[['Tarih','tarih'],['Form','formNo'],['Tür',r=>r.arizaTuru||r.arizaKodu||'—'],['Etkisi','durusEtkisi'],['Süre',r=>r.sureDk+' dk'],['Risk','riskSeviye'],['Yapılan','yapilan']],'red');else if(_sicilSekme==='durus')el.innerHTML=sicilTablo(d.duruslar,[['Tarih','tarih'],['Saat','saat'],['Bölüm','bolum'],['Neden','neden'],['Süre',r=>(r.sureDk||r.hesaplananDk||0)+' dk'],['Durum','durum']],'orange');else if(_sicilSekme==='revizyon'){const e=d.ekipman||{};el.innerHTML=sicilTablo(e.revizyonlar||[],[['Tarih','tarih'],['Açıklama','aciklama'],['Yapan','yapan']],'purple');}else el.innerHTML=sicilTablo(d.gecmis,[['Tarih','tarih'],['Form','formNo'],['İşlem','islem'],['Arıza Türü','arizaTuru'],['Duruş','durusEtkisi'],['Süre',r=>(r.sureDk||0)+' dk'],['Durum','durum'],['Yapılan','yapilan']],'blue');}
 async function makineSicilAI(){if(!_sicilMakine)return;const box=document.getElementById('sicilAI');box.style.display='block';box.textContent='⏳ AI makine analizi hazırlanıyor...';const bas=(new Date(Date.now()-365*86400000)).toISOString().slice(0,10),bit=new Date().toISOString().slice(0,10);try{const r=await gsRequest({action:'aiRaporOlustur',baslangic:bas,bitis:bit,makine:_sicilMakine,tip:'ariza_analiz'});box.textContent=r?.ok?(r.yanit||'AI yanıtı boş.'):'❌ '+(r?.error||'AI analizi alınamadı.');}catch(e){box.textContent='❌ '+(e.message||e);}}
 
 function ekipmanSil(makine) {
