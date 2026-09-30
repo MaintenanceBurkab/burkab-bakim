@@ -881,6 +881,7 @@ tr:last-child td { border-bottom: none; }
 .yp-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:580px){.yp-form-grid{grid-template-columns:1fr}}.yp-full{grid-column:1/-1}
 .yp-alert-tab{animation:ypTabPulse 1.25s infinite}@keyframes ypTabPulse{0%,100%{background:transparent}50%{background:rgba(211,47,47,.28);color:#fff;border-bottom-color:#d32f2f}}
 .yp-stock-info{font-size:10px;font-weight:700;margin-top:3px;color:#666}.yp-stock-info.bad{color:#d32f2f}.yp-select{min-width:180px}
+.yp-parca-combo-menu button:focus{outline:2px solid #f5c400;outline-offset:-2px}.yp-parca-combo-menu::-webkit-scrollbar{width:8px}.yp-parca-combo-menu::-webkit-scrollbar-thumb{background:#c9c9bd;border-radius:8px}
 
 
 /* ===== EKİPMAN / MAKİNE SİCİL KARTI — PROFESYONEL RENK SİSTEMİ ===== */
@@ -3683,7 +3684,14 @@ async function kaydet() {
   if (bildirimdenGeldi) _aktifBildirimKaynakId = null;
 
   showToast('✅ Kayıt başarıyla eklendi! (Form No: ' + yeniKayit.formNo + ')', 'ok');
+
+  // Kayıt onaylandıktan sonra YENİ KAYIT ekranı tamamen nötr başlangıç durumuna döner.
+  // Kullanıcının önceki kaydından hiçbir seçim / parça / risk alanı taşınmaz.
   temizle();
+  const yeniKayitBtn = [...document.querySelectorAll('.nav-tab')].find(b => b.textContent.includes('YENİ KAYIT'));
+  goTab('form', yeniKayitBtn || null);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => document.getElementById('islem')?.focus(), 120);
   renderBildirimler();
 }
 // ── SİL ──────────────────────────────────────
@@ -3706,6 +3714,7 @@ async function tumKayitlariSil() {
 
 // ── TEMİZLE ──────────────────────────────────
 function temizle() {
+  if (typeof ypFormParcaDropdownKapat === 'function') ypFormParcaDropdownKapat();
   ['formNo','bolum','makine','bildiren','proje','arizaKodu','konu',
    'arizaBas','onarimBas','onarimBit','arizaBit','bakimci','kalite',
    'yapilan','riskSeviye','durusEtkisi','toplamMaliyet','teminDurumu'
@@ -10828,26 +10837,152 @@ function ypSiparisModalAc(kod='',miktar){ypParcaSelectDoldur();const p=ypStoklar
 function ypTopluSiparisModalAc(){const p=ypStoklar.filter(x=>['KRITIK','STOK_YOK'].includes(ypDurum(x))).sort((a,b)=>ypRisk(b)-ypRisk(a))[0];if(!p){showToast('✅ Sipariş gerektiren kritik parça yok.','ok');return;}ypSiparisModalAc(p.stokKodu);}
 async function ypSiparisKaydet(){const siparis={stokKodu:document.getElementById('yps-kod').value,miktar:ypNum(document.getElementById('yps-miktar').value),hedefTarih:document.getElementById('yps-tarih').value,oncelik:document.getElementById('yps-oncelik').value,tedarikci:ypN(document.getElementById('yps-tedarikci').value),not:ypN(document.getElementById('yps-not').value),durum:'TALEP_ACILDI'};if(!siparis.stokKodu||siparis.miktar<=0){showToast('❗ Parça ve sipariş miktarı zorunludur.','err');return;}try{showLoading(true);const r=await gsRequest({action:'yedekParcaSiparisSave',siparis});if(!r?.ok)throw new Error(r?.error||'Sipariş talebi başarısız');ypModalKapat('ypSiparisModal');ypYuklendi=false;await ypVerileriYukle(true);showToast('✅ Sipariş talebi oluşturuldu.','ok');}catch(e){showToast('⚠️ '+e.message,'err')}finally{showLoading(false);}}
 async function ypBakimdanStokDus(kayit){const list=parseParcalar(kayit.parcalar);const stoklu=list.filter(x=>x.stokKodu||ypStoklar.some(p=>ypN(p.stokKodu)===ypN(x.ad)));if(!stoklu.length)return {ok:true,skipped:true};const hareketler=stoklu.map(x=>({stokKodu:x.stokKodu||x.ad,tip:'CIKIS',miktar:ypNum(x.adet),belgeNo:kayit.formNo||String(kayit.id),birimFiyat:ypNum(x.fiyat),aciklama:'BAKIM FORMUNDAN OTOMATİK TÜKETİM',kaynak:'BAKIM'}));const r=await gsRequest({action:'yedekParcaTopluHareket',hareketler});if(!r?.ok)throw new Error(r?.error||'Parça stok düşümü başarısız');ypYuklendi=false;return r;}
-// Eski parça satırını stok seçilebilir hale getir.
-const _ypEskiParcaEkle=parcaEkle;
-parcaEkle=function(){
+// ── YENİ KAYIT / YEDEK PARÇA — YAZDIKÇA FİLTRELENEN SEÇİM ──
+// Stok kodu veya parça adı yazıldıkça TBE değil, BAKIM MODÜLÜNÜN kendi
+// yedek parça stok listesinden eşleşen kayıtları gösterir.
+let _ypParcaFormYukleniyor = false;
+let _ypParcaAktifDropdown = null;
+
+function ypFormParcaDropdownKapat() {
+  if (_ypParcaAktifDropdown) {
+    _ypParcaAktifDropdown.remove();
+    _ypParcaAktifDropdown = null;
+  }
+}
+
+function ypFormParcaSec(inp, p) {
+  const row = inp?.closest('.parca-row');
+  if (!row || !p) return;
+  const info = row.querySelector('.yp-stock-info');
+
+  inp.value = p.stokKodu || '';
+  inp.dataset.stokKodu = p.stokKodu || '';
+  inp.dataset.parcaAdi = p.parcaAdi || '';
+
+  const fiyat = row.querySelector('.parca-fiyat');
+  const para = row.querySelector('.parca-para');
+  if (fiyat) fiyat.value = p.birimFiyat ?? p.fiyat ?? 0;
+  if (para) para.value = p.paraBirimi || '₺';
+
+  if (info) {
+    info.textContent = `${p.parcaAdi || '—'} · Kullanılabilir: ${ypKullanilabilir(p)} ${p.birim || 'ADET'}`;
+    info.classList.toggle('bad', ypKullanilabilir(p) <= ypNum(p.minimumStok));
+  }
+
+  ypFormParcaDropdownKapat();
+  hesaplaMaliyet();
+}
+
+function ypFormParcaDropdownAc(inp) {
+  ypFormParcaDropdownKapat();
+
+  const q = ypN(inp?.value || '');
+  if (!inp) return;
+
+  const row = inp.closest('.parca-row');
+  if (!row) return;
+
+  const wrap = inp.parentElement;
+  if (!wrap) return;
+  wrap.style.position = 'relative';
+
+  const eslesen = (ypStoklar || [])
+    .filter(p => ypN(p.aktif) !== 'HAYIR')
+    .filter(p => !q || ypN(p.stokKodu).includes(q) || ypN(p.parcaAdi).includes(q))
+    .slice(0, 30);
+
+  const box = document.createElement('div');
+  box.className = 'yp-parca-combo-menu';
+  box.style.cssText = 'position:absolute;z-index:99999;left:0;right:0;top:calc(100% + 3px);max-height:280px;overflow:auto;background:#fff;border:1px solid #c8d4e3;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:4px;';
+
+  if (!eslesen.length) {
+    box.innerHTML = `<div style="padding:10px 12px;font-size:12px;color:#888">${q ? 'Eşleşen stok kodu / parça bulunamadı.' : 'Stok listesinde kayıt yok.'}</div>`;
+  } else {
+    box.innerHTML = eslesen.map((p, i) => {
+      const kritik = ypKullanilabilir(p) <= ypNum(p.minimumStok);
+      return `<button type="button" data-idx="${i}" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #f0f0f0;background:#fff;padding:9px 10px;cursor:pointer;border-radius:5px" onmouseover="this.style.background='#fffbe6'" onmouseout="this.style.background='#fff'">
+        <div style="font-size:12px;font-weight:800;color:#222">${ypEsc(p.stokKodu)} <span style="font-weight:500;color:#777">— ${ypEsc(p.parcaAdi)}</span></div>
+        <div style="font-size:10px;margin-top:3px;color:${kritik ? '#d32f2f' : '#666'}">Stok: ${ypKullanilabilir(p)} ${ypEsc(p.birim || 'ADET')} · Birim fiyat: ${ypEsc(String(p.birimFiyat ?? p.fiyat ?? 0))} ${ypEsc(p.paraBirimi || '₺')}</div>
+      </button>`;
+    }).join('');
+
+    box.querySelectorAll('button[data-idx]').forEach(btn => {
+      btn.addEventListener('mousedown', ev => ev.preventDefault());
+      btn.addEventListener('click', () => {
+        const p = eslesen[Number(btn.dataset.idx)];
+        ypFormParcaSec(inp, p);
+      });
+    });
+  }
+
+  wrap.appendChild(box);
+  _ypParcaAktifDropdown = box;
+}
+
+async function ypFormParcaAra(inp) {
+  if (!ypYuklendi && !_ypParcaFormYukleniyor) {
+    _ypParcaFormYukleniyor = true;
+    try { await ypVerileriYukle(true); }
+    catch (e) { console.warn('Bakım yedek parça listesi yüklenemedi:', e); }
+    finally { _ypParcaFormYukleniyor = false; }
+  }
+
+  if (inp?.dataset?.stokKodu) {
+    inp.dataset.stokKodu = '';
+  }
+  ypFormParcaDropdownAc(inp);
+}
+
+function ypFormMiktarKontrol(el) {
+  const row = el.closest('.parca-row');
+  const kod = row?.querySelector('.parca-ad')?.dataset.stokKodu;
+  const p = (ypStoklar || []).find(x => ypN(x.stokKodu) === ypN(kod));
+  if (p && ypNum(el.value) > ypKullanilabilir(p)) {
+    showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');
+  }
+}
+
+// Yeni satır: stok kodu/parça adı tek arama kutusunda; yazdıkça filtrelenir.
+const _ypEskiParcaEkle = parcaEkle;
+parcaEkle = function() {
   parcaSayac++;
-  const id=parcaSayac,div=document.createElement('div');
-  div.className='parca-row';
-  div.id='parca-'+id;
-  div.innerHTML=
-    '<div><input type="text" list="yedek-parca-list" placeholder="Stok kodu / parça adı" oninput="this.value=this.value.toUpperCase()" onchange="ypFormParcaSec(this)" class="parca-ad"><div class="yp-stock-info">Serbest giriş veya stok kodu seçimi</div></div>'+
-    '<input type="number" placeholder="Adet" min="1" value="1" class="parca-adet" onchange="ypFormMiktarKontrol(this);hesaplaMaliyet()">'+
-    '<input type="number" placeholder="Birim fiyat" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()">'+
-    '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center"><option value="₺">₺</option><option value="$">$</option><option value="€">€</option></select>'+
-    '<button class="btn-parca-sil" onclick="parcaSil(\'parca-'+id+'\')">✕</button>';
+  const id = parcaSayac;
+  const div = document.createElement('div');
+  div.className = 'parca-row';
+  div.id = 'parca-' + id;
+  div.innerHTML =
+    '<div style="position:relative">' +
+      '<input type="text" placeholder="Stok kodu / parça adı yazın..." autocomplete="off" oninput="this.value=this.value.toUpperCase();ypFormParcaAra(this)" onfocus="ypFormParcaAra(this)" class="parca-ad">' +
+      '<div class="yp-stock-info">Yazmaya başlayın; stok kodu veya parça adına göre filtrelenir.</div>' +
+    '</div>' +
+    '<input type="number" placeholder="Adet" min="1" value="1" class="parca-adet" onchange="ypFormMiktarKontrol(this);hesaplaMaliyet()">' +
+    '<input type="number" placeholder="Birim fiyat" min="0" step="0.01" class="parca-fiyat" onchange="hesaplaMaliyet()">' +
+    '<select class="parca-para" onchange="hesaplaMaliyet()" style="width:70px;padding:8px 6px;font-size:14px;font-weight:700;text-align:center"><option value="₺">₺</option><option value="$">$</option><option value="€">€</option></select>' +
+    '<button class="btn-parca-sil" onclick="parcaSil(\'parca-' + id + '\')">✕</button>';
   document.getElementById('parcaListesi').appendChild(div);
-  ypFormParcaDatalist();
+  const inp = div.querySelector('.parca-ad');
+  if (inp) setTimeout(() => inp.focus(), 0);
 };
-function ypFormParcaSec(inp){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(inp.value)||ypN(x.parcaAdi)===ypN(inp.value));const row=inp.closest('.parca-row'),info=row?.querySelector('.yp-stock-info');if(!p){inp.dataset.stokKodu='';if(info){info.textContent='Serbest giriş — stoktan otomatik düşülmez';info.classList.remove('bad')}return;}inp.value=p.stokKodu;inp.dataset.stokKodu=p.stokKodu;row.querySelector('.parca-fiyat').value=p.birimFiyat||0;row.querySelector('.parca-para').value=p.paraBirimi||'₺';if(info){info.textContent=`${p.parcaAdi} · Kullanılabilir: ${ypKullanilabilir(p)} ${p.birim||'ADET'}`;info.classList.toggle('bad',ypKullanilabilir(p)<=ypNum(p.minimumStok));}hesaplaMaliyet();}
-function ypFormMiktarKontrol(el){const row=el.closest('.parca-row'),kod=row?.querySelector('.parca-ad')?.dataset.stokKodu,p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));if(p&&ypNum(el.value)>ypKullanilabilir(p)){showToast(`⚠️ ${kod} kullanılabilir stok: ${ypKullanilabilir(p)}`,'err');}}
-const _ypGetParcaListesi=getParcaListesi;
-getParcaListesi=function(){const p=[];document.querySelectorAll('.parca-row').forEach(row=>{const inp=row.querySelector('.parca-ad'),ad=inp?.value.trim(),stokKodu=inp?.dataset?.stokKodu||'',adet=ypNum(row.querySelector('.parca-adet')?.value),fiyat=ypNum(row.querySelector('.parca-fiyat')?.value),para=row.querySelector('.parca-para')?.value||'₺';if(ad)p.push({stokKodu,ad,adet,fiyat,para,toplam:adet*fiyat});});return JSON.stringify(p);};
+
+const _ypGetParcaListesi = getParcaListesi;
+getParcaListesi = function() {
+  const p = [];
+  document.querySelectorAll('.parca-row').forEach(row => {
+    const inp = row.querySelector('.parca-ad');
+    const ad = inp?.value.trim();
+    const stokKodu = inp?.dataset?.stokKodu || '';
+    const adet = ypNum(row.querySelector('.parca-adet')?.value);
+    const fiyat = ypNum(row.querySelector('.parca-fiyat')?.value);
+    const para = row.querySelector('.parca-para')?.value || '₺';
+    if (ad) p.push({ stokKodu, ad, adet, fiyat, para, toplam: adet * fiyat });
+  });
+  return JSON.stringify(p);
+};
+
+// Form dışında tıklanınca açık arama listesini kapat.
+document.addEventListener('click', function(ev) {
+  if (!ev.target.closest('.parca-row')) ypFormParcaDropdownKapat();
+});
 // ══════════════════════════════════════════════════════════════
 // BAKIM RİSK AKSİYON PLANI — DETAY / GÜNCELLE / TAMAMLA
 // IATF 4.4 — Mevcut riskAksiyon alanını kullanır
