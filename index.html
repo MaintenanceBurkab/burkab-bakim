@@ -3152,7 +3152,356 @@ const today = new Date().toISOString().split('T')[0];
 document.getElementById('tarihBas').value = today;
 document.getElementById('tarihBit').value = today;
 });
+  
+// ============================================================
+// BAKIM BİRİMİ EĞİTİMLERİ — ALARM YÜKLEME
+// ============================================================
 
+async function bakimEgitimYukle() {
+
+  const alan = document.getElementById('bakimEgitimIcerik');
+  const alarmAlan = document.getElementById('bakimEgitimAlarmGrid');
+
+  if (alan) {
+    alan.innerHTML = '<div style="padding:20px;text-align:center">⏳ Eğitim ve yetkinlik kayıtları yükleniyor...</div>';
+  }
+
+  try {
+
+    const sonuc = await gsRequest({
+      action: 'beyGetAlarmlar'
+    });
+
+    if (!sonuc || !sonuc.ok) {
+      throw new Error(sonuc?.error || 'Alarm kayıtları alınamadı.');
+    }
+
+    const alarmlar = Array.isArray(sonuc.alarmlar)
+      ? sonuc.alarmlar
+      : [];
+
+    // --------------------------------------------------------
+    // 5 ALARM TÜRÜ
+    // --------------------------------------------------------
+
+    const tipler = [
+      {
+        tip: 'YENİ PERSONEL / YETKİNLİK YOK',
+        emoji: '🔴',
+        baslik: 'YENİ PERSONEL / YETKİNLİK YOK'
+      },
+      {
+        tip: 'ŞARTLI ONAY BEKLİYOR',
+        emoji: '🟠',
+        baslik: 'ŞARTLI ONAY BEKLİYOR'
+      },
+      {
+        tip: 'EĞİTİM PLANLANDI',
+        emoji: '🔵',
+        baslik: 'EĞİTİM PLANLANDI'
+      },
+      {
+        tip: 'EĞİTİM GECİKTİ',
+        emoji: '🔴',
+        baslik: 'EĞİTİM GECİKTİ'
+      },
+      {
+        tip: 'YETKİNLİK ONAYI BEKLİYOR',
+        emoji: '🟡',
+        baslik: 'YETKİNLİK ONAYI BEKLİYOR'
+      }
+    ];
+
+    if (alarmAlan) {
+
+      alarmAlan.innerHTML = tipler.map(t => {
+
+        const adet = alarmlar.filter(a =>
+          String(a.alarmTipi || '').trim() === t.tip &&
+          String(a.durum || '').toUpperCase() === 'AÇIK'
+        ).length;
+
+        return `
+          <div class="kpi-card"
+               style="cursor:pointer"
+               onclick="bakimEgitimAlarmFiltrele('${t.tip}')">
+
+            <div style="font-size:12px;font-weight:800">
+              ${t.emoji} ${t.baslik}
+            </div>
+
+            <div style="font-size:28px;font-weight:900;margin-top:6px">
+              ${adet}
+            </div>
+
+          </div>
+        `;
+
+      }).join('');
+    }
+
+    // --------------------------------------------------------
+    // AÇIK ALARMLAR
+    // --------------------------------------------------------
+
+    const acik = alarmlar.filter(a =>
+      String(a.durum || '').toUpperCase() === 'AÇIK'
+    );
+
+    if (!acik.length) {
+
+      if (alan) {
+        alan.innerHTML = `
+          <div style="
+            padding:24px;
+            background:#f5f9f6;
+            border:1px solid #d8eadf;
+            border-radius:10px;
+            text-align:center;
+            font-weight:700;
+            color:#28734a">
+            ✅ Açık eğitim / yetkinlik alarmı bulunmuyor.
+          </div>
+        `;
+      }
+
+      return;
+    }
+
+    if (alan) {
+
+      alan.innerHTML = `
+        <div style="
+          display:grid;
+          grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+          gap:14px">
+
+          ${acik.map(a => `
+
+            <div style="
+              background:#fff;
+              border:1px solid #ddd;
+              border-left:5px solid #d32f2f;
+              border-radius:10px;
+              padding:15px;
+              box-shadow:0 2px 8px rgba(0,0,0,.06)">
+
+              <div style="font-weight:900">
+                ${a.alarmTipi || ''}
+              </div>
+
+              <div style="margin-top:8px">
+                <strong>${a.adSoyad || '—'}</strong>
+              </div>
+
+              <div style="font-size:12px;color:#666;margin-top:5px">
+                Sicil: ${a.sicilNo || '—'}
+              </div>
+
+              <div style="font-size:12px;color:#666;margin-top:4px">
+                Grup: ${a.grupAdi || a.grupId || '—'}
+              </div>
+
+              <div style="font-size:12px;color:#666;margin-top:4px">
+                FR-40: ${a.kaynakFormNo || '—'}
+              </div>
+
+              <div style="font-size:12px;color:#777;margin-top:8px">
+                ${a.aciklama || ''}
+              </div>
+
+              ${
+                a.alarmTipi === 'ŞARTLI ONAY BEKLİYOR'
+                ? `
+                  <button
+                    onclick="beySartliKabulUI(${JSON.stringify(a).replace(/"/g,'&quot;')})"
+                    style="
+                      margin-top:12px;
+                      width:100%;
+                      border:none;
+                      border-radius:7px;
+                      padding:9px 12px;
+                      background:#e65100;
+                      color:#fff;
+                      font-weight:800;
+                      cursor:pointer">
+                    ŞARTLI KABUL ET
+                  </button>
+                `
+                : ''
+              }
+
+            </div>
+
+          `).join('')}
+
+        </div>
+      `;
+    }
+
+    window._bakimEgitimAlarmlar = alarmlar;
+
+  } catch (e) {
+
+    console.error('Bakım eğitimi yükleme hatası:', e);
+
+    if (alan) {
+      alan.innerHTML = `
+        <div style="
+          padding:18px;
+          background:#fff3f3;
+          border:1px solid #e5bcbc;
+          border-radius:10px;
+          color:#a40000">
+          ❌ ${e.message || 'Veriler yüklenemedi.'}
+        </div>
+      `;
+    }
+  }
+}
+  // ============================================================
+// BAKIM EĞİTİMİ — ALARM FİLTRELEME
+// ============================================================
+
+function bakimEgitimAlarmFiltrele(tip) {
+
+  const liste = Array.isArray(window._bakimEgitimAlarmlar)
+    ? window._bakimEgitimAlarmlar
+    : [];
+
+  const alan = document.getElementById('bakimEgitimIcerik');
+
+  if (!alan) return;
+
+  const filtreli = liste.filter(a =>
+    String(a.alarmTipi || '').trim() === String(tip || '').trim() &&
+    String(a.durum || '').toUpperCase() === 'AÇIK'
+  );
+
+  if (!filtreli.length) {
+    alan.innerHTML = `
+      <div style="
+        padding:20px;
+        text-align:center;
+        background:#f7f7f7;
+        border-radius:10px">
+        Bu alarm türünde açık kayıt bulunmuyor.
+      </div>
+    `;
+    return;
+  }
+
+  alan.innerHTML = filtreli.map((a, index) => `
+    <div style="
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:10px;
+      padding:15px;
+      margin-bottom:10px">
+
+      <div style="font-weight:900">
+        ${a.alarmTipi || ''}
+      </div>
+
+      <div style="margin-top:7px">
+        ${a.adSoyad || '—'} — Sicil: ${a.sicilNo || '—'}
+      </div>
+
+      <div style="font-size:12px;color:#666;margin-top:5px">
+        ${a.grupAdi || a.grupId || '—'}
+      </div>
+
+      ${
+        a.alarmTipi === 'ŞARTLI ONAY BEKLİYOR'
+        ? `
+          <button
+            onclick="beySartliKabulUI(window._bakimEgitimAlarmlar.find(x => x.alarmId === '${String(a.alarmId).replace(/'/g,"\\'")}'))"
+            style="
+              margin-top:10px;
+              background:#e65100;
+              color:#fff;
+              border:0;
+              border-radius:7px;
+              padding:9px 16px;
+              font-weight:800;
+              cursor:pointer">
+            ŞARTLI KABUL ET
+          </button>
+        `
+        : ''
+      }
+
+    </div>
+  `).join('');
+}
+
+
+// ============================================================
+// BAKIM EĞİTİMİ — ŞARTLI KABUL ET
+// ============================================================
+
+async function beySartliKabulUI(alarm) {
+
+  if (!alarm) {
+    showToast('Alarm kaydı bulunamadı.', 'err');
+    return;
+  }
+
+  const onay = confirm(
+    'PERSONEL YENİ\\n\\n' +
+    (alarm.adSoyad || '') +
+    ' / Sicil: ' + (alarm.sicilNo || '') +
+    '\\n\\n' +
+    'Personel şartlı olarak kabul edilecek ve ' +
+    'eğitim ertesi güne otomatik planlanacaktır.\\n\\n' +
+    'Devam edilsin mi?'
+  );
+
+  if (!onay) return;
+
+  try {
+
+    showLoading(true);
+
+    const sonuc = await gsRequest({
+      action: 'beySartliKabulEt',
+      adSoyad: alarm.adSoyad || '',
+      sicilNo: alarm.sicilNo || '',
+      grupId: alarm.grupId || '',
+      kaynakFormNo: alarm.kaynakFormNo || ''
+    });
+
+    if (!sonuc || !sonuc.ok) {
+      throw new Error(
+        sonuc?.error ||
+        'Şartlı kabul işlemi gerçekleştirilemedi.'
+      );
+    }
+
+    showToast(
+      '✅ ' +
+      (sonuc.mesaj ||
+       'Personel şartlı olarak kabul edildi.'),
+      'ok'
+    );
+
+    await bakimEgitimYukle();
+
+  } catch (e) {
+
+    console.error('Şartlı kabul hatası:', e);
+
+    showToast(
+      '❌ ' + (e.message || 'İşlem başarısız.'),
+      'err'
+    );
+
+  } finally {
+
+    showLoading(false);
+
+  }
+}
 // ── TABS ─────────────────────────────────────
 function goTab(id, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
