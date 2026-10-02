@@ -2382,6 +2382,39 @@ tr:last-child td { border-bottom: none; }
     </div>
   </div>
 </div>
+<!-- =========================================================
+     BAKIM BİRİMİ EĞİTİMLERİ + YETKİNLİK
+     ========================================================= -->
+<div class="tab-pane" id="tab-bakim-egitim">
+
+  <div class="section" style="margin-top:0">
+
+    <div class="section-head"
+         style="background:linear-gradient(90deg,#7b1fa2,#512da8)">
+
+      <div class="dot"
+           style="background:#f3e5f5"></div>
+
+      <span style="margin-left:6px;font-size:16px;font-weight:800">
+        BAKIM BİRİMİ EĞİTİMLERİ + YETKİNLİK
+      </span>
+
+    </div>
+
+    <!-- ALARM KARTLARI -->
+    <div id="bakimEgitimAlarmGrid"
+         class="kpi-grid"
+         style="grid-template-columns:repeat(5,1fr);margin-top:14px">
+    </div>
+
+    <!-- KAYITLAR -->
+    <div id="bakimEgitimIcerik"
+         style="margin-top:18px">
+    </div>
+
+  </div>
+
+</div>
 
 <!-- ── TEDARİKÇİ LİSTESİ TAB — §8.4.1 ── -->
 <div class="tab-pane" id="tab-tedarikci">
@@ -2825,7 +2858,7 @@ function applyRoleUI(role) {
       <button class="nav-tab" onclick="goTab('dash',this)">📊 DASHBOARD</button>
       <button class="nav-tab" onclick="goTab('uretim',this)">🏭 ÜRETİM DURUMU</button>
       <button class="nav-tab" id="bildirimTab" onclick="goTab('bildirimler',this)">🔔 BİLDİRİMLER<span class="bildirim-badge" id="bildirimBadge" style="display:none">0</span></button>
-      ${role === 'admin' ? '<button class="nav-tab" onclick="goTab(\'ai\',this)">🤖 AI ASİSTAN</button><button class="nav-tab" onclick="goTab(\'kalibrasyon\',this)">⚖️ KALİBRASYON</button><button class="nav-tab" onclick="goTab(\'ekipman\',this)">🏭 EKİPMAN KARTLARI</button><button class="nav-tab" onclick="goTab(\'egitim\',this)">🎓 EĞİTİM TAKİP</button><button class="nav-tab" onclick="goTab(\'tedarikci\',this)">🏢 TEDARİKÇİLER</button><button class="nav-tab" onclick="goTab(\'iyilestirme\',this)">📈 İYİLEŞTİRME</button><button class="nav-tab" onclick="goTab(\'admin\',this)">🔐 ADMİN</button>' : ''}
+      ${role === 'admin' ? '<button class="nav-tab" onclick="goTab(\'ai\',this)">🤖 AI ASİSTAN</button><button class="nav-tab" onclick="goTab(\'kalibrasyon\',this)">⚖️ KALİBRASYON</button><button class="nav-tab" onclick="goTab(\'ekipman\',this)">🏭 EKİPMAN KARTLARI</button><button class="nav-tab" onclick="goTab(\'egitim\',this)">🎓 EĞİTİM TAKİP</button><button class="nav-tab" onclick="goTab(\'bakim-egitim\',this)">🎓 BAKIM BİRİMİ EĞİTİMLERİ</button><button class="nav-tab" onclick="goTab(\'tedarikci\',this)">🏢 TEDARİKÇİLER</button><button class="nav-tab" onclick="goTab(\'iyilestirme\',this)">📈 İYİLEŞTİRME</button><button class="nav-tab" onclick="goTab(\'admin\',this)">🔐 ADMİN</button>' : ''}
     `;
     document.getElementById('tab-form').style.display = '';
     document.getElementById('tab-list').style.display = '';
@@ -3142,6 +3175,11 @@ function goTab(id, btn) {
   }
   if (id === 'admin') { renderAdminPanel(); }
   if (id === 'egitim')      { gsEgitimYukle().then(() => renderEgitimListesi()); }
+  if (id === 'bakim-egitim') {
+  if (typeof bakimEgitimYukle === 'function') {
+    bakimEgitimYukle();
+  }
+}
   if (id === 'tedarikci')   { gsTedarikciYukle().then(() => renderTedarikciListesi()); }
   if (id === 'iyilestirme') { gsIyilestirmeYukle().then(() => renderIyilestirme()); }
 }
