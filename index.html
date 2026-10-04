@@ -1948,7 +1948,7 @@ tr:last-child td { border-bottom: none; }
       <div class="yp-ai-actions">
         <span class="yp-ai-selected" id="ypAISelectedInfo">Henüz analiz yapılmadı.</span>
         <button class="yp-btn dark" id="ypAIButon" onclick="ypAIAnalizCalistir()">🤖 AI ANALİZİNİ ÇALIŞTIR</button>
-        <button class="yp-btn green" id="ypAIOnayButon" onclick="ypAIOnayla()" disabled style="display:inline-block;opacity:.5;cursor:not-allowed">📄 SEÇİLENLERİ ÖNİZLE (0)</button>
+        <button class="yp-btn green" id="ypAIOnayButon" type="button" onclick="return ypAIOnayla()" disabled style="display:inline-block;opacity:.5;cursor:not-allowed">📄 SEÇİLENLERİ ÖNİZLE (0)</button>
         <button class="yp-btn outline" id="ypAIRaporButon" onclick="ypAIPdfOnizle()" style="display:none">📄 PDF ÖNİZLEME</button>
       </div>
     </div>
@@ -11478,12 +11478,40 @@ function ypAIRender(r){
   }).join('');
   ypAIOnayButonGuncelle();
 }
-async function ypAIOnayla(){
-  if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ Önce AI analizi çalıştırın.','err');return;}
-  const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
-  if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
-  ypAIOnizlemeAc(sec);
+function ypAIOnayla(){
+  try {
+    if(!ypAIAnalizSonucu || !Array.isArray(ypAIAnalizSonucu.oneriler)){
+      showToast('⚠️ Önce AI analizi çalıştırın.','err');
+      return false;
+    }
+    const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>
+      ypAISelectedCodes.has(String(x.stokKodu||'')) &&
+      Number(x.sistemOnayliMiktar ?? x.onerilenMiktar ?? 0) > 0
+    );
+    if(!sec.length){
+      showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');
+      return false;
+    }
+    // ÖNEMLİ: Burada kesinlikle Apps Script çağrısı yok.
+    // Sadece seçilenleri ekranda önizliyoruz.
+    ypAIOnizlemeAc(sec);
+    return false;
+  } catch(e) {
+    console.error('ypAIOnayla:', e);
+    alert('Önizleme açılamadı: ' + (e && e.message ? e.message : e));
+    return false;
+  }
 }
+
+// Güvenlik ağı: bazı tarayıcı/tema katmanları inline onclick olayını yutarsa buton yine çalışır.
+document.addEventListener('click', function(ev){
+  const b=ev.target && ev.target.closest ? ev.target.closest('#ypAIOnayButon') : null;
+  if(!b) return;
+  if(b.disabled) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  ypAIOnayla();
+}, true);
 
 function ypAIOnizlemeAc(sec){
   const eski=document.getElementById('ypAIOnizlemeModal'); if(eski) eski.remove();
