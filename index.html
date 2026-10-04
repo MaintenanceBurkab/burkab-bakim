@@ -11404,7 +11404,7 @@ function ypKpiHtml(list) {
   `;
 }
 function renderYedekStok(){const box=document.getElementById('ypStokListe');if(!box)return;if(!ypYuklendi){ypVerileriYukle();return;}const q=ypN(document.getElementById('ypArama')?.value),cat=ypN(document.getElementById('ypKategoriFiltre')?.value),dur=document.getElementById('ypDurumFiltre')?.value||'';let list=ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').filter(p=>!q||ypN([p.stokKodu,p.parcaAdi,p.kategori,p.makineGrubu,p.rafKonumu].join(' ')).includes(q)).filter(p=>!cat||ypN(p.kategori)===cat).filter(p=>!dur||ypDurum(p)===dur);document.getElementById('ypKpiGrid').innerHTML=ypKpiHtml(ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR'));box.innerHTML=list.length?list.map(p=>{const d=ypDurum(p),c=ypRenk(d),k=ypKullanilabilir(p);return `<div class="yp-stock-card" style="--c:${c}"><div class="yp-stock-head"><div><div class="yp-code">${ypEsc(p.stokKodu)}</div><div class="yp-name">${ypEsc(p.parcaAdi)}</div></div><span class="yp-badge ${d==='NORMAL'?'yp-ok':d==='UYARI'?'yp-warn':d==='KRITIK'?'yp-critical':'yp-zero'}">${ypEtiket(d)}</span></div><div class="yp-meta"><div><b>${ypNum(p.mevcutStok)}</b><span>Mevcut</span></div><div><b>${ypNum(p.rezerveStok)}</b><span>Rezerve</span></div><div><b>${k}</b><span>Kullanılabilir</span></div></div><div style="font-size:11px;color:#666;margin-top:9px">📍 ${ypEsc(p.rafKonumu||'—')} · 🏭 ${ypEsc(p.makineGrubu||'TÜM MAKİNELER')} · Min: <b>${ypNum(p.minimumStok)}</b> · Max: <b>${ypNum(p.maksimumStok)}</b></div><div class="yp-actions"><button class="yp-btn outline" onclick="ypParcaModalAc('${ypEsc(p.stokKodu)}')">DÜZENLE</button><button class="yp-btn green" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','GIRIS')">GİRİŞ</button><button class="yp-btn dark" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','CIKIS')">ÇIKIŞ</button><button class="yp-btn primary" onclick="ypSiparisModalAc('${ypEsc(p.stokKodu)}')">SİPARİŞ</button></div></div>`;}).join(''):'<div class="empty">Filtreye uygun parça bulunamadı.</div>';ypBadgeGuncelle();}
-let ypAIAnalizSonucu=null; let ypAIOnayliSiparisIds=[]; let ypAISelectedCodes=new Set(); let ypAIPreviewFileId=""; let ypAIPendingApproval=[];
+let ypAIAnalizSonucu=null; let ypAIOnayliSiparisIds=[]; let ypAISelectedCodes=new Set(); let ypAIPreviewFileId=""; let ypAIPreviewToken=""; let ypAIPendingApproval=[];
 try{
   const savedIds=JSON.parse(localStorage.getItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS')||'[]');
   if(Array.isArray(savedIds)) ypAIOnayliSiparisIds=savedIds.map(String).filter(Boolean);
@@ -11492,13 +11492,15 @@ function ypAIOnayla(){
       showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');
       return false;
     }
-    // ÖNEMLİ: Burada kesinlikle Apps Script çağrısı yok.
-    // Sadece seçilenleri ekranda önizliyoruz.
-    ypAIOnizlemeAc(sec);
+
+    // SEÇİLENLERİ ÖNİZLE:
+    // Gerçek PDF önizlemesi backend tarafından oluşturulur.
+    // Bu aşamada YedekParca_Siparisler'e kayıt yazılmaz ve e-posta gönderilmez.
+    ypAIOnizlemePdfHazirla();
     return false;
   } catch(e) {
     console.error('ypAIOnayla:', e);
-    alert('Önizleme açılamadı: ' + (e && e.message ? e.message : e));
+    showToast('⚠️ Önizleme açılamadı: ' + (e && e.message ? e.message : e),'err');
     return false;
   }
 }
@@ -11550,7 +11552,7 @@ function ypAIOnizlemeYazdir(){
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BURKAB Yedek Parça Satınalma</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}.title{font-size:18px;font-weight:700;margin-bottom:8px}.sub{margin-bottom:18px;color:#555}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border:1px solid #bbb;padding:7px;text-align:left;vertical-align:top}.tbl th{background:#eee}.tbl td:nth-child(5),.tbl td:nth-child(6),.tbl td:nth-child(7),.tbl td:nth-child(8){text-align:right}.foot{margin-top:14px;font-size:13px;font-weight:700}@media print{body{margin:12mm}}</style></head><body><div class="title">BURKAB A.Ş. — YEDEK PARÇA SATINALMA TALEP LİSTESİ</div><div class="sub">${new Date().toLocaleString('tr-TR')} · Seçilen parçalar</div><table class="tbl"><thead>${area.querySelector('thead')?.innerHTML||''}</thead><tbody>${area.querySelector('tbody')?.innerHTML||''}</tbody></table><div class="foot">${area.querySelector('.yp-ai-print-foot')?.innerText||''}</div><script>window.onload=function(){setTimeout(function(){window.print()},250)};<\/script></body></html>`);
   w.document.close();
 }
-async function ypAIOnaylaVeGonder(){
+async function ypAIOnizlemePdfHazirla(){
   if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ AI analiz sonucu bulunamadı.','err');return;}
   const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
   if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
@@ -11560,16 +11562,20 @@ async function ypAIOnaylaVeGonder(){
   try{
     showLoading(true);
     ypAIPendingApproval=sec.map(x=>Object.assign({},x,{onerilenMiktar:Number(x.sistemOnayliMiktar??x.onerilenMiktar??0)}));
-    const r=await gsRequest({action:'yedekParcaAITeklifPdfOnizle',oneriler:ypAIPendingApproval,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
+    const r=await gsRequest({action:'yedekParcaAIPdfOnizle',oneriler:ypAIPendingApproval,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
     if(!r?.ok)throw new Error(r?.error||'PDF önizlemesi oluşturulamadı.');
     ypAIPreviewFileId=String(r.fileId||'');
+    ypAIPreviewToken=String(r.previewToken||'');
     if(!ypAIPreviewFileId)throw new Error('PDF dosya kimliği alınamadı.');
+    if(!ypAIPreviewToken)throw new Error('PDF önizleme onay anahtarı alınamadı.');
     const pdfPreviewUrl='https://drive.google.com/file/d/'+encodeURIComponent(ypAIPreviewFileId)+'/preview';
     ypAIPdfModalAc(pdfPreviewUrl,r.fileName,r.orderCount);
     showToast('📄 PDF hazır. Kontrol et; ONAYLA butonuna basmadan sipariş ve e-posta işlemi yapılmaz.','ok');
   }catch(e){
     console.warn(e);showToast('⚠️ '+e.message,'err');
     ypAIPendingApproval=[];
+    ypAIPreviewToken='';
+    ypAIPreviewFileId='';
   }finally{showLoading(false);}
 }
 
@@ -11579,11 +11585,13 @@ async function ypAIPreviewOnaylaVeGonder(){
   if(!ok)return;
   try{
     showLoading(true);
-    const r=await gsRequest({action:'yedekParcaAIOnaylaVeGonder',oneriler:ypAIPendingApproval,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
+    const r=await gsRequest({action:'yedekParcaAIOnaylaVeGonder',previewToken:ypAIPreviewToken,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
     if(!r?.ok)throw new Error(r?.error||'Sipariş ve e-posta işlemi başarısız.');
     ypAIOnayliSiparisIds=Array.isArray(r.created)?r.created.map(x=>String(x.id||'')).filter(Boolean):[];
     try{localStorage.setItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS',JSON.stringify(ypAIOnayliSiparisIds));}catch(_e){}
     ypAIPendingApproval=[];
+    ypAIPreviewToken='';
+    ypAIPreviewFileId='';
     ypAISelectedCodes=new Set();
     try{localStorage.setItem('BURKAB_YP_AI_SELECTED_CODES','[]');}catch(_e){}
     showToast(`✅ ${Number(r.orderCount||r.createdCount||0)} sipariş oluşturuldu ve e-posta gönderildi.`,'ok');
