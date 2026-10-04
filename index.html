@@ -946,6 +946,14 @@ tr:last-child td { border-bottom: none; }
 @media(max-width:900px){#makineSicilModal .sicil-kpi-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:650px){#makineSicilModal .sicil-info-grid{grid-template-columns:1fr}#makineSicilModal .sicil-kpi-grid{grid-template-columns:repeat(2,1fr)}}
 
+
+<style id="yp-ai-printflow-css">
+.yp-ai-print-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
+.yp-ai-print-modal{width:min(1250px,98vw);max-height:94vh;background:#fff;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 70px rgba(0,0,0,.5)}
+.yp-ai-print-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:#202020;color:#fff}.yp-ai-print-head>div:first-child{font-size:15px}.yp-ai-print-head>div:first-child div{font-size:11px;color:#ccc;margin-top:4px}.yp-ai-print-close{border:0;background:#555;color:#fff;border-radius:7px;padding:8px 12px;cursor:pointer}
+.yp-ai-print-body{padding:18px;overflow:auto}.yp-ai-print-title{font-size:18px;font-weight:800;margin-bottom:6px}.yp-ai-print-sub{font-size:12px;color:#555;margin-bottom:15px}.yp-ai-print-table{width:100%;border-collapse:collapse;font-size:11px}.yp-ai-print-table th,.yp-ai-print-table td{border:1px solid #ccc;padding:7px;text-align:left;vertical-align:top}.yp-ai-print-table th{background:#f0f0f0}.yp-ai-print-table td:nth-child(5),.yp-ai-print-table td:nth-child(6),.yp-ai-print-table td:nth-child(7),.yp-ai-print-table td:nth-child(8){text-align:right}.yp-ai-print-table td span{color:#666}.yp-ai-print-foot{margin-top:14px;padding:10px;background:#f6f6f6;font-size:12px}.yp-ai-print-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid #ddd;background:#fafafa}.yp-ai-print-warning{padding:10px 16px;background:#fff8e1;color:#7a5200;font-size:12px;border-top:1px solid #f0d98c}
+@media print{.yp-ai-print-backdrop{position:static;background:#fff;padding:0}.yp-ai-print-modal{width:100%;max-height:none;box-shadow:none}.yp-ai-print-head,.yp-ai-print-actions,.yp-ai-print-warning{display:none}.yp-ai-print-body{overflow:visible;padding:0}.yp-ai-print-table{font-size:10px}}
+</style>
 </style>
 </head>
 <body>
@@ -1940,7 +1948,7 @@ tr:last-child td { border-bottom: none; }
       <div class="yp-ai-actions">
         <span class="yp-ai-selected" id="ypAISelectedInfo">Henüz analiz yapılmadı.</span>
         <button class="yp-btn dark" id="ypAIButon" onclick="ypAIAnalizCalistir()">🤖 AI ANALİZİNİ ÇALIŞTIR</button>
-        <button class="yp-btn green" id="ypAIOnayButon" onclick="ypAIOnayla()" disabled style="display:inline-block;opacity:.5;cursor:not-allowed">✅ SEÇİLENLERİ ONAYLA (0)</button>
+        <button class="yp-btn green" id="ypAIOnayButon" onclick="ypAIOnayla()" disabled style="display:inline-block;opacity:.5;cursor:not-allowed">📄 SEÇİLENLERİ ÖNİZLE (0)</button>
         <button class="yp-btn outline" id="ypAIRaporButon" onclick="ypAIPdfOnizle()" style="display:none">📄 PDF ÖNİZLEME</button>
       </div>
     </div>
@@ -11400,6 +11408,10 @@ let ypAIAnalizSonucu=null; let ypAIOnayliSiparisIds=[]; let ypAISelectedCodes=ne
 try{
   const savedIds=JSON.parse(localStorage.getItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS')||'[]');
   if(Array.isArray(savedIds)) ypAIOnayliSiparisIds=savedIds.map(String).filter(Boolean);
+  const savedAnalysis=JSON.parse(localStorage.getItem('BURKAB_YP_AI_ANALIZ_SONUCU')||'null');
+  if(savedAnalysis && Array.isArray(savedAnalysis.oneriler)) ypAIAnalizSonucu=savedAnalysis;
+  const savedSelected=JSON.parse(localStorage.getItem('BURKAB_YP_AI_SELECTED_CODES')||'[]');
+  if(Array.isArray(savedSelected)) ypAISelectedCodes=new Set(savedSelected.map(String).filter(Boolean));
 }catch(_e){}
 function ypAIEsc(v){return ypEsc(v);}
 function ypAIFmt(v){return Number(v||0).toLocaleString('tr-TR',{maximumFractionDigits:2});}
@@ -11409,6 +11421,7 @@ function ypAISelectionDegistir(el){
   if(!code)return;
   if(el.checked) ypAISelectedCodes.add(code);
   else ypAISelectedCodes.delete(code);
+  try{localStorage.setItem('BURKAB_YP_AI_SELECTED_CODES',JSON.stringify(Array.from(ypAISelectedCodes)));}catch(_e){}
   ypAIOnayButonGuncelle();
 }
 function ypAIOnayButonGuncelle(){
@@ -11420,12 +11433,15 @@ function ypAIOnayButonGuncelle(){
   btn.disabled=!hasSelection;
   btn.style.opacity=hasSelection?'1':'.5';
   btn.style.cursor=hasSelection?'pointer':'not-allowed';
-  btn.textContent=hasSelection?`✅ SEÇİLENLERİ ONAYLA (${selected.length})`:'✅ SEÇİLENLERİ ONAYLA (0)';
+  btn.textContent=hasSelection?`📄 SEÇİLENLERİ ÖNİZLE (${selected.length})`:'📄 SEÇİLENLERİ ÖNİZLE (0)';
   const reportBtn=document.getElementById('ypAIRaporButon');
-  if(reportBtn) reportBtn.style.display=ypAIOnayliSiparisIds.length?'inline-block':'none';
+  if(reportBtn) reportBtn.style.display='none';
   info.textContent=ypAIOnayliSiparisIds.length
     ? `${ypAIOnayliSiparisIds.length} sipariş talebi oluşturuldu · PDF + e-posta hazır`
     : (ypAIAnalizSonucu?`${selected.length} parça seçili · Analiz: ${ypAIAnalizSonucu.tarih||'—'}`:'Henüz analiz yapılmadı.');
+}
+if(ypAIAnalizSonucu){
+  setTimeout(function(){try{ypAIRender(ypAIAnalizSonucu);}catch(_e){}},0);
 }
 async function ypAIAnalizCalistir(){
   try{
@@ -11435,7 +11451,9 @@ async function ypAIAnalizCalistir(){
     const r=await gsRequest({action:'yedekParcaAIAnaliz',kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
     if(!r?.ok)throw new Error(r?.error||'AI kritik stok analizi başarısız.');
     ypAIAnalizSonucu=r;
+    try{localStorage.setItem('BURKAB_YP_AI_ANALIZ_SONUCU',JSON.stringify(r));}catch(_e){}
     ypAISelectedCodes=new Set();
+    try{localStorage.removeItem('BURKAB_YP_AI_SELECTED_CODES');}catch(_e){}
     ypAIRender(r);
     showToast(`✅ AI analizi tamamlandı. ${Array.isArray(r.oneriler)?r.oneriler.length:0} kritik parça değerlendirildi.`,'ok');
   }catch(e){console.warn(e);const list=document.getElementById('ypAIList');if(list)list.innerHTML=`<div class="yp-ai-empty" style="color:#b42318">⚠️ ${ypAIEsc(e.message)}</div>`;showToast('⚠️ '+e.message,'err');}
@@ -11464,26 +11482,69 @@ async function ypAIOnayla(){
   if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ Önce AI analizi çalıştırın.','err');return;}
   const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
   if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
-  if(!confirm(`${sec.length} seçili parça için sistem onaylı miktarlarda sipariş talebi oluşturulsun mu?\n\nBu aşama sadece sipariş talebini oluşturur; e-posta henüz gönderilmez.`))return;
+  ypAIOnizlemeAc(sec);
+}
+
+function ypAIOnizlemeAc(sec){
+  const eski=document.getElementById('ypAIOnizlemeModal'); if(eski) eski.remove();
+  const toplam=sec.reduce((t,x)=>t+Number(x.sistemOnayliMiktar??x.onerilenMiktar??0),0);
+  const now=new Date();
+  const tarih=now.toLocaleString('tr-TR');
+  const rows=sec.map((x,i)=>{
+    const qty=Number(x.sistemOnayliMiktar??x.onerilenMiktar??0);
+    const ai=Number(x.aiOnerilenMiktar??qty);
+    return `<tr><td>${i+1}</td><td><b>${ypAIEsc(x.stokKodu)}</b><br><span>${ypAIEsc(x.parcaAdi||'')}</span></td><td>${ypAIEsc(x.tedarikci||'—')}</td><td>${ypAIEsc(x.birim||'ADET')}</td><td>${ypAIFmt(x.kullanilabilir)}</td><td>${ypAIFmt(x.minimumStok)}</td><td>${ypAIFmt(ai)}</td><td><b>${ypAIFmt(qty)}</b></td><td>${ypAIEsc(x.karar||'PLANLI')}</td></tr>`;
+  }).join('');
+  const m=document.createElement('div');
+  m.id='ypAIOnizlemeModal';
+  m.innerHTML=`<div class="yp-ai-print-backdrop"><div class="yp-ai-print-modal">
+    <div class="yp-ai-print-head"><div><b>📄 BURKAB YEDEK PARÇA SATINALMA ÖNİZLEMESİ</b><div>${tarih} · ${sec.length} parça · Toplam miktar: ${ypAIFmt(toplam)}</div></div><button class="yp-ai-print-close" onclick="ypAIOnizlemeKapat()">✕</button></div>
+    <div class="yp-ai-print-body" id="ypAIPrintArea">
+      <div class="yp-ai-print-title">BURKAB A.Ş. — YEDEK PARÇA SATINALMA TALEP LİSTESİ</div>
+      <div class="yp-ai-print-sub">AI analizi + satınalma güvenlik algoritması sonucunda seçilen parçalar. <b>Henüz sipariş kaydı oluşturulmamıştır ve e-posta gönderilmemiştir.</b></div>
+      <table class="yp-ai-print-table"><thead><tr><th>#</th><th>Stok Kodu / Parça</th><th>Tedarikçi</th><th>Birim</th><th>Mevcut</th><th>Min</th><th>AI</th><th>Sistem</th><th>Öncelik</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="yp-ai-print-foot">Toplam seçili parça: <b>${sec.length}</b> · Toplam sipariş miktarı: <b>${ypAIFmt(toplam)}</b></div>
+    </div>
+    <div class="yp-ai-print-actions">
+      <button class="yp-btn outline" onclick="ypAIOnizlemeYazdir()">🖨 YAZDIR / PDF OLARAK KAYDET</button>
+      <button class="yp-btn outline" onclick="ypAIOnizlemeKapat()">KAPAT / DÜZENLE</button>
+      <button class="yp-btn green" onclick="ypAIOnaylaVeGonder()">✅ PDF'Yİ GÖRDÜM — ONAYLA VE E-POSTA GÖNDER</button>
+    </div>
+    <div class="yp-ai-print-warning">⚠️ <b>Önemli:</b> Bu ekranda gördüğünüz liste henüz <b>YedekParca_Siparisler</b> tablosuna yazılmadı. Son yeşil butona basılınca sipariş kayıtları oluşturulacak ve PDF e-posta ile gönderilecektir.</div>
+  </div></div>`;
+  document.body.appendChild(m);
+}
+function ypAIOnizlemeKapat(){document.getElementById('ypAIOnizlemeModal')?.remove();}
+function ypAIOnizlemeYazdir(){
+  const area=document.getElementById('ypAIPrintArea'); if(!area)return;
+  const w=window.open('','_blank','width=1200,height=850');
+  if(!w){showToast('⚠️ Yazdırma penceresi tarayıcı tarafından engellendi. Açılır pencerelere izin verin.','err');return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BURKAB Yedek Parça Satınalma</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}.title{font-size:18px;font-weight:700;margin-bottom:8px}.sub{margin-bottom:18px;color:#555}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border:1px solid #bbb;padding:7px;text-align:left;vertical-align:top}.tbl th{background:#eee}.tbl td:nth-child(5),.tbl td:nth-child(6),.tbl td:nth-child(7),.tbl td:nth-child(8){text-align:right}.foot{margin-top:14px;font-size:13px;font-weight:700}@media print{body{margin:12mm}}</style></head><body><div class="title">BURKAB A.Ş. — YEDEK PARÇA SATINALMA TALEP LİSTESİ</div><div class="sub">${new Date().toLocaleString('tr-TR')} · Seçilen parçalar</div><table class="tbl"><thead>${area.querySelector('thead')?.innerHTML||''}</thead><tbody>${area.querySelector('tbody')?.innerHTML||''}</tbody></table><div class="foot">${area.querySelector('.yp-ai-print-foot')?.innerText||''}</div><script>window.onload=function(){setTimeout(function(){window.print()},250)};<\/script></body></html>`);
+  w.document.close();
+}
+async function ypAIOnaylaVeGonder(){
+  if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ AI analiz sonucu bulunamadı.','err');return;}
+  const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
+  if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
+  const ok=confirm(`${sec.length} seçili parça için ekranda önizlemeyi gördüğünüzü ve onayladığınızı teyit ediyor musunuz?\n\nONAY verirseniz:\n• Sipariş kayıtları oluşturulur\n• PDF hazırlanır\n• 4 alıcıya e-posta gönderilir\n\nBu işlem geri alınamaz.`);
+  if(!ok)return;
   try{
     showLoading(true);
     const payload=sec.map(x=>Object.assign({},x,{onerilenMiktar:Number(x.sistemOnayliMiktar??x.onerilenMiktar??0)}));
-    const r=await gsRequest({action:'yedekParcaAIOnayla',oneriler:payload,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
-    if(!r?.ok)throw new Error(r?.error||'AI sipariş onayı başarısız.');
-    const n=Number(r.createdCount||r.created?.length||0);
+    const r=await gsRequest({action:'yedekParcaAIOnaylaVeGonder',oneriler:payload,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
+    if(!r?.ok)throw new Error(r?.error||'Sipariş ve e-posta işlemi başarısız.');
     ypAIOnayliSiparisIds=Array.isArray(r.created)?r.created.map(x=>String(x.id||'')).filter(Boolean):[];
     try{localStorage.setItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS',JSON.stringify(ypAIOnayliSiparisIds));}catch(_e){}
-    // Seçimleri ve AI listesini KAYBETME. Kullanıcı PDF önizlemesine geçmeden
-    // hangi parçaları seçtiğini ekranda görmeye devam etmelidir.
-    ypAISelectedCodes=new Set(sec.map(x=>String(x.stokKodu||'')));
-    sec.forEach(x=>{ x._siparisOlusturuldu=true; });
-    showToast(`✅ ${n} sipariş talebi oluşturuldu. Seçimler korunuyor; şimdi PDF önizlemesini açabilirsiniz.`,'ok');
+    ypAISelectedCodes=new Set();
+    try{localStorage.setItem('BURKAB_YP_AI_SELECTED_CODES','[]');}catch(_e){}
+    showToast(`✅ ${Number(r.orderCount||r.createdCount||0)} sipariş oluşturuldu ve e-posta gönderildi.`,'ok');
+    ypAIOnizlemeKapat();
     ypAIOnayButonGuncelle();
     ypYuklendi=false; await ypVerileriYukle(true);
-    // Veri yenilemesi AI analiz sonucunu silmemeli; mevcut analiz/listede kalmalı.
-    ypAIRender(ypAIAnalizSonucu);
-  }catch(e){showToast('⚠️ '+e.message,'err');}finally{showLoading(false);}
+  }catch(e){console.warn(e);showToast('⚠️ '+e.message,'err');}
+  finally{showLoading(false);}
 }
+
 
 function ypAIPdfModalKapat(){
   const m=document.getElementById('ypAIPdfModal');
