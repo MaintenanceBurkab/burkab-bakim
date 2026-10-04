@@ -11404,7 +11404,7 @@ function ypKpiHtml(list) {
   `;
 }
 function renderYedekStok(){const box=document.getElementById('ypStokListe');if(!box)return;if(!ypYuklendi){ypVerileriYukle();return;}const q=ypN(document.getElementById('ypArama')?.value),cat=ypN(document.getElementById('ypKategoriFiltre')?.value),dur=document.getElementById('ypDurumFiltre')?.value||'';let list=ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').filter(p=>!q||ypN([p.stokKodu,p.parcaAdi,p.kategori,p.makineGrubu,p.rafKonumu].join(' ')).includes(q)).filter(p=>!cat||ypN(p.kategori)===cat).filter(p=>!dur||ypDurum(p)===dur);document.getElementById('ypKpiGrid').innerHTML=ypKpiHtml(ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR'));box.innerHTML=list.length?list.map(p=>{const d=ypDurum(p),c=ypRenk(d),k=ypKullanilabilir(p);return `<div class="yp-stock-card" style="--c:${c}"><div class="yp-stock-head"><div><div class="yp-code">${ypEsc(p.stokKodu)}</div><div class="yp-name">${ypEsc(p.parcaAdi)}</div></div><span class="yp-badge ${d==='NORMAL'?'yp-ok':d==='UYARI'?'yp-warn':d==='KRITIK'?'yp-critical':'yp-zero'}">${ypEtiket(d)}</span></div><div class="yp-meta"><div><b>${ypNum(p.mevcutStok)}</b><span>Mevcut</span></div><div><b>${ypNum(p.rezerveStok)}</b><span>Rezerve</span></div><div><b>${k}</b><span>Kullanılabilir</span></div></div><div style="font-size:11px;color:#666;margin-top:9px">📍 ${ypEsc(p.rafKonumu||'—')} · 🏭 ${ypEsc(p.makineGrubu||'TÜM MAKİNELER')} · Min: <b>${ypNum(p.minimumStok)}</b> · Max: <b>${ypNum(p.maksimumStok)}</b></div><div class="yp-actions"><button class="yp-btn outline" onclick="ypParcaModalAc('${ypEsc(p.stokKodu)}')">DÜZENLE</button><button class="yp-btn green" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','GIRIS')">GİRİŞ</button><button class="yp-btn dark" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','CIKIS')">ÇIKIŞ</button><button class="yp-btn primary" onclick="ypSiparisModalAc('${ypEsc(p.stokKodu)}')">SİPARİŞ</button></div></div>`;}).join(''):'<div class="empty">Filtreye uygun parça bulunamadı.</div>';ypBadgeGuncelle();}
-let ypAIAnalizSonucu=null; let ypAIOnayliSiparisIds=[]; let ypAISelectedCodes=new Set(); let ypAIPreviewFileId="";
+let ypAIAnalizSonucu=null; let ypAIOnayliSiparisIds=[]; let ypAISelectedCodes=new Set(); let ypAIPreviewFileId=""; let ypAIPendingApproval=[];
 try{
   const savedIds=JSON.parse(localStorage.getItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS')||'[]');
   if(Array.isArray(savedIds)) ypAIOnayliSiparisIds=savedIds.map(String).filter(Boolean);
@@ -11554,25 +11554,46 @@ async function ypAIOnaylaVeGonder(){
   if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ AI analiz sonucu bulunamadı.','err');return;}
   const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
   if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
-  const ok=confirm(`${sec.length} seçili parça için ekranda önizlemeyi gördüğünüzü ve onayladığınızı teyit ediyor musunuz?\n\nONAY verirseniz:\n• Sipariş kayıtları oluşturulur\n• PDF hazırlanır\n• 4 alıcıya e-posta gönderilir\n\nBu işlem geri alınamaz.`);
+
+  // KRİTİK KURAL: Bu aşamada hiçbir sipariş kaydı ve e-posta oluşturulmaz.
+  // Sadece seçilen AI önerileri PDF teklif önizlemesine gönderilir.
+  try{
+    showLoading(true);
+    ypAIPendingApproval=sec.map(x=>Object.assign({},x,{onerilenMiktar:Number(x.sistemOnayliMiktar??x.onerilenMiktar??0)}));
+    const r=await gsRequest({action:'yedekParcaAITeklifPdfOnizle',oneriler:ypAIPendingApproval,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
+    if(!r?.ok)throw new Error(r?.error||'PDF önizlemesi oluşturulamadı.');
+    ypAIPreviewFileId=String(r.fileId||'');
+    if(!ypAIPreviewFileId)throw new Error('PDF dosya kimliği alınamadı.');
+    const pdfPreviewUrl='https://drive.google.com/file/d/'+encodeURIComponent(ypAIPreviewFileId)+'/preview';
+    ypAIPdfModalAc(pdfPreviewUrl,r.fileName,r.orderCount);
+    showToast('📄 PDF hazır. Kontrol et; ONAYLA butonuna basmadan sipariş ve e-posta işlemi yapılmaz.','ok');
+  }catch(e){
+    console.warn(e);showToast('⚠️ '+e.message,'err');
+    ypAIPendingApproval=[];
+  }finally{showLoading(false);}
+}
+
+async function ypAIPreviewOnaylaVeGonder(){
+  if(!ypAIPendingApproval.length){showToast('⚠️ Onaylanacak önizleme bulunamadı.','err');return;}
+  const ok=confirm(`${ypAIPendingApproval.length} seçili parça için PDF'yi kontrol ettiniz mi?\n\nONAY verirseniz:\n• Sipariş kayıtları oluşturulur\n• Aynı onaylı miktarlar kullanılır\n• PDF e-posta eki olarak gönderilir\n\nBu işlem geri alınamaz.`);
   if(!ok)return;
   try{
     showLoading(true);
-    const payload=sec.map(x=>Object.assign({},x,{onerilenMiktar:Number(x.sistemOnayliMiktar??x.onerilenMiktar??0)}));
-    const r=await gsRequest({action:'yedekParcaAIOnaylaVeGonder',oneriler:payload,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
+    const r=await gsRequest({action:'yedekParcaAIOnaylaVeGonder',oneriler:ypAIPendingApproval,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
     if(!r?.ok)throw new Error(r?.error||'Sipariş ve e-posta işlemi başarısız.');
     ypAIOnayliSiparisIds=Array.isArray(r.created)?r.created.map(x=>String(x.id||'')).filter(Boolean):[];
     try{localStorage.setItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS',JSON.stringify(ypAIOnayliSiparisIds));}catch(_e){}
+    ypAIPendingApproval=[];
     ypAISelectedCodes=new Set();
     try{localStorage.setItem('BURKAB_YP_AI_SELECTED_CODES','[]');}catch(_e){}
     showToast(`✅ ${Number(r.orderCount||r.createdCount||0)} sipariş oluşturuldu ve e-posta gönderildi.`,'ok');
+    ypAIPdfModalKapat();
     ypAIOnizlemeKapat();
     ypAIOnayButonGuncelle();
     ypYuklendi=false; await ypVerileriYukle(true);
   }catch(e){console.warn(e);showToast('⚠️ '+e.message,'err');}
   finally{showLoading(false);}
 }
-
 
 function ypAIPdfModalKapat(){
   const m=document.getElementById('ypAIPdfModal');
@@ -11594,7 +11615,7 @@ function ypAIPdfModalAc(pdfUrl,fileName,orderCount){
       <div style="font-size:12px;color:#555">PDF'yi kontrol et. <b>Gönder</b> butonuna basmadan hiçbir e-posta gönderilmez.</div>
       <div style="display:flex;gap:8px">
         <button onclick="ypAIPdfModalKapat()" style="padding:10px 16px;border:1px solid #bbb;background:#fff;border-radius:7px;cursor:pointer">KAPAT / DÜZENLE</button>
-        <button onclick="ypAIOnayliRaporMailGonder()" style="padding:10px 18px;border:0;background:#087f5b;color:#fff;border-radius:7px;font-weight:700;cursor:pointer">✅ PDF'Yİ GÖRDÜM — E-POSTA GÖNDER</button>
+        <button onclick="ypAIPreviewOnaylaVeGonder()" style="padding:10px 18px;border:0;background:#087f5b;color:#fff;border-radius:7px;font-weight:700;cursor:pointer">✅ PDF'Yİ GÖRDÜM — ONAYLA VE E-POSTA GÖNDER</button>
       </div>
     </div>
   </div>`;
