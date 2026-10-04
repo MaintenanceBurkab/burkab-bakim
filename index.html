@@ -11475,42 +11475,61 @@ async function ypAIOnayla(){
   }catch(e){showToast('⚠️ '+e.message,'err');}finally{showLoading(false);}
 }
 
+function ypAIPdfModalKapat(){
+  const m=document.getElementById('ypAIPdfModal');
+  if(m)m.remove();
+  if(window.__ypAIPdfUrl){try{URL.revokeObjectURL(window.__ypAIPdfUrl);}catch(_e){} window.__ypAIPdfUrl='';}
+}
+function ypAIPdfModalAc(pdfUrl,fileName,orderCount){
+  ypAIPdfModalKapat();
+  const m=document.createElement('div');
+  m.id='ypAIPdfModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';
+  m.innerHTML=`<div style="width:min(1200px,98vw);height:min(92vh,900px);background:#fff;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#202020;color:#fff">
+      <div><b>📄 BURKAB Yedek Parça Satınalma PDF</b><div style="font-size:11px;color:#ccc;margin-top:3px">${ypAIEsc(fileName||'PDF')} · ${Number(orderCount||0)} sipariş</div></div>
+      <button onclick="ypAIPdfModalKapat()" style="border:0;background:#555;color:#fff;border-radius:7px;padding:8px 12px;cursor:pointer">✕ KAPAT</button>
+    </div>
+    <iframe title="BURKAB PDF Önizleme" src="${pdfUrl}" style="flex:1;width:100%;border:0;background:#777"></iframe>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid #ddd;background:#fafafa;flex-wrap:wrap">
+      <div style="font-size:12px;color:#555">PDF'yi kontrol et. <b>Gönder</b> butonuna basmadan hiçbir e-posta gönderilmez.</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="ypAIPdfModalKapat()" style="padding:10px 16px;border:1px solid #bbb;background:#fff;border-radius:7px;cursor:pointer">KAPAT / DÜZENLE</button>
+        <button onclick="ypAIOnayliRaporMailGonder()" style="padding:10px 18px;border:0;background:#087f5b;color:#fff;border-radius:7px;font-weight:700;cursor:pointer">✅ PDF'Yİ GÖRDÜM — E-POSTA GÖNDER</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+}
 async function ypAIPdfOnizle(){
   if(!ypAIOnayliSiparisIds.length){showToast('⚠️ Önce seçili siparişleri oluşturun.','err');return;}
-  // Popup engelleyiciler async çağrıdan sonra window.open() kullanımını engelleyebildiği için
-  // pencereyi kullanıcı tıklamasının hemen içinde açıyoruz.
-  const previewWin=window.open('about:blank','BURKAB_PDF_ONIZLEME','width=1200,height=900');
-  if(previewWin){
-    try{ previewWin.document.write('<html><body style="font-family:Arial;padding:30px"><h3>BURKAB PDF hazırlanıyor...</h3><p>Lütfen bekleyin.</p></body></html>'); }catch(_e){}
-  }
   try{
     showLoading(true);
+    const btn=document.getElementById('ypAIRaporButon');
+    if(btn){btn.disabled=true;btn.textContent='⏳ PDF HAZIRLANIYOR...';}
     const r=await gsRequest({action:'yedekParcaAIPdfOnizle',orderIds:ypAIOnayliSiparisIds,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
     if(!r?.ok)throw new Error(r?.error||'PDF önizlemesi oluşturulamadı.');
     ypAIPreviewFileId=String(r.fileId||'');
-    if(r.fileId){
-      const previewUrl='https://drive.google.com/file/d/'+encodeURIComponent(r.fileId)+'/preview';
-      if(previewWin && !previewWin.closed) previewWin.location.href=previewUrl;
-      else window.open(previewUrl,'_blank');
-    }else if(r.fileUrl){
-      if(previewWin && !previewWin.closed) previewWin.location.href=r.fileUrl;
-      else window.open(r.fileUrl,'_blank');
-    }else if(previewWin && !previewWin.closed){
-      previewWin.close();
-      throw new Error('PDF dosya bağlantısı oluşturulamadı.');
-    }
-    showToast('📄 PDF önizlemesi açıldı. PDF uygunsa E-POSTA GÖNDER butonuna basabilirsiniz.','ok');
-    const btn=document.getElementById('ypAIRaporButon');
-    if(btn){btn.textContent='📧 PDF ONAYLI — E-POSTA GÖNDER';btn.classList.remove('outline');btn.classList.add('green');}
+    if(!r.pdfBase64)throw new Error('PDF içeriği alınamadı. Apps Script yanıtında PDF verisi yok.');
+    const binary=atob(r.pdfBase64);
+    const bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    const blob=new Blob([bytes],{type:r.mimeType||'application/pdf'});
+    if(window.__ypAIPdfUrl){try{URL.revokeObjectURL(window.__ypAIPdfUrl);}catch(_e){}}
+    window.__ypAIPdfUrl=URL.createObjectURL(blob);
+    ypAIPdfModalAc(window.__ypAIPdfUrl,r.fileName,r.orderCount);
+    showToast("📄 PDF hazır. Önce PDF'yi kontrol et; onay vermeden e-posta gönderilmez.",'ok');
+    if(btn){btn.disabled=false;btn.textContent='📄 PDF ÖNİZLEME';btn.style.display='inline-block';}
   }catch(e){
-    if(previewWin && !previewWin.closed) previewWin.close();
     console.warn(e);showToast('⚠️ '+e.message,'err');
+    const btn=document.getElementById('ypAIRaporButon');if(btn){btn.disabled=false;btn.textContent='📄 PDF ÖNİZLEME';}
   }finally{showLoading(false);}
 }
 
 async function ypAIOnayliRaporMailGonder(){
   if(!ypAIOnayliSiparisIds.length){showToast('⚠️ Önce sipariş taleplerini oluşturun.','err');return;}
-  const ok=confirm(`${ypAIOnayliSiparisIds.length} sipariş için oluşturulan PDF'yi kontrol ettiyseniz satınalma ve muhasebe adreslerine e-posta gönderilsin mi?\n\nEvet = E-POSTA GÖNDER\nHayır = Gönderme`);
+  if(!ypAIPreviewFileId){showToast('⚠️ Önce PDF önizlemesini açıp kontrol edin.','err');return;}
+  const ok=confirm(`${ypAIOnayliSiparisIds.length} sipariş için ekranda görüntülediğiniz PDF, satınalma ve muhasebe adreslerine gönderilsin mi?\n\nEvet = E-POSTA GÖNDER\nHayır = Gönderme`);
   if(!ok)return;
   const btn=document.getElementById('ypAIRaporButon');
   try{
@@ -11519,8 +11538,9 @@ async function ypAIOnayliRaporMailGonder(){
     const r=await gsRequest({action:'yedekParcaAIOnayliRaporMail',orderIds:ypAIOnayliSiparisIds,pdfFileId:ypAIPreviewFileId,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
     if(!r?.ok)throw new Error(r?.error||'E-posta gönderilemedi.');
     showToast(`✅ PDF onaylandı ve ${Number(r.sentCount||0)} sipariş talebi için e-posta gönderildi.`,'ok');
+    ypAIPdfModalKapat();
     ypAIOnayliSiparisIds=[]; ypAIPreviewFileId=''; ypAIOnayButonGuncelle();
-    if(btn){btn.textContent='📄 PDF + 📧 E-POSTA';btn.classList.remove('green');btn.classList.add('outline');btn.style.display='none';}
+    if(btn){btn.textContent='📄 PDF ÖNİZLEME';btn.classList.remove('green');btn.classList.add('outline');btn.style.display='none';}
   }catch(e){console.warn(e);showToast('⚠️ '+e.message,'err');}
   finally{showLoading(false);if(btn){btn.disabled=false;}}
 }
