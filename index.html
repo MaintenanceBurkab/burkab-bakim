@@ -11492,15 +11492,13 @@ function ypAIOnayla(){
       showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');
       return false;
     }
-
-    // SEÇİLENLERİ ÖNİZLE:
-    // Gerçek PDF önizlemesi backend tarafından oluşturulur.
-    // Bu aşamada YedekParca_Siparisler'e kayıt yazılmaz ve e-posta gönderilmez.
-    ypAIOnizlemePdfHazirla();
+    // ÖNEMLİ: Burada kesinlikle Apps Script çağrısı yok.
+    // Sadece seçilenleri ekranda önizliyoruz.
+    ypAIOnizlemeAc(sec);
     return false;
   } catch(e) {
     console.error('ypAIOnayla:', e);
-    showToast('⚠️ Önizleme açılamadı: ' + (e && e.message ? e.message : e),'err');
+    alert('Önizleme açılamadı: ' + (e && e.message ? e.message : e));
     return false;
   }
 }
@@ -11552,7 +11550,7 @@ function ypAIOnizlemeYazdir(){
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BURKAB Yedek Parça Satınalma</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}.title{font-size:18px;font-weight:700;margin-bottom:8px}.sub{margin-bottom:18px;color:#555}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border:1px solid #bbb;padding:7px;text-align:left;vertical-align:top}.tbl th{background:#eee}.tbl td:nth-child(5),.tbl td:nth-child(6),.tbl td:nth-child(7),.tbl td:nth-child(8){text-align:right}.foot{margin-top:14px;font-size:13px;font-weight:700}@media print{body{margin:12mm}}</style></head><body><div class="title">BURKAB A.Ş. — YEDEK PARÇA SATINALMA TALEP LİSTESİ</div><div class="sub">${new Date().toLocaleString('tr-TR')} · Seçilen parçalar</div><table class="tbl"><thead>${area.querySelector('thead')?.innerHTML||''}</thead><tbody>${area.querySelector('tbody')?.innerHTML||''}</tbody></table><div class="foot">${area.querySelector('.yp-ai-print-foot')?.innerText||''}</div><script>window.onload=function(){setTimeout(function(){window.print()},250)};<\/script></body></html>`);
   w.document.close();
 }
-async function ypAIOnizlemePdfHazirla(){
+async function ypAIOnaylaVeGonder(){
   if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ AI analiz sonucu bulunamadı.','err');return;}
   const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
   if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
@@ -11574,8 +11572,6 @@ async function ypAIOnizlemePdfHazirla(){
   }catch(e){
     console.warn(e);showToast('⚠️ '+e.message,'err');
     ypAIPendingApproval=[];
-    ypAIPreviewToken='';
-    ypAIPreviewFileId='';
   }finally{showLoading(false);}
 }
 
