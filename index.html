@@ -11604,6 +11604,17 @@ async function ypAIPreviewOnaylaVeGonder(){
   finally{showLoading(false);}
 }
 
+function ypAIPdfYazdir(){
+  // Google Drive PDF iframe'i farklı origin'de olduğu için iframe.contentWindow.print()
+  // güvenilir değildir. Yazdırma butonu PDF'yi ayrı sekmede açar; tarayıcının PDF
+  // görüntüleyicisindeki yazdırma düğmesi doğrudan kullanılabilir.
+  const iframe=document.querySelector('#ypAIPdfModal iframe');
+  const url=iframe?.src||window.__ypAIPdfUrl||'';
+  if(!url){showToast('⚠️ PDF adresi bulunamadı.','err');return;}
+  const w=window.open(url,'_blank','noopener,noreferrer');
+  if(!w){showToast('⚠️ Yazdırma sekmesi tarayıcı tarafından engellendi. Açılır pencerelere izin verin.','err');return;}
+}
+
 function ypAIPdfModalKapat(){
   const m=document.getElementById('ypAIPdfModal');
   if(m)m.remove();
@@ -11622,7 +11633,8 @@ function ypAIPdfModalAc(pdfUrl,fileName,orderCount){
     <iframe title="BURKAB PDF Önizleme" src="${pdfUrl}" style="flex:1;width:100%;border:0;background:#777"></iframe>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid #ddd;background:#fafafa;flex-wrap:wrap">
       <div style="font-size:12px;color:#555">PDF'yi kontrol et. <b>Gönder</b> butonuna basmadan hiçbir e-posta gönderilmez.</div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="ypAIPdfYazdir()" style="padding:10px 16px;border:1px solid #16805f;background:#fff;color:#16805f;border-radius:7px;font-weight:700;cursor:pointer">🖨 YAZDIR</button>
         <button onclick="ypAIPdfModalKapat()" style="padding:10px 16px;border:1px solid #bbb;background:#fff;border-radius:7px;cursor:pointer">KAPAT / DÜZENLE</button>
         <button onclick="ypAIPreviewOnaylaVeGonder()" style="padding:10px 18px;border:0;background:#087f5b;color:#fff;border-radius:7px;font-weight:700;cursor:pointer">✅ PDF'Yİ GÖRDÜM — ONAYLA VE E-POSTA GÖNDER</button>
       </div>
