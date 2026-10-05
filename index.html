@@ -59,6 +59,44 @@ body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: v
 .nav-tab:hover { color: rgba(255,255,255,.75); }
 .nav-tab.active { color: #ffd700; border-bottom-color: #ffd700; }
 
+/* ── TABLET: NAV BAR 2 SIRA ── */
+@media (min-width: 581px) and (max-width: 1100px) {
+  .nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding: 0 10px;
+  }
+  .nav-tab {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 6px 10px;
+    font-size: 12px;
+    letter-spacing: .2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ── TELEFON: 2 SÜTUN ── */
+@media (max-width: 580px) {
+  .nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    padding: 0 6px;
+  }
+  .nav-tab {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 5px 10px;
+    font-size: 11px;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .mn { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
 
 .section { background: var(--white); border: 1px solid #d0dae8; border-radius: 10px; margin-bottom: 16px; overflow: visible; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
