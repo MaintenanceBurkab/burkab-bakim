@@ -77,7 +77,25 @@ body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: v
     text-overflow: ellipsis;
   }
 }
+/* ── LAPTOP: NAV BAR 2 SIRA ── */
+@media (min-width: 1101px) and (max-width: 1600px) {
+  .nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    padding: 0 14px;
+  }
 
+  .nav-tab {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 8px 11px;
+    font-size: 12px;
+    letter-spacing: .2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
 /* ── TELEFON: 2 SÜTUN ── */
 @media (max-width: 580px) {
   .nav-tabs {
