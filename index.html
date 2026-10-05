@@ -4998,10 +4998,61 @@ function buildDash(veriArg) {
   veri.forEach(k => { islemC[k.islem] = (islemC[k.islem]||0) + 1; });
   const ctx2 = document.getElementById('chartIslem')?.getContext('2d');
   if (ctx2 && Object.keys(islemC).length) {
+    const pastaLabels = Object.keys(islemC);
+    const pastaValues = Object.values(islemC);
+    const pastaTotal = pastaValues.reduce((a, b) => a + b, 0);
+
+    // Pasta dilimlerinin üzerine yüzde oranlarını yaz.
+    // Harici plugin gerektirmez; mevcut Chart.js ile çalışır.
+    const pastaYuzdePlugin = {
+      id: 'islemPastaYuzde',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data || !pastaTotal) return;
+
+        ctx.save();
+        ctx.font = '700 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        meta.data.forEach((arc, i) => {
+          const oran = (pastaValues[i] / pastaTotal) * 100;
+          if (oran < 3) return; // Çok küçük dilimlerde yazı üst üste binmesin.
+
+          const angle = (arc.startAngle + arc.endAngle) / 2;
+          const radius = (arc.outerRadius + arc.innerRadius) / 2;
+          const x = arc.x + Math.cos(angle) * radius;
+          const y = arc.y + Math.sin(angle) * radius;
+
+          // Beyaz yazı + hafif koyu gölge: tüm dilim renklerinde okunabilir.
+          ctx.shadowColor = 'rgba(0,0,0,.45)';
+          ctx.shadowBlur = 3;
+          ctx.fillStyle = '#fff';
+          ctx.fillText(oran.toFixed(1).replace('.', ',') + '%', x, y);
+        });
+
+        ctx.restore();
+      }
+    };
+
     charts['islem'] = new Chart(ctx2, {
       type: 'doughnut',
-      data: { labels: Object.keys(islemC), datasets: [{data:Object.values(islemC), backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'], borderWidth:2, borderColor:'#fff'}]},
-      options: {responsive:true, plugins:{legend:{position:'right'}}, cutout:'60%'}
+      data: {
+        labels: pastaLabels,
+        datasets: [{
+          data: pastaValues,
+          backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'],
+          borderWidth:2,
+          borderColor:'#fff'
+        }]
+      },
+      plugins: [pastaYuzdePlugin],
+      options: {
+        responsive:true,
+        plugins:{legend:{position:'right'}},
+        cutout:'60%'
+      }
     });
   }
 
