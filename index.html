@@ -3692,7 +3692,7 @@ function goTab(id, btn) {
   }
 }
   if (id === 'tedarikci')   { gsTedarikciYukle().then(() => renderTedarikciListesi()); }
-  if (id === 'iyilestirme') { gsIyilestirmeYukle(); }
+  if (id === 'iyilestirme') { gsIyilestirmeYukle().then(() => renderIyilestirme()); }
   if (id === 'otonomtakip') { otoYukle(); setTimeout(otonomDashboardYenile, 150); }
 }
 
@@ -4998,61 +4998,10 @@ function buildDash(veriArg) {
   veri.forEach(k => { islemC[k.islem] = (islemC[k.islem]||0) + 1; });
   const ctx2 = document.getElementById('chartIslem')?.getContext('2d');
   if (ctx2 && Object.keys(islemC).length) {
-    const pastaLabels = Object.keys(islemC);
-    const pastaValues = Object.values(islemC);
-    const pastaTotal = pastaValues.reduce((a, b) => a + b, 0);
-
-    // Pasta dilimlerinin üzerine yüzde oranlarını yaz.
-    // Harici plugin gerektirmez; mevcut Chart.js ile çalışır.
-    const pastaYuzdePlugin = {
-      id: 'islemPastaYuzde',
-      afterDatasetsDraw(chart) {
-        const ctx = chart.ctx;
-        const meta = chart.getDatasetMeta(0);
-        if (!meta || !meta.data || !pastaTotal) return;
-
-        ctx.save();
-        ctx.font = '700 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        meta.data.forEach((arc, i) => {
-          const oran = (pastaValues[i] / pastaTotal) * 100;
-          if (oran < 3) return; // Çok küçük dilimlerde yazı üst üste binmesin.
-
-          const angle = (arc.startAngle + arc.endAngle) / 2;
-          const radius = (arc.outerRadius + arc.innerRadius) / 2;
-          const x = arc.x + Math.cos(angle) * radius;
-          const y = arc.y + Math.sin(angle) * radius;
-
-          // Beyaz yazı + hafif koyu gölge: tüm dilim renklerinde okunabilir.
-          ctx.shadowColor = 'rgba(0,0,0,.45)';
-          ctx.shadowBlur = 3;
-          ctx.fillStyle = '#fff';
-          ctx.fillText(oran.toFixed(1).replace('.', ',') + '%', x, y);
-        });
-
-        ctx.restore();
-      }
-    };
-
     charts['islem'] = new Chart(ctx2, {
       type: 'doughnut',
-      data: {
-        labels: pastaLabels,
-        datasets: [{
-          data: pastaValues,
-          backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'],
-          borderWidth:2,
-          borderColor:'#fff'
-        }]
-      },
-      plugins: [pastaYuzdePlugin],
-      options: {
-        responsive:true,
-        plugins:{legend:{position:'right'}},
-        cutout:'60%'
-      }
+      data: { labels: Object.keys(islemC), datasets: [{data:Object.values(islemC), backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'], borderWidth:2, borderColor:'#fff'}]},
+      options: {responsive:true, plugins:{legend:{position:'right'}}, cutout:'60%'}
     });
   }
 
@@ -10580,11 +10529,12 @@ function tedModalAc(id) {
 
 function tedModalKapat() { document.getElementById('tedModal').classList.remove('open'); }
 
-function tedKaydet() {
+async function tedKaydet() {
   const firma = document.getElementById('ted-firma').value.trim();
   const kat   = document.getElementById('ted-kategori').value;
   const durum = document.getElementById('ted-durum').value;
   if (!firma || !kat || !durum) { showToast('❗ Zorunlu alanları doldurun!', 'err'); return; }
+
   const liste = tedYukle();
   const mevId = document.getElementById('tedModalId').value;
   const yeni  = {
@@ -10600,40 +10550,74 @@ function tedKaydet() {
     not:            document.getElementById('ted-not').value.trim(),
     guncelleme:     new Date().toISOString().split('T')[0],
   };
+
   if (mevId) {
     const idx = liste.findIndex(x => x.id === mevId);
     if (idx >= 0) liste[idx] = yeni; else liste.push(yeni);
-  } else { liste.push(yeni); }
+  } else {
+    liste.push(yeni);
+  }
+
+  // Önce ekranda/localStorage'da kaybetmeden sakla.
   tedKaydetLS(liste);
-  tedModalKapat();
   renderTedarikciListesi();
-  gsTedarikcisenkron(liste);
-  showToast('✅ Tedarikçi kaydedildi!', 'ok');
-  adminLogEkle('Tedarikçi kaydı güncellendi: ' + firma);
+
+  // Ardından Google Sheets'e gerçekten yazılmasını bekle.
+  try {
+    await gsTedarikcisenkron(liste);
+    tedModalKapat();
+    showToast('✅ Tedarikçi kaydedildi ve Google Sheets'e yazıldı.', 'ok');
+    adminLogEkle('Tedarikçi kaydı güncellendi: ' + firma);
+  } catch (e) {
+    // Local kayıt korunur; kullanıcıya gerçek durumu bildir.
+    tedModalKapat();
+    showToast('⚠️ Tedarikçi tarayıcıya kaydedildi ancak Google Sheets senkronu başarısız: ' + (e.message || e), 'err');
+  }
 }
 
-function tedSil(id) {
+async function tedSil(id) {
   if (!confirm('Bu tedarikçiyi silmek istiyor musunuz?')) return;
   const liste = tedYukle().filter(x => x.id !== id);
+
+  // Silmeyi de Sheets'e senkronize et; aksi halde geri dönünce tekrar gelebilir.
   tedKaydetLS(liste);
   renderTedarikciListesi();
-  showToast('🗑️ Tedarikçi silindi.', 'ok');
+
+  try {
+    await gsTedarikcisenkron(liste);
+    showToast('🗑️ Tedarikçi silindi.', 'ok');
+  } catch (e) {
+    showToast('⚠️ Tedarikçi yerelden silindi ancak Google Sheets senkronu başarısız.', 'err');
+  }
 }
 
 async function gsTedarikcisenkron(liste) {
-  try {
-    await gsRequest({ action:'syncTedarikci', sheet:'Tedarikci', planlar: liste });
-  } catch(e) {}
+  const sonuc = await gsRequest({
+    action:'syncTedarikci',
+    sheet:'Tedarikci',
+    planlar: liste
+  });
+  if (sonuc && sonuc.ok === false) {
+    throw new Error(sonuc.error || sonuc.message || 'Google Sheets kaydı başarısız.');
+  }
+  return sonuc;
 }
 
-// Sheets'ten tedarikçi verilerini çek
+// Sheets'ten tedarikçi verilerini çek.
+// ÖNEMLİ: Sheets cevabı eskiyse localStorage'daki yeni kayıtların üzerine yazılmaz.
 function gsTedarikciYukle() {
   return new Promise((resolve) => {
     const cb = 'gs_ted_cb_' + Date.now();
     const script = document.createElement('script');
+
+    const bitir = (liste) => {
+      try { delete window[cb]; } catch(e) {}
+      try { script.remove(); } catch(e) {}
+      resolve(liste);
+    };
+
     window[cb] = (data) => {
-      delete window[cb]; script.remove();
-      if (data && data.ok && Array.isArray(data.data) && data.data.length) {
+      if (data && data.ok && Array.isArray(data.data)) {
         const gelen = data.data.map(row => ({
           id:              row['ID']                       || '',
           firma:           row['Firma Adi']                || '',
@@ -10649,13 +10633,27 @@ function gsTedarikciYukle() {
           not:             row['Notlar / Kosullar']        || '',
           guncelleme:      row['Son Guncelleme']           || '',
         }));
-        if (gelen.length) tedKaydetLS(gelen);
-        resolve(gelen);
-      } else resolve(tedYukle());
+
+        // Sheets'te henüz görünmeyen yeni local kayıtları koru.
+        const yerel = tedYukle();
+        const gelenId = new Set(gelen.map(x => x.id));
+        const sadeceYerel = yerel.filter(x => x.id && !gelenId.has(x.id));
+        const birlesik = [...gelen, ...sadeceYerel];
+
+        tedKaydetLS(birlesik);
+        bitir(birlesik);
+      } else {
+        bitir(tedYukle());
+      }
     };
-    script.onerror = () => { delete window[cb]; script.remove(); resolve(tedYukle()); };
+
+    script.onerror = () => bitir(tedYukle());
     script.src = GS_URL + '?callback=' + cb + '&sheet=Tedarikci';
-    setTimeout(() => { if (window[cb]) { delete window[cb]; script.remove(); resolve(tedYukle()); }}, 5000);
+
+    setTimeout(() => {
+      if (window[cb]) bitir(tedYukle());
+    }, 5000);
+
     document.head.appendChild(script);
   });
 }
@@ -10688,10 +10686,14 @@ function iyBasariOrani(hedef) {
   }
 }
 
-function renderIyilestirme() {
-  const liste = iyYukle();
-  // İyileştirme ekranı açılırken her KPI için ayrı ayrı Sheets yazma işlemi YAPILMAZ.
-  // Sheets'ten gelen kayıtlar doğrudan gösterilir; böylece ekran saniyelerce beklemez.
+async function renderIyilestirme() {
+  let liste = iyYukle();
+  // Sayfa açıldığında gerçek KPI değerlerini mevcut BURKAB kayıtlarından üret.
+  try {
+    if (liste.length) liste = await iyGerceklesenleriGuncelle(liste);
+  } catch(e) {
+    console.warn('KPI gerçekleşen değerleri hesaplanamadı:', e);
+  }
   ensureChartJs(() => { _renderIyilestirmeIcerik(liste); });
 }
 
@@ -10789,7 +10791,7 @@ function _renderIyilestirmeIcerik(liste) {
           <td style="font-size:11px">${h.yon==='ASAGI'?'↓ Düşük iyi':'↑ Yüksek iyi'}</td>
           <td style="font-size:12px;max-width:180px">${h.not||'—'}</td>
           <td style="white-space:nowrap;display:flex;gap:4px">
-            <button onclick="iyiHedefModalAc('${h.id}')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">✏️</button>
+            <button onclick="iyHedefModalAc('${h.id}')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">✏️</button>
             <button onclick="iyHedefSil('${h.id}')" style="background:rgba(211,47,47,.1);border:1px solid rgba(211,47,47,.3);border-radius:4px;color:#d32f2f;cursor:pointer;padding:3px 8px;font-size:11px">🗑</button>
           </td>
         </tr>`;
@@ -10816,89 +10818,42 @@ function iyiHedefModalAc(id) {
 
 function iyModalKapat() { document.getElementById('iyModal').classList.remove('open'); }
 
-async function iyHedefKaydet() {
+function iyHedefKaydet() {
   const kpiTur = document.getElementById('iy-kpi-tur').value;
   const donem  = document.getElementById('iy-donem').value;
   const hedef  = document.getElementById('iy-hedef').value;
-
-  if (!kpiTur || !donem || !hedef) {
-    showToast('❗ KPI türü, dönem ve hedef zorunludur!', 'err');
-    return;
-  }
-
-  const mevId = document.getElementById('iyModalId').value;
-  const yeni = {
+  if (!kpiTur || !donem || !hedef) { showToast('❗ KPI türü, dönem ve hedef zorunludur!', 'err'); return; }
+  const liste  = iyYukle();
+  const mevId  = document.getElementById('iyModalId').value;
+  const yeni   = {
     id:           mevId || ('iy_' + Date.now()),
     kpiTur,
     kpiOzel:      document.getElementById('iy-kpi-ozel').value.trim(),
     donem,
     hedef:        parseFloat(hedef),
-    gerceklesen:  document.getElementById('iy-gerceklesen').value
-                    ? parseFloat(document.getElementById('iy-gerceklesen').value)
-                    : null,
+    gerceklesen:  document.getElementById('iy-gerceklesen').value ? parseFloat(document.getElementById('iy-gerceklesen').value) : null,
     birim:        document.getElementById('iy-birim').value.trim(),
     yon:          document.getElementById('iy-yon').value,
     not:          document.getElementById('iy-not').value.trim(),
-    guncelleme:   new Date().toISOString().split('T')[0]
+    guncelleme:   new Date().toISOString().split('T')[0],
   };
-
+  if (mevId) {
+    const idx = liste.findIndex(x => x.id === mevId);
+    if (idx >= 0) liste[idx] = yeni; else liste.push(yeni);
+  } else { liste.push(yeni); }
   // Standart KPI'larda gerçekleşen değer sistem verisinden otomatik hesaplanır.
-  const standartKpi = [
-    'MTTR','MTBF','KULLANILABILIRLIK',
-    'ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'
-  ].includes(String(yeni.kpiTur || '').toUpperCase());
-
-  if (standartKpi) {
-    yeni.gerceklesen = iyGerceklesenHesapla(yeni);
+  const standartKpi = ['MTTR','MTBF','KULLANILABILIRLIK','ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'].includes(String(yeni.kpiTur || '').toUpperCase());
+  if (standartKpi) yeni.gerceklesen = iyGerceklesenHesapla(yeni);
+  if (mevId) {
+    const idx2 = liste.findIndex(x => x.id === yeni.id);
+    if (idx2 >= 0) liste[idx2] = yeni;
   }
-
-  const payload = {
-    ID: yeni.id,
-    'KPI Turu': yeni.kpiTur,
-    'Ozel KPI Adi': yeni.kpiOzel,
-    'Donem (YIL-AY)': yeni.donem,
-    'Hedef Deger': yeni.hedef,
-    'Gerceklesen Deger': yeni.gerceklesen == null ? '' : yeni.gerceklesen,
-    'Birim': yeni.birim,
-    'Hedef Yonu': yeni.yon,
-    'Notlar / Aksiyon': yeni.not
-  };
-
-  try {
-    // Artık önce sadece bu hedef Google Sheets'e kaydedilir.
-    // Başarılı cevap gelmeden "kaydedildi" denmez ve modal kapanmaz.
-    const sonuc = await gsRequest({
-      action: 'saveIyilestirme',
-      kayit: payload
-    }, { timeoutMs: 60000 });
-
-    if (!sonuc || !sonuc.ok) {
-      throw new Error((sonuc && (sonuc.error || sonuc.message)) || 'Google Sheets hedef kaydı başarısız.');
-    }
-
-    // Sunucu kabul ettiyse yerel listeyi güncelle.
-    const liste = iyYukle();
-    const idx = liste.findIndex(x => x.id === yeni.id);
-    if (idx >= 0) liste[idx] = yeni;
-    else liste.push(yeni);
-
-    iyKaydetLS(liste);
-    iyModalKapat();
-    await renderIyilestirme();
-
-    showToast(
-      sonuc.mode === 'updated'
-        ? '✅ Hedef güncellendi ve Google Sheets\'e yazıldı!'
-        : '✅ Hedef eklendi ve Google Sheets\'e yazıldı!',
-      'ok'
-    );
-
-    adminLogEkle('İyileştirme hedefi kaydedildi: ' + iyHedefAd(yeni) + ' ' + donem);
-
-  } catch (e) {
-    console.error('İYİLEŞTİRME HEDEF KAYIT HATASI:', e);
-    showToast('❌ Hedef Google Sheets\'e kaydedilemedi: ' + (e.message || e), 'err');
-  }
+  iyKaydetLS(liste);
+  iyModalKapat();
+  renderIyilestirme();
+  gsIyilestirmeSenkron(liste);
+  showToast('✅ Hedef kaydedildi!', 'ok');
+  adminLogEkle('İyileştirme hedefi eklendi: ' + iyHedefAd(yeni) + ' ' + donem);
 }
 
 function iyHedefSil(id) {
@@ -11032,50 +10987,34 @@ async function gsIyilestirmeSenkron(liste) {
 }
 
 // Sheets'ten iyileştirme verilerini çek
-async function gsIyilestirmeYukle() {
-  try {
-    const data = await gsRequest(
-      { action: 'getIyilestirme' },
-      { timeoutMs: 60000 }
-    );
-
-    if (!data || !data.ok) {
-      throw new Error((data && (data.error || data.message)) || 'İyileştirme verileri alınamadı.');
-    }
-
-    const gelen = Array.isArray(data.data) ? data.data.map(row => ({
-      id:           row['ID'] || '',
-      kpiTur:       row['KPI Turu'] || '',
-      kpiOzel:      row['Ozel KPI Adi'] || '',
-      donem:        row['Donem (YIL-AY)'] || '',
-      hedef:        parseFloat(row['Hedef Deger']) || 0,
-      gerceklesen:  row['Gerceklesen Deger'] !== '' && row['Gerceklesen Deger'] != null
-                      ? parseFloat(row['Gerceklesen Deger']) : null,
-      birim:        row['Birim'] || '',
-      yon:          (String(row['Hedef Yonu'] || '').toUpperCase().includes('ASAGI') ||
-                    String(row['Hedef Yonu'] || '').includes('↓') ||
-                    String(row['Hedef Yonu'] || '').toUpperCase().includes('AZALT'))
-                    ? 'ASAGI' : 'YUKARI',
-      not:          row['Notlar / Aksiyon'] || '',
-      guncelleme:   row['Son Guncelleme'] || ''
-    })) : [];
-
-    iyKaydetLS(gelen);
-    renderIyilestirme();
-    return gelen;
-
-  } catch (e) {
-    console.error('İYİLEŞTİRME SHEETS YÜKLEME HATASI:', e);
-
-    // Ağ/Sunucu hatasında mevcut yerel kayıt varsa onu göster.
-    const yerel = iyYukle();
-    renderIyilestirme();
-
-    if (!yerel.length) {
-      showToast('❌ İyileştirme verileri Google Sheets\'ten alınamadı: ' + (e.message || e), 'err');
-    }
-    return yerel;
-  }
+function gsIyilestirmeYukle() {
+  return new Promise((resolve) => {
+    const cb = 'gs_iy_cb_' + Date.now();
+    const script = document.createElement('script');
+    window[cb] = (data) => {
+      delete window[cb]; script.remove();
+      if (data && data.ok && Array.isArray(data.data) && data.data.length) {
+        const gelen = data.data.map(row => ({
+          id:           row['ID']                  || '',
+          kpiTur:       row['KPI Turu']            || '',
+          kpiOzel:      row['Ozel KPI Adi']        || '',
+          donem:        row['Donem (YIL-AY)']      || '',
+          hedef:        parseFloat(row['Hedef Deger']) || 0,
+          gerceklesen:  row['Gerceklesen Deger'] !== '' ? parseFloat(row['Gerceklesen Deger']) : null,
+          birim:        row['Birim']               || '',
+          yon:          row['Hedef Yonu'] && row['Hedef Yonu'].includes('↓') ? 'ASAGI' : 'YUKARI',
+          not:          row['Notlar / Aksiyon']    || '',
+          guncelleme:   row['Son Guncelleme']      || '',
+        }));
+        if (gelen.length) iyKaydetLS(gelen);
+        resolve(gelen);
+      } else resolve(iyYukle());
+    };
+    script.onerror = () => { delete window[cb]; script.remove(); resolve(iyYukle()); };
+    script.src = GS_URL + '?callback=' + cb + '&sheet=Iyilestirme';
+    setTimeout(() => { if (window[cb]) { delete window[cb]; script.remove(); resolve(iyYukle()); }}, 5000);
+    document.head.appendChild(script);
+  });
 }
 
 let _sicilMakine='';let _sicilData=null;let _sicilSekme='gecmis';
