@@ -10583,7 +10583,7 @@ function tedModalAc(id) {
 
 function tedModalKapat() { document.getElementById('tedModal').classList.remove('open'); }
 
-function tedKaydet() {
+async function tedKaydet() {
   const firma = document.getElementById('ted-firma').value.trim();
   const kat   = document.getElementById('ted-kategori').value;
   const durum = document.getElementById('ted-durum').value;
@@ -10607,12 +10607,21 @@ function tedKaydet() {
     const idx = liste.findIndex(x => x.id === mevId);
     if (idx >= 0) liste[idx] = yeni; else liste.push(yeni);
   } else { liste.push(yeni); }
+
+  // Önce tarayıcıya kaydet: Sheets başarısız olsa bile kayıt kaybolmasın.
   tedKaydetLS(liste);
-  tedModalKapat();
   renderTedarikciListesi();
-  gsTedarikcisenkron(liste);
-  showToast('✅ Tedarikçi kaydedildi!', 'ok');
-  adminLogEkle('Tedarikçi kaydı güncellendi: ' + firma);
+
+  // Sonra Google Sheets'e gerçekten yazılmasını bekle.
+  try {
+    await gsTedarikcisenkron(liste);
+    tedModalKapat();
+    showToast("✅ Tedarikçi kaydedildi ve Google Sheets'e yazıldı.", 'ok');
+    adminLogEkle('Tedarikçi kaydı güncellendi: ' + firma);
+  } catch (e) {
+    tedModalKapat();
+    showToast('⚠️ Tedarikçi tarayıcıya kaydedildi ancak Google Sheets senkronu başarısız: ' + (e.message || e), 'err');
+  }
 }
 
 function tedSil(id) {
@@ -10624,9 +10633,15 @@ function tedSil(id) {
 }
 
 async function gsTedarikcisenkron(liste) {
-  try {
-    await gsRequest({ action:'syncTedarikci', sheet:'Tedarikci', planlar: liste });
-  } catch(e) {}
+  const sonuc = await gsRequest({
+    action:'syncTedarikci',
+    sheet:'Tedarikci',
+    planlar: liste
+  });
+  if (sonuc && sonuc.ok === false) {
+    throw new Error(sonuc.error || sonuc.message || 'Google Sheets kaydı başarısız.');
+  }
+  return sonuc;
 }
 
 // Sheets'ten tedarikçi verilerini çek
