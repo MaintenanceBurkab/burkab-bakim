@@ -3692,7 +3692,7 @@ function goTab(id, btn) {
   }
 }
   if (id === 'tedarikci')   { gsTedarikciYukle().then(() => renderTedarikciListesi()); }
-  if (id === 'iyilestirme') { gsIyilestirmeYukle().then(() => renderIyilestirme()); }
+  if (id === 'iyilestirme') { gsIyilestirmeYukle(); }
   if (id === 'otonomtakip') { otoYukle(); setTimeout(otonomDashboardYenile, 150); }
 }
 
@@ -10637,14 +10637,10 @@ function iyBasariOrani(hedef) {
   }
 }
 
-async function renderIyilestirme() {
-  let liste = iyYukle();
-  // Sayfa açıldığında gerçek KPI değerlerini mevcut BURKAB kayıtlarından üret.
-  try {
-    if (liste.length) liste = await iyGerceklesenleriGuncelle(liste);
-  } catch(e) {
-    console.warn('KPI gerçekleşen değerleri hesaplanamadı:', e);
-  }
+function renderIyilestirme() {
+  const liste = iyYukle();
+  // İyileştirme ekranı açılırken her KPI için ayrı ayrı Sheets yazma işlemi YAPILMAZ.
+  // Sheets'ten gelen kayıtlar doğrudan gösterilir; böylece ekran saniyelerce beklemez.
   ensureChartJs(() => { _renderIyilestirmeIcerik(liste); });
 }
 
@@ -10985,36 +10981,50 @@ async function gsIyilestirmeSenkron(liste) {
 }
 
 // Sheets'ten iyileştirme verilerini çek
-function gsIyilestirmeYukle() {
-  return new Promise((resolve) => {
-    const cb = 'gs_iy_cb_' + Date.now();
-    const script = document.createElement('script');
-    window[cb] = (data) => {
-      delete window[cb]; script.remove();
-      if (data && data.ok && Array.isArray(data.data) && data.data.length) {
-        const gelen = data.data.map(row => ({
-          id:           row['ID']                  || '',
-          kpiTur:       row['KPI Turu']            || '',
-          kpiOzel:      row['Ozel KPI Adi']        || '',
-          donem:        row['Donem (YIL-AY)']      || '',
-          hedef:        parseFloat(row['Hedef Deger']) || 0,
-          gerceklesen:  row['Gerceklesen Deger'] !== '' ? parseFloat(row['Gerceklesen Deger']) : null,
-          birim:        row['Birim']               || '',
-          yon:          (String(row['Hedef Yonu'] || '').toUpperCase().includes('ASAGI') ||
+async function gsIyilestirmeYukle() {
+  try {
+    const data = await gsRequest(
+      { action: 'getIyilestirme' },
+      { timeoutMs: 60000 }
+    );
+
+    if (!data || !data.ok) {
+      throw new Error((data && (data.error || data.message)) || 'İyileştirme verileri alınamadı.');
+    }
+
+    const gelen = Array.isArray(data.data) ? data.data.map(row => ({
+      id:           row['ID'] || '',
+      kpiTur:       row['KPI Turu'] || '',
+      kpiOzel:      row['Ozel KPI Adi'] || '',
+      donem:        row['Donem (YIL-AY)'] || '',
+      hedef:        parseFloat(row['Hedef Deger']) || 0,
+      gerceklesen:  row['Gerceklesen Deger'] !== '' && row['Gerceklesen Deger'] != null
+                      ? parseFloat(row['Gerceklesen Deger']) : null,
+      birim:        row['Birim'] || '',
+      yon:          (String(row['Hedef Yonu'] || '').toUpperCase().includes('ASAGI') ||
                     String(row['Hedef Yonu'] || '').includes('↓') ||
-                    String(row['Hedef Yonu'] || '').toUpperCase().includes('AZALT')) ? 'ASAGI' : 'YUKARI',
-          not:          row['Notlar / Aksiyon']    || '',
-          guncelleme:   row['Son Guncelleme']      || '',
-        }));
-        if (gelen.length) iyKaydetLS(gelen);
-        resolve(gelen);
-      } else resolve(iyYukle());
-    };
-    script.onerror = () => { delete window[cb]; script.remove(); resolve(iyYukle()); };
-    script.src = GS_URL + '?callback=' + cb + '&sheet=Iyilestirme';
-    setTimeout(() => { if (window[cb]) { delete window[cb]; script.remove(); resolve(iyYukle()); }}, 5000);
-    document.head.appendChild(script);
-  });
+                    String(row['Hedef Yonu'] || '').toUpperCase().includes('AZALT'))
+                    ? 'ASAGI' : 'YUKARI',
+      not:          row['Notlar / Aksiyon'] || '',
+      guncelleme:   row['Son Guncelleme'] || ''
+    })) : [];
+
+    iyKaydetLS(gelen);
+    renderIyilestirme();
+    return gelen;
+
+  } catch (e) {
+    console.error('İYİLEŞTİRME SHEETS YÜKLEME HATASI:', e);
+
+    // Ağ/Sunucu hatasında mevcut yerel kayıt varsa onu göster.
+    const yerel = iyYukle();
+    renderIyilestirme();
+
+    if (!yerel.length) {
+      showToast('❌ İyileştirme verileri Google Sheets\'ten alınamadı: ' + (e.message || e), 'err');
+    }
+    return yerel;
+  }
 }
 
 let _sicilMakine='';let _sicilData=null;let _sicilSekme='gecmis';
