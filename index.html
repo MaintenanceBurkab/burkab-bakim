@@ -3666,6 +3666,21 @@ async function otoDogrKaydet(makine, formNo, i) {
 
 // ── TABS ─────────────────────────────────────
 function goTab(id, btn) {
+  const YM_TAB_YETKI = {
+    list:'kayit_goruntule',
+    dash:'dashboard_goruntule',
+    uretim:'uretim_durumu',
+    planlar:'kpi_goruntule',
+    kalibrasyon:'kalibrasyon',
+    bildirimler:'bildirim_yonet',
+    admin:'admin_panel',
+    tedarikci:'kullanici_yonet'
+  };
+  const gereken = YM_TAB_YETKI[id];
+  if (gereken && currentUser && !kullanicininYetkisiVarMi(gereken)) {
+    showToast('🚫 Bu bölüme erişim yetkiniz yok!', 'err');
+    return;
+  }
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   const pane = document.getElementById('tab-' + id);
@@ -3692,7 +3707,7 @@ function goTab(id, btn) {
   }
 }
   if (id === 'tedarikci')   { gsTedarikciYukle().then(() => renderTedarikciListesi()); }
-  if (id === 'iyilestirme') { gsIyilestirmeYukle(); }
+  if (id === 'iyilestirme') { gsIyilestirmeYukle().then(() => renderIyilestirme()); }
   if (id === 'otonomtakip') { otoYukle(); setTimeout(otonomDashboardYenile, 150); }
 }
 
@@ -4998,10 +5013,61 @@ function buildDash(veriArg) {
   veri.forEach(k => { islemC[k.islem] = (islemC[k.islem]||0) + 1; });
   const ctx2 = document.getElementById('chartIslem')?.getContext('2d');
   if (ctx2 && Object.keys(islemC).length) {
+    const pastaLabels = Object.keys(islemC);
+    const pastaValues = Object.values(islemC);
+    const pastaTotal = pastaValues.reduce((a, b) => a + b, 0);
+
+    // Pasta dilimlerinin üzerine yüzde oranlarını yaz.
+    // Harici plugin gerektirmez; mevcut Chart.js ile çalışır.
+    const pastaYuzdePlugin = {
+      id: 'islemPastaYuzde',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data || !pastaTotal) return;
+
+        ctx.save();
+        ctx.font = '700 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        meta.data.forEach((arc, i) => {
+          const oran = (pastaValues[i] / pastaTotal) * 100;
+          if (oran < 3) return; // Çok küçük dilimlerde yazı üst üste binmesin.
+
+          const angle = (arc.startAngle + arc.endAngle) / 2;
+          const radius = (arc.outerRadius + arc.innerRadius) / 2;
+          const x = arc.x + Math.cos(angle) * radius;
+          const y = arc.y + Math.sin(angle) * radius;
+
+          // Beyaz yazı + hafif koyu gölge: tüm dilim renklerinde okunabilir.
+          ctx.shadowColor = 'rgba(0,0,0,.45)';
+          ctx.shadowBlur = 3;
+          ctx.fillStyle = '#fff';
+          ctx.fillText(oran.toFixed(1).replace('.', ',') + '%', x, y);
+        });
+
+        ctx.restore();
+      }
+    };
+
     charts['islem'] = new Chart(ctx2, {
       type: 'doughnut',
-      data: { labels: Object.keys(islemC), datasets: [{data:Object.values(islemC), backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'], borderWidth:2, borderColor:'#fff'}]},
-      options: {responsive:true, plugins:{legend:{position:'right'}}, cutout:'60%'}
+      data: {
+        labels: pastaLabels,
+        datasets: [{
+          data: pastaValues,
+          backgroundColor:['#d32f2f','#00875a','#e65100','#6a1b9a','#0277bd','#00695c'],
+          borderWidth:2,
+          borderColor:'#fff'
+        }]
+      },
+      plugins: [pastaYuzdePlugin],
+      options: {
+        responsive:true,
+        plugins:{legend:{position:'right'}},
+        cutout:'60%'
+      }
     });
   }
 
@@ -9413,7 +9479,27 @@ const YM_VARSAYILAN = {
               kalibrasyon:false, rca_doldur:false, risk_aksiyon:true, bildirim_yonet:false },
 };
 
-let yetkiMatrisi = ymYukle() || JSON.parse(JSON.stringify(YM_VARSAYILAN));
+function ymNormalize(veri) {
+  const kaynak = veri && typeof veri === 'object' ? veri : {};
+  const sonuc = {};
+  YM_ROLLER.forEach(rol => {
+    sonuc[rol.id] = {};
+    const mevcut = kaynak[rol.id] && typeof kaynak[rol.id] === 'object' ? kaynak[rol.id] : {};
+    Object.keys(YM_VARSAYILAN[rol.id] || {}).forEach(islem => {
+      sonuc[rol.id][islem] = Object.prototype.hasOwnProperty.call(mevcut, islem)
+        ? !!mevcut[islem]
+        : !!YM_VARSAYILAN[rol.id][islem];
+    });
+  });
+  // Admin sistem yetkileri hiçbir zaman kapatılamaz.
+  ['admin_panel','kullanici_yonet','ayar_degistir','yetki_duzenle','log_goruntule'].forEach(islem => {
+    sonuc.admin[islem] = true;
+  });
+  return sonuc;
+}
+
+let yetkiMatrisi = ymNormalize(ymYukle() || YM_VARSAYILAN);
+
 
 const SS_SURECLER = [
   { id:'ariza_yonetimi',  ad:'Arıza Yönetimi Süreci',       renk:'#d32f2f', aciklama:'Arıza bildirimi, teşhis, onarım ve kapama süreci'        },
@@ -9432,6 +9518,7 @@ const SS_VARSAYILAN = SS_SURECLER.map(s => ({
 let surecSahipleri = ssYukle() || JSON.parse(JSON.stringify(SS_VARSAYILAN));
 
 function renderYetkiMatrisi() {
+  yetkiMatrisi = ymNormalize(yetkiMatrisi);
   const el = document.getElementById('yetkiMatrisiIcerik');
   if (!el) return;
   const toplam  = YM_ROLLER.length * Object.keys(YM_VARSAYILAN.admin).length;
@@ -9490,6 +9577,7 @@ function yetkiMatrisiKaydet() {
     if(!yetkiMatrisi[rol]) yetkiMatrisi[rol]={};
     yetkiMatrisi[rol][islem]=cb.checked;
   });
+  yetkiMatrisi = ymNormalize(yetkiMatrisi);
   ymKaydet(yetkiMatrisi);
   adminLogEkle('Yetki matrisi güncellendi');
   showToast('✅ Yetki matrisi kaydedildi!','ok');
@@ -9498,7 +9586,7 @@ function yetkiMatrisiKaydet() {
 
 function ymVarsayilanaDon() {
   if(!confirm('Tüm değişiklikler silinip varsayılan ayarlara dönülecek. Onaylıyor musunuz?')) return;
-  yetkiMatrisi=JSON.parse(JSON.stringify(YM_VARSAYILAN));
+  yetkiMatrisi=ymNormalize(YM_VARSAYILAN);
   ymKaydet(yetkiMatrisi);
   adminLogEkle('Yetki matrisi varsayılana döndürüldü');
   renderYetkiMatrisi();
@@ -9584,6 +9672,54 @@ const _ym_kayitSil = window.kayitSil;
 window.kayitSil = async function(id) {
   if(!kullanicininYetkisiVarMi('kayit_sil')) { showToast('🚫 Bu işlem için yetkiniz yok!','err'); return; }
   return _ym_kayitSil?.apply(this,arguments);
+};
+
+// Yetki matrisi — kritik işlem girişleri
+const _ym_planKaydet = window.planKaydet;
+window.planKaydet = async function() {
+  if(!kullanicininYetkisiVarMi('plan_olustur')) { showToast('🚫 Planlı bakım tanımlama yetkiniz yok!','err'); return; }
+  return _ym_planKaydet?.apply(this,arguments);
+};
+const _ym_planTamamla = window.planTamamla;
+window.planTamamla = async function(id) {
+  if(!kullanicininYetkisiVarMi('plan_tamamla')) { showToast('🚫 Bakım planını tamamlama yetkiniz yok!','err'); return; }
+  return _ym_planTamamla?.apply(this,arguments);
+};
+const _ym_planSil = window.planSil;
+window.planSil = async function(id) {
+  if(!kullanicininYetkisiVarMi('plan_tamamla')) { showToast('🚫 Bakım planı silme yetkiniz yok!','err'); return; }
+  return _ym_planSil?.apply(this,arguments);
+};
+const _ym_kalFormKaydet = window.kalFormKaydet;
+window.kalFormKaydet = function() {
+  if(!kullanicininYetkisiVarMi('kalibrasyon')) { showToast('🚫 Kalibrasyon işlemi için yetkiniz yok!','err'); return; }
+  return _ym_kalFormKaydet?.apply(this,arguments);
+};
+const _ym_egitimKaydet = window.egitimKaydet;
+window.egitimKaydet = function() {
+  if(!kullanicininYetkisiVarMi('kpi_goruntule')) { showToast('🚫 Eğitim/KPI işlemi için yetkiniz yok!','err'); return; }
+  return _ym_egitimKaydet?.apply(this,arguments);
+};
+const _ym_egitimSil = window.egitimSil;
+window.egitimSil = function(id) {
+  if(!kullanicininYetkisiVarMi('kpi_goruntule')) { showToast('🚫 Eğitim kaydı silme yetkiniz yok!','err'); return; }
+  return _ym_egitimSil?.apply(this,arguments);
+};
+
+const _ym_adminYeniKullanici = window.adminYeniKullanici;
+window.adminYeniKullanici = function() {
+  if(!kullanicininYetkisiVarMi('kullanici_yonet')) { showToast('🚫 Kullanıcı yönetimi yetkiniz yok!','err'); return; }
+  return _ym_adminYeniKullanici?.apply(this,arguments);
+};
+const _ym_adminAyarKaydet = window.adminAyarKaydet;
+window.adminAyarKaydet = function() {
+  if(!kullanicininYetkisiVarMi('ayar_degistir')) { showToast('🚫 Sistem ayarlarını değiştirme yetkiniz yok!','err'); return; }
+  return _ym_adminAyarKaydet?.apply(this,arguments);
+};
+const _ym_adminLogTemizle = window.adminLogTemizle;
+window.adminLogTemizle = function() {
+  if(!kullanicininYetkisiVarMi('log_goruntule')) { showToast('🚫 Aktivite logu yönetim yetkiniz yok!','err'); return; }
+  return _ym_adminLogTemizle?.apply(this,arguments);
 };
 
 // ══════════════════════════════════════════════
@@ -10529,11 +10665,12 @@ function tedModalAc(id) {
 
 function tedModalKapat() { document.getElementById('tedModal').classList.remove('open'); }
 
-function tedKaydet() {
+async function tedKaydet() {
   const firma = document.getElementById('ted-firma').value.trim();
   const kat   = document.getElementById('ted-kategori').value;
   const durum = document.getElementById('ted-durum').value;
   if (!firma || !kat || !durum) { showToast('❗ Zorunlu alanları doldurun!', 'err'); return; }
+
   const liste = tedYukle();
   const mevId = document.getElementById('tedModalId').value;
   const yeni  = {
@@ -10549,40 +10686,74 @@ function tedKaydet() {
     not:            document.getElementById('ted-not').value.trim(),
     guncelleme:     new Date().toISOString().split('T')[0],
   };
+
   if (mevId) {
     const idx = liste.findIndex(x => x.id === mevId);
     if (idx >= 0) liste[idx] = yeni; else liste.push(yeni);
-  } else { liste.push(yeni); }
+  } else {
+    liste.push(yeni);
+  }
+
+  // Önce ekranda/localStorage'da kaybetmeden sakla.
   tedKaydetLS(liste);
-  tedModalKapat();
   renderTedarikciListesi();
-  gsTedarikcisenkron(liste);
-  showToast('✅ Tedarikçi kaydedildi!', 'ok');
-  adminLogEkle('Tedarikçi kaydı güncellendi: ' + firma);
+
+  // Ardından Google Sheets'e gerçekten yazılmasını bekle.
+  try {
+    await gsTedarikcisenkron(liste);
+    tedModalKapat();
+    showToast("✅ Tedarikçi kaydedildi ve Google Sheets'e yazıldı.", 'ok');
+    adminLogEkle('Tedarikçi kaydı güncellendi: ' + firma);
+  } catch (e) {
+    // Local kayıt korunur; kullanıcıya gerçek durumu bildir.
+    tedModalKapat();
+    showToast('⚠️ Tedarikçi tarayıcıya kaydedildi ancak Google Sheets senkronu başarısız: ' + (e.message || e), 'err');
+  }
 }
 
-function tedSil(id) {
+async function tedSil(id) {
   if (!confirm('Bu tedarikçiyi silmek istiyor musunuz?')) return;
   const liste = tedYukle().filter(x => x.id !== id);
+
+  // Silmeyi de Sheets'e senkronize et; aksi halde geri dönünce tekrar gelebilir.
   tedKaydetLS(liste);
   renderTedarikciListesi();
-  showToast('🗑️ Tedarikçi silindi.', 'ok');
+
+  try {
+    await gsTedarikcisenkron(liste);
+    showToast('🗑️ Tedarikçi silindi.', 'ok');
+  } catch (e) {
+    showToast('⚠️ Tedarikçi yerelden silindi ancak Google Sheets senkronu başarısız.', 'err');
+  }
 }
 
 async function gsTedarikcisenkron(liste) {
-  try {
-    await gsRequest({ action:'syncTedarikci', sheet:'Tedarikci', planlar: liste });
-  } catch(e) {}
+  const sonuc = await gsRequest({
+    action:'syncTedarikci',
+    sheet:'Tedarikci',
+    planlar: liste
+  });
+  if (sonuc && sonuc.ok === false) {
+    throw new Error(sonuc.error || sonuc.message || 'Google Sheets kaydı başarısız.');
+  }
+  return sonuc;
 }
 
-// Sheets'ten tedarikçi verilerini çek
+// Sheets'ten tedarikçi verilerini çek.
+// ÖNEMLİ: Sheets cevabı eskiyse localStorage'daki yeni kayıtların üzerine yazılmaz.
 function gsTedarikciYukle() {
   return new Promise((resolve) => {
     const cb = 'gs_ted_cb_' + Date.now();
     const script = document.createElement('script');
+
+    const bitir = (liste) => {
+      try { delete window[cb]; } catch(e) {}
+      try { script.remove(); } catch(e) {}
+      resolve(liste);
+    };
+
     window[cb] = (data) => {
-      delete window[cb]; script.remove();
-      if (data && data.ok && Array.isArray(data.data) && data.data.length) {
+      if (data && data.ok && Array.isArray(data.data)) {
         const gelen = data.data.map(row => ({
           id:              row['ID']                       || '',
           firma:           row['Firma Adi']                || '',
@@ -10598,13 +10769,27 @@ function gsTedarikciYukle() {
           not:             row['Notlar / Kosullar']        || '',
           guncelleme:      row['Son Guncelleme']           || '',
         }));
-        if (gelen.length) tedKaydetLS(gelen);
-        resolve(gelen);
-      } else resolve(tedYukle());
+
+        // Sheets'te henüz görünmeyen yeni local kayıtları koru.
+        const yerel = tedYukle();
+        const gelenId = new Set(gelen.map(x => x.id));
+        const sadeceYerel = yerel.filter(x => x.id && !gelenId.has(x.id));
+        const birlesik = [...gelen, ...sadeceYerel];
+
+        tedKaydetLS(birlesik);
+        bitir(birlesik);
+      } else {
+        bitir(tedYukle());
+      }
     };
-    script.onerror = () => { delete window[cb]; script.remove(); resolve(tedYukle()); };
+
+    script.onerror = () => bitir(tedYukle());
     script.src = GS_URL + '?callback=' + cb + '&sheet=Tedarikci';
-    setTimeout(() => { if (window[cb]) { delete window[cb]; script.remove(); resolve(tedYukle()); }}, 5000);
+
+    setTimeout(() => {
+      if (window[cb]) bitir(tedYukle());
+    }, 5000);
+
     document.head.appendChild(script);
   });
 }
