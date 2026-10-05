@@ -10742,7 +10742,7 @@ function _renderIyilestirmeIcerik(liste) {
           <td style="font-size:11px">${h.yon==='ASAGI'?'↓ Düşük iyi':'↑ Yüksek iyi'}</td>
           <td style="font-size:12px;max-width:180px">${h.not||'—'}</td>
           <td style="white-space:nowrap;display:flex;gap:4px">
-            <button onclick="iyHedefModalAc('${h.id}')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">✏️</button>
+            <button onclick="iyiHedefModalAc('${h.id}')" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">✏️</button>
             <button onclick="iyHedefSil('${h.id}')" style="background:rgba(211,47,47,.1);border:1px solid rgba(211,47,47,.3);border-radius:4px;color:#d32f2f;cursor:pointer;padding:3px 8px;font-size:11px">🗑</button>
           </td>
         </tr>`;
@@ -10769,42 +10769,89 @@ function iyiHedefModalAc(id) {
 
 function iyModalKapat() { document.getElementById('iyModal').classList.remove('open'); }
 
-function iyHedefKaydet() {
+async function iyHedefKaydet() {
   const kpiTur = document.getElementById('iy-kpi-tur').value;
   const donem  = document.getElementById('iy-donem').value;
   const hedef  = document.getElementById('iy-hedef').value;
-  if (!kpiTur || !donem || !hedef) { showToast('❗ KPI türü, dönem ve hedef zorunludur!', 'err'); return; }
-  const liste  = iyYukle();
-  const mevId  = document.getElementById('iyModalId').value;
-  const yeni   = {
+
+  if (!kpiTur || !donem || !hedef) {
+    showToast('❗ KPI türü, dönem ve hedef zorunludur!', 'err');
+    return;
+  }
+
+  const mevId = document.getElementById('iyModalId').value;
+  const yeni = {
     id:           mevId || ('iy_' + Date.now()),
     kpiTur,
     kpiOzel:      document.getElementById('iy-kpi-ozel').value.trim(),
     donem,
     hedef:        parseFloat(hedef),
-    gerceklesen:  document.getElementById('iy-gerceklesen').value ? parseFloat(document.getElementById('iy-gerceklesen').value) : null,
+    gerceklesen:  document.getElementById('iy-gerceklesen').value
+                    ? parseFloat(document.getElementById('iy-gerceklesen').value)
+                    : null,
     birim:        document.getElementById('iy-birim').value.trim(),
     yon:          document.getElementById('iy-yon').value,
     not:          document.getElementById('iy-not').value.trim(),
-    guncelleme:   new Date().toISOString().split('T')[0],
+    guncelleme:   new Date().toISOString().split('T')[0]
   };
-  if (mevId) {
-    const idx = liste.findIndex(x => x.id === mevId);
-    if (idx >= 0) liste[idx] = yeni; else liste.push(yeni);
-  } else { liste.push(yeni); }
+
   // Standart KPI'larda gerçekleşen değer sistem verisinden otomatik hesaplanır.
-  const standartKpi = ['MTTR','MTBF','KULLANILABILIRLIK','ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'].includes(String(yeni.kpiTur || '').toUpperCase());
-  if (standartKpi) yeni.gerceklesen = iyGerceklesenHesapla(yeni);
-  if (mevId) {
-    const idx2 = liste.findIndex(x => x.id === yeni.id);
-    if (idx2 >= 0) liste[idx2] = yeni;
+  const standartKpi = [
+    'MTTR','MTBF','KULLANILABILIRLIK',
+    'ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'
+  ].includes(String(yeni.kpiTur || '').toUpperCase());
+
+  if (standartKpi) {
+    yeni.gerceklesen = iyGerceklesenHesapla(yeni);
   }
-  iyKaydetLS(liste);
-  iyModalKapat();
-  renderIyilestirme();
-  gsIyilestirmeSenkron(liste);
-  showToast('✅ Hedef kaydedildi!', 'ok');
-  adminLogEkle('İyileştirme hedefi eklendi: ' + iyHedefAd(yeni) + ' ' + donem);
+
+  const payload = {
+    ID: yeni.id,
+    'KPI Turu': yeni.kpiTur,
+    'Ozel KPI Adi': yeni.kpiOzel,
+    'Donem (YIL-AY)': yeni.donem,
+    'Hedef Deger': yeni.hedef,
+    'Gerceklesen Deger': yeni.gerceklesen == null ? '' : yeni.gerceklesen,
+    'Birim': yeni.birim,
+    'Hedef Yonu': yeni.yon,
+    'Notlar / Aksiyon': yeni.not
+  };
+
+  try {
+    // Artık önce sadece bu hedef Google Sheets'e kaydedilir.
+    // Başarılı cevap gelmeden "kaydedildi" denmez ve modal kapanmaz.
+    const sonuc = await gsRequest({
+      action: 'saveIyilestirme',
+      kayit: payload
+    }, { timeoutMs: 60000 });
+
+    if (!sonuc || !sonuc.ok) {
+      throw new Error((sonuc && (sonuc.error || sonuc.message)) || 'Google Sheets hedef kaydı başarısız.');
+    }
+
+    // Sunucu kabul ettiyse yerel listeyi güncelle.
+    const liste = iyYukle();
+    const idx = liste.findIndex(x => x.id === yeni.id);
+    if (idx >= 0) liste[idx] = yeni;
+    else liste.push(yeni);
+
+    iyKaydetLS(liste);
+    iyModalKapat();
+    await renderIyilestirme();
+
+    showToast(
+      sonuc.mode === 'updated'
+        ? '✅ Hedef güncellendi ve Google Sheets\'e yazıldı!'
+        : '✅ Hedef eklendi ve Google Sheets\'e yazıldı!',
+      'ok'
+    );
+
+    adminLogEkle('İyileştirme hedefi kaydedildi: ' + iyHedefAd(yeni) + ' ' + donem);
+
+  } catch (e) {
+    console.error('İYİLEŞTİRME HEDEF KAYIT HATASI:', e);
+    showToast('❌ Hedef Google Sheets\'e kaydedilemedi: ' + (e.message || e), 'err');
+  }
 }
 
 function iyHedefSil(id) {
@@ -10953,7 +11000,9 @@ function gsIyilestirmeYukle() {
           hedef:        parseFloat(row['Hedef Deger']) || 0,
           gerceklesen:  row['Gerceklesen Deger'] !== '' ? parseFloat(row['Gerceklesen Deger']) : null,
           birim:        row['Birim']               || '',
-          yon:          row['Hedef Yonu'] && row['Hedef Yonu'].includes('↓') ? 'ASAGI' : 'YUKARI',
+          yon:          (String(row['Hedef Yonu'] || '').toUpperCase().includes('ASAGI') ||
+                    String(row['Hedef Yonu'] || '').includes('↓') ||
+                    String(row['Hedef Yonu'] || '').toUpperCase().includes('AZALT')) ? 'ASAGI' : 'YUKARI',
           not:          row['Notlar / Aksiyon']    || '',
           guncelleme:   row['Son Guncelleme']      || '',
         }));
