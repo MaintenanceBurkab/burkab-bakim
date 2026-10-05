@@ -59,62 +59,6 @@ body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: v
 .nav-tab:hover { color: rgba(255,255,255,.75); }
 .nav-tab.active { color: #ffd700; border-bottom-color: #ffd700; }
 
-/* ── TABLET: NAV BAR 2 SIRA ── */
-@media (min-width: 581px) and (max-width: 1100px) {
-  .nav-tabs {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0;
-    padding: 0 10px;
-  }
-  .nav-tab {
-    width: 100%;
-    min-width: 0;
-    padding: 9px 6px 10px;
-    font-size: 12px;
-    letter-spacing: .2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-/* ── LAPTOP: NAV BAR 2 SIRA ── */
-@media (min-width: 1101px) and (max-width: 1600px) {
-  .nav-tabs {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 0;
-    padding: 0 14px;
-  }
-
-  .nav-tab {
-    width: 100%;
-    min-width: 0;
-    padding: 10px 8px 11px;
-    font-size: 12px;
-    letter-spacing: .2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-/* ── TELEFON: 2 SÜTUN ── */
-@media (max-width: 580px) {
-  .nav-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0;
-    padding: 0 6px;
-  }
-  .nav-tab {
-    width: 100%;
-    min-width: 0;
-    padding: 9px 5px 10px;
-    font-size: 11px;
-    letter-spacing: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
 .mn { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
 
 .section { background: var(--white); border: 1px solid #d0dae8; border-radius: 10px; margin-bottom: 16px; overflow: visible; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
@@ -933,7 +877,6 @@ tr:last-child td { border-bottom: none; }
 .yp-stock-card{background:#fff;border:1px solid #d0dae8;border-radius:10px;padding:14px;border-left:5px solid var(--c,#00875a);box-shadow:0 2px 8px rgba(0,0,0,.05)}
 .yp-stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}.yp-stock-head{display:flex;justify-content:space-between;gap:8px;align-items:start}.yp-code{font:800 14px 'IBM Plex Mono',monospace}.yp-name{font-size:13px;color:#555;margin-top:3px}.yp-badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:10px;font-weight:800}.yp-ok{background:#e3f7ee;color:#00875a}.yp-warn{background:#fff3e0;color:#e65100}.yp-critical{background:#fde8e8;color:#d32f2f}.yp-zero{background:#1a1a1a;color:#ffd700}.yp-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:11px}.yp-meta div{background:#f7f5f0;border-radius:6px;padding:7px;text-align:center}.yp-meta b{display:block;font:800 16px 'IBM Plex Mono',monospace}.yp-meta span{font-size:9px;color:#777;font-weight:700;text-transform:uppercase}.yp-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.yp-actions button{padding:6px 9px;font-size:11px}
 .yp-critical-row{background:#fff;border:1px solid #e0ddd5;border-radius:10px;padding:14px;border-left:6px solid var(--c,#d32f2f);margin-bottom:10px}.yp-critical-top{display:flex;justify-content:space-between;gap:10px;align-items:start;flex-wrap:wrap}.yp-risk-score{font:900 22px 'IBM Plex Mono',monospace;color:var(--c,#d32f2f)}.yp-progress{height:8px;background:#e8e6df;border-radius:5px;overflow:hidden;margin-top:8px}.yp-progress>i{display:block;height:100%;background:var(--c,#d32f2f);width:var(--w,0%)}
-.yp-ai-panel{margin:14px 0;background:linear-gradient(180deg,#fffdf3,#fff);border:1px solid #e7d78a;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05);overflow:hidden}.yp-ai-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:#1a1a1a;color:#fff;flex-wrap:wrap}.yp-ai-title{font-weight:800;font-size:14px}.yp-ai-sub{font-size:11px;color:#d7d7d7;margin-top:3px}.yp-ai-actions{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:20}.yp-ai-actions #ypAIOnayButon{position:relative;z-index:50;pointer-events:auto}.yp-ai-summary{display:grid;grid-template-columns:repeat(5,minmax(100px,1fr));gap:8px;padding:12px 14px}.yp-ai-kpi{background:#fff;border:1px solid #e2e2e2;border-radius:9px;padding:10px}.yp-ai-kpi b{display:block;font:900 18px 'IBM Plex Mono',monospace}.yp-ai-kpi span{display:block;font-size:10px;color:#666;margin-top:3px}.yp-ai-list{padding:0 14px 14px}.yp-ai-row{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:8px}.yp-ai-row-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.yp-ai-check{display:flex;gap:10px;align-items:flex-start}.yp-ai-selectbox{width:24px;height:24px;min-width:24px;display:flex;align-items:center;justify-content:center;border:2px solid #b9c1ca;border-radius:6px;background:#fff;cursor:pointer;box-sizing:border-box;margin-top:0;transition:.15s}.yp-ai-selectbox input{position:absolute;opacity:0;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;pointer-events:none;appearance:none;-webkit-appearance:none}.yp-ai-selectbox .yp-ai-checkmark{display:none;font-size:16px;font-weight:900;line-height:1;color:#fff}.yp-ai-selectbox:has(input:checked){background:#f5c400;border-color:#d5a900;box-shadow:0 0 0 2px rgba(245,196,0,.15)}.yp-ai-selectbox:has(input:checked) .yp-ai-checkmark{display:block}.yp-ai-selectbox:has(input:disabled){background:#f1f1f1;border-color:#ddd;cursor:not-allowed;opacity:.55}.yp-ai-row:has(.yp-ai-selectbox input:checked){border-color:#f5c400;box-shadow:0 0 0 2px rgba(245,196,0,.12);background:#fffdf3}.yp-ai-code{font-weight:800;font-size:12px}.yp-ai-name{font-size:11px;color:#666;margin-top:2px}.yp-ai-meta{font-size:10px;color:#666;margin-top:7px;line-height:1.6}.yp-ai-qty{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px}.yp-ai-pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800}.yp-ai-pill.ai{background:#eef3ff;color:#2453a6}.yp-ai-pill.sys{background:#e7f7ef;color:#087443}.yp-ai-pill.diff{background:#fff0d9;color:#a65a00}.yp-ai-reason{margin-top:7px;padding:8px 10px;background:#fafafa;border-left:3px solid #f5c400;border-radius:5px;font-size:10px;line-height:1.5;color:#555}.yp-ai-empty{padding:18px;text-align:center;color:#777;font-size:12px}.yp-ai-loading{padding:18px;text-align:center;color:#555;font-size:12px}.yp-ai-selected{font-size:11px;color:#555;align-self:center}.yp-ai-danger{color:#b42318;font-weight:800}.yp-ai-ok{color:#087443;font-weight:800}@media(max-width:900px){.yp-ai-summary{grid-template-columns:repeat(2,minmax(100px,1fr))}}
 .yp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:1200;display:none;align-items:center;justify-content:center;padding:16px}.yp-modal-overlay.open{display:flex}.yp-modal{background:#fff;width:720px;max-width:100%;max-height:92vh;overflow:auto;border-radius:12px;box-shadow:0 22px 70px rgba(0,0,0,.4)}.yp-modal-head{position:sticky;top:0;z-index:2;background:linear-gradient(90deg,#1a1a1a,#333);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}.yp-modal-head strong{color:#ffd700;letter-spacing:.5px}.yp-modal-body{padding:18px}.yp-modal-foot{padding:13px 18px;border-top:1px solid #ddd;display:flex;justify-content:flex-end;gap:8px}
 .yp-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:580px){.yp-form-grid{grid-template-columns:1fr}}.yp-full{grid-column:1/-1}
 /* ── Yedek parça kartı: açılır liste + yazarak tamamlama ── */
@@ -1002,14 +945,18 @@ tr:last-child td { border-bottom: none; }
 @media(max-width:900px){#makineSicilModal .sicil-kpi-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:650px){#makineSicilModal .sicil-info-grid{grid-template-columns:1fr}#makineSicilModal .sicil-kpi-grid{grid-template-columns:repeat(2,1fr)}}
 
-
-<style id="yp-ai-printflow-css">
-.yp-ai-print-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
-.yp-ai-print-modal{width:min(1250px,98vw);max-height:94vh;background:#fff;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 70px rgba(0,0,0,.5)}
-.yp-ai-print-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:#202020;color:#fff}.yp-ai-print-head>div:first-child{font-size:15px}.yp-ai-print-head>div:first-child div{font-size:11px;color:#ccc;margin-top:4px}.yp-ai-print-close{border:0;background:#555;color:#fff;border-radius:7px;padding:8px 12px;cursor:pointer}
-.yp-ai-print-body{padding:18px;overflow:auto}.yp-ai-print-title{font-size:18px;font-weight:800;margin-bottom:6px}.yp-ai-print-sub{font-size:12px;color:#555;margin-bottom:15px}.yp-ai-print-table{width:100%;border-collapse:collapse;font-size:11px}.yp-ai-print-table th,.yp-ai-print-table td{border:1px solid #ccc;padding:7px;text-align:left;vertical-align:top}.yp-ai-print-table th{background:#f0f0f0}.yp-ai-print-table td:nth-child(5),.yp-ai-print-table td:nth-child(6),.yp-ai-print-table td:nth-child(7),.yp-ai-print-table td:nth-child(8){text-align:right}.yp-ai-print-table td span{color:#666}.yp-ai-print-foot{margin-top:14px;padding:10px;background:#f6f6f6;font-size:12px}.yp-ai-print-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid #ddd;background:#fafafa}.yp-ai-print-warning{padding:10px 16px;background:#fff8e1;color:#7a5200;font-size:12px;border-top:1px solid #f0d98c}
-@media print{.yp-ai-print-backdrop{position:static;background:#fff;padding:0}.yp-ai-print-modal{width:100%;max-height:none;box-shadow:none}.yp-ai-print-head,.yp-ai-print-actions,.yp-ai-print-warning{display:none}.yp-ai-print-body{overflow:visible;padding:0}.yp-ai-print-table{font-size:10px}}
-</style>
+/* ── Kritik yedek parça sipariş listesi ── */
+.ypl-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100000;display:flex;align-items:center;justify-content:center;padding:14px}
+.ypl-box{background:#fff;border-radius:12px;width:min(1100px,100%);max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.ypl-head{display:flex;gap:10px;align-items:center;padding:12px 16px;background:#1a1a1a;color:#fff}.ypl-head b{font-size:15px}.ypl-head small{display:block;color:#ccc;margin-top:2px}
+.ypl-x{margin-left:auto;border:0;background:#555;color:#fff;border-radius:7px;padding:8px 12px;cursor:pointer;font-weight:700}
+.ypl-body{padding:12px 16px;overflow:auto;flex:1;min-height:0}.ypl-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-top:1px solid #ddd;background:#fafafa}
+.ypl-tbl{width:100%;border-collapse:collapse;font-size:12px}.ypl-tbl th{background:#e9edf5;border:1px solid #bbb;padding:6px;text-align:left;font-size:11px}.ypl-tbl td{border:1px solid #ccc;padding:6px;vertical-align:middle}
+.ypl-tbl tr.pasif td{opacity:.55}.ypl-tbl input[type=number]{width:74px;padding:6px;border:1px solid #bbb;border-radius:6px}
+.ypl-b{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;color:#fff}.ypl-b.k{background:#d32f2f}.ypl-b.s{background:#1a1a1a}.ypl-b.a{background:#e65100}.ypl-b.g{background:#2e7d32}.ypl-b.n{background:#777}
+.ypl-btn{padding:10px 16px;border:0;border-radius:8px;font-weight:800;cursor:pointer;background:#f5c400;color:#000}.ypl-btn.g{background:#087f5b;color:#fff}.ypl-btn.o{background:#fff;border:1px solid #aaa;color:#222}.ypl-btn[disabled]{opacity:.5;cursor:not-allowed}
+.ypl-frame{width:100%;height:62vh;border:0;background:#777}
+@media print{.ypl-ov{display:none!important}}
 </style>
 </head>
 <body>
@@ -1287,6 +1234,7 @@ tr:last-child td { border-bottom: none; }
         <div class="field">
           <label>ONARIM SÜRESİ</label>
           <div class="sure-badge" id="sureBadge">— dk —</div>
+<div id="iscilikOnizle" style="font-size:12px;line-height:1.5;margin-top:6px;color:#555"></div>
         </div>
       </div>
     </div>
@@ -1995,23 +1943,11 @@ tr:last-child td { border-bottom: none; }
     <div class="field"><label>ARA</label><input id="ypKritikArama" placeholder="Kod, parça veya makine..." oninput="renderKritikParcalar()"></div>
     <div class="field"><label>ÖNCELİK</label><select id="ypKritikFiltre" onchange="renderKritikParcalar()"><option value="">TÜM KRİTİKLER</option><option value="STOK_YOK">STOK YOK</option><option value="KRITIK">KRİTİK</option><option value="UYARI">UYARI</option></select></div>
     <button class="yp-btn outline" onclick="ypVerileriYukle(true)">↻ YENİLE</button>
-    <button class="yp-btn red" type="button" onclick="ypKritikSiparisBaslat()">🛒 KRİTİKLER İÇİN SİPARİŞ</button>
+    <button class="yp-btn red" onclick="yplListeModalAc()">📋 KRİTİK SİPARİŞ LİSTESİ (PDF + E-POSTA)</button>
   </div>
   <div class="yp-kpi-grid" id="ypKritikKpi"></div>
-  <div class="yp-ai-panel" id="ypAIPanel">
-    <div class="yp-ai-head">
-      <div><div class="yp-ai-title">🤖 AI KRİTİK STOK ANALİZİ</div><div class="yp-ai-sub">Geçmiş tüketim + termin + makine kritiklik seviyesi + min/max stok + açık siparişler değerlendirilir. AI önerisi satınalma güvenlik algoritması tarafından son kontrolden geçirilir.</div></div>
-      <div class="yp-ai-actions">
-        <span class="yp-ai-selected" id="ypAISelectedInfo">Henüz analiz yapılmadı.</span>
-        <button class="yp-btn dark" id="ypAIButon" onclick="ypAIAnalizCalistir()">🤖 AI ANALİZİNİ ÇALIŞTIR</button>
-        <button class="yp-btn green" id="ypAIOnayButon" type="button" onclick="return ypAIOnaylaVeGonder()" style="display:inline-block;opacity:.5;cursor:pointer;position:relative;z-index:50;pointer-events:auto">📄 SEÇİLENLERİ ÖNİZLE (0)</button>
-        <button class="yp-btn outline" id="ypAIRaporButon" onclick="ypAIPdfOnizle()" style="display:none">📄 PDF ÖNİZLEME</button>
-      </div>
-    </div>
-    <div class="yp-ai-summary" id="ypAISummary" style="display:none"></div>
-    <div class="yp-ai-list" id="ypAIList"><div class="yp-ai-empty">AI analizi başlatmak için üstteki butona basın.</div></div>
-  </div>
   <div class="section"><div class="section-head"><div class="dot"></div>KRİTİK PARÇA RİSK LİSTESİ</div><div class="section-body" id="ypKritikListe"><div class="empty">Veriler yükleniyor...</div></div></div>
+  <div class="section"><div class="section-head"><div class="dot"></div>SİPARİŞ LİSTELERİ — E-POSTA VE GERİ DÖNÜŞ TAKİBİ<button class="yp-btn outline" style="margin-left:auto;padding:4px 10px" onclick="yplGecmisYukle()">↻ YENİLE</button></div><div class="section-body" id="yplGecmis" style="overflow:auto"><div class="empty">Yükleniyor...</div></div></div>
 </div>
 
 <!-- YEDEK PARÇA MODAL -->
@@ -3682,7 +3618,7 @@ function goTab(id, btn) {
   if (id === 'bildirimler') { if (_appReady) renderBildirimler(); }
   if (id === 'planlar') { if (_appReady) gsPlanlarYukle().then(() => renderPlanlar()); }
   if (id === 'yedekstok') { ypVerileriYukle(); }
-  if (id === 'kritikparca') { ypVerileriYukle(); }
+  if (id === 'kritikparca') { ypVerileriYukle(); yplGecmisYukle(); }
   if (id === 'ai') { aiInitPanel(); }
   if (id === 'kalibrasyon') { renderKalibrasyon(); }
   if (id === 'ekipman') {
@@ -4144,6 +4080,27 @@ function calcSure() {
   const dk=calismaDakikasiHesapla(bas,bit);
   const badge=document.getElementById('sureBadge');
   if(badge){badge.textContent=dk+' dakika';badge.dataset.dk=dk;}
+  iscilikOnizleGoster_(tarih, document.getElementById('tarihBit')?.value || '', basSaat, bitSaat);   // bitiş tarihi boşsa gece yarısı geçişini sunucu çözer
+}
+
+// İşçilik önizleme: fiili müdahale süresi + mesai tipi (normal / fazla mesai / cumartesi / pazar-tatil). Hesabı sunucu yapar.
+let _iscTimer = null;
+function iscilikOnizleGoster_(tarihBas, tarihBit, basSaat, bitSaat) {
+  const el = document.getElementById('iscilikOnizle'); if (!el) return;
+  clearTimeout(_iscTimer);
+  if (!tarihBas || !basSaat || !bitSaat) { el.textContent = ''; return; }
+  _iscTimer = setTimeout(async () => {
+    try {
+      const r = await gsRequest({ action: 'iscilikOnizle', tarihBas, tarihBit, onarimBas: basSaat, onarimBit: bitSaat, kisi: 1 });
+      if (!r || !r.ok || r.kaynak !== 'fiili') { el.textContent = ''; return; }
+      const p = [];
+      if (r.normalDk) p.push('normal ' + r.normalDk + ' dk');
+      if (r.fazlaDk) p.push('fazla mesai ' + r.fazlaDk + ' dk (×' + r.katsayi.fazla + ')');
+      if (r.cumartesiDk) p.push('cumartesi ' + r.cumartesiDk + ' dk (×' + r.katsayi.cumartesi + ')');
+      if (r.tatilDk) p.push('pazar/tatil ' + r.tatilDk + ' dk (×' + r.katsayi.tatil + ')');
+      el.innerHTML = '🕒 Fiili müdahale: <b>' + r.dakika + ' dk</b> — ' + p.join(' · ') + '<br>💰 Tahmini işçilik (kişi başı): <b>₺' + r.tutar.toLocaleString('tr-TR') + '</b>';
+    } catch (e) { el.textContent = ''; }
+  }, 450);
 }
 
 // ── DATALİST ─────────────────────────────────
@@ -4345,6 +4302,7 @@ function formSifirlaTam_() {
   const pl = document.getElementById('parcaListesi'); if (pl) pl.innerHTML = '';
   parcaSayac = 0;
   ['projeRow', 'mdNoBox', 'revNoBox'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+  const io = document.getElementById('iscilikOnizle'); if (io) io.textContent = '';
   riskZorunlulukGuncelle_();
 }
 function temizle() {
@@ -11460,287 +11418,6 @@ function ypKpiHtml(list) {
   `;
 }
 function renderYedekStok(){const box=document.getElementById('ypStokListe');if(!box)return;if(!ypYuklendi){ypVerileriYukle();return;}const q=ypN(document.getElementById('ypArama')?.value),cat=ypN(document.getElementById('ypKategoriFiltre')?.value),dur=document.getElementById('ypDurumFiltre')?.value||'';let list=ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').filter(p=>!q||ypN([p.stokKodu,p.parcaAdi,p.kategori,p.makineGrubu,p.rafKonumu].join(' ')).includes(q)).filter(p=>!cat||ypN(p.kategori)===cat).filter(p=>!dur||ypDurum(p)===dur);document.getElementById('ypKpiGrid').innerHTML=ypKpiHtml(ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR'));box.innerHTML=list.length?list.map(p=>{const d=ypDurum(p),c=ypRenk(d),k=ypKullanilabilir(p);return `<div class="yp-stock-card" style="--c:${c}"><div class="yp-stock-head"><div><div class="yp-code">${ypEsc(p.stokKodu)}</div><div class="yp-name">${ypEsc(p.parcaAdi)}</div></div><span class="yp-badge ${d==='NORMAL'?'yp-ok':d==='UYARI'?'yp-warn':d==='KRITIK'?'yp-critical':'yp-zero'}">${ypEtiket(d)}</span></div><div class="yp-meta"><div><b>${ypNum(p.mevcutStok)}</b><span>Mevcut</span></div><div><b>${ypNum(p.rezerveStok)}</b><span>Rezerve</span></div><div><b>${k}</b><span>Kullanılabilir</span></div></div><div style="font-size:11px;color:#666;margin-top:9px">📍 ${ypEsc(p.rafKonumu||'—')} · 🏭 ${ypEsc(p.makineGrubu||'TÜM MAKİNELER')} · Min: <b>${ypNum(p.minimumStok)}</b> · Max: <b>${ypNum(p.maksimumStok)}</b></div><div class="yp-actions"><button class="yp-btn outline" onclick="ypParcaModalAc('${ypEsc(p.stokKodu)}')">DÜZENLE</button><button class="yp-btn green" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','GIRIS')">GİRİŞ</button><button class="yp-btn dark" onclick="ypHareketModalAc('${ypEsc(p.stokKodu)}','CIKIS')">ÇIKIŞ</button><button class="yp-btn primary" onclick="ypSiparisModalAc('${ypEsc(p.stokKodu)}')">SİPARİŞ</button></div></div>`;}).join(''):'<div class="empty">Filtreye uygun parça bulunamadı.</div>';ypBadgeGuncelle();}
-let ypAIAnalizSonucu=null; let ypAIOnayliSiparisIds=[]; let ypAISelectedCodes=new Set(); let ypAIPreviewFileId=""; let ypAIPreviewToken=""; let ypAIPendingApproval=[];
-try{
-  const savedIds=JSON.parse(localStorage.getItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS')||'[]');
-  if(Array.isArray(savedIds)) ypAIOnayliSiparisIds=savedIds.map(String).filter(Boolean);
-  const savedAnalysis=JSON.parse(localStorage.getItem('BURKAB_YP_AI_ANALIZ_SONUCU')||'null');
-  if(savedAnalysis && Array.isArray(savedAnalysis.oneriler)) ypAIAnalizSonucu=savedAnalysis;
-  const savedSelected=JSON.parse(localStorage.getItem('BURKAB_YP_AI_SELECTED_CODES')||'[]');
-  if(Array.isArray(savedSelected)) ypAISelectedCodes=new Set(savedSelected.map(String).filter(Boolean));
-}catch(_e){}
-function ypAIEsc(v){return ypEsc(v);}
-function ypAIFmt(v){return Number(v||0).toLocaleString('tr-TR',{maximumFractionDigits:2});}
-function ypAIKararClass(k){k=String(k||'').toUpperCase();return k==='ACIL'?'yp-ai-danger':k==='SIPARIS_GEREKMEZ'?'yp-ai-ok':'';}
-function ypAISelectionDegistir(el){
-  const code=String(el?.dataset?.code||'').trim();
-  if(!code)return;
-  if(el.checked) ypAISelectedCodes.add(code);
-  else ypAISelectedCodes.delete(code);
-  try{localStorage.setItem('BURKAB_YP_AI_SELECTED_CODES',JSON.stringify(Array.from(ypAISelectedCodes)));}catch(_e){}
-  ypAIOnayButonGuncelle();
-}
-function ypAIOnayButonGuncelle(){
-  const btn=document.getElementById('ypAIOnayButon'), info=document.getElementById('ypAISelectedInfo');
-  if(!btn||!info)return;
-  const selected=(ypAIAnalizSonucu?.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||'')));
-  const hasSelection=!!(ypAIAnalizSonucu&&selected.length);
-  // Önizleme butonu hiçbir durumda disabled yapılmaz; tıklama fonksiyonu
-  // seçim yoksa kullanıcıya açıklayıcı uyarı verir. Bu, bazı tarayıcı/tema
-  // katmanlarında disabled butonun tıklama olayını tamamen yutmasını önler.
-  btn.style.display='inline-block';
-  btn.disabled=false;
-  btn.removeAttribute('disabled');
-  btn.style.opacity=hasSelection?'1':'.5';
-  btn.style.cursor='pointer';
-  btn.style.pointerEvents='auto';
-  btn.textContent=hasSelection?`📄 SEÇİLENLERİ ÖNİZLE (${selected.length})`:'📄 SEÇİLENLERİ ÖNİZLE (0)';
-  const reportBtn=document.getElementById('ypAIRaporButon');
-  if(reportBtn) reportBtn.style.display='none';
-  info.textContent=ypAIOnayliSiparisIds.length
-    ? `${ypAIOnayliSiparisIds.length} sipariş talebi oluşturuldu · PDF + e-posta hazır`
-    : (ypAIAnalizSonucu?`${selected.length} parça seçili · Analiz: ${ypAIAnalizSonucu.tarih||'—'}`:'Henüz analiz yapılmadı.');
-}
-if(ypAIAnalizSonucu){
-  setTimeout(function(){try{ypAIRender(ypAIAnalizSonucu);}catch(_e){}},0);
-}
-async function ypAIAnalizCalistir(){
-  try{
-    showLoading(true);
-    const btn=document.getElementById('ypAIButon'); if(btn){btn.disabled=true;btn.textContent='⏳ AI ANALİZİ YAPILIYOR...';}
-    const list=document.getElementById('ypAIList'); if(list)list.innerHTML='<div class="yp-ai-loading">🤖 Kritik stoklar analiz ediliyor... Geçmiş tüketim, termin ve kritiklik birlikte değerlendiriliyor.</div>';
-    const r=await gsRequest({action:'yedekParcaAIAnaliz',kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
-    if(!r?.ok)throw new Error(r?.error||'AI kritik stok analizi başarısız.');
-    ypAIAnalizSonucu=r;
-    try{localStorage.setItem('BURKAB_YP_AI_ANALIZ_SONUCU',JSON.stringify(r));}catch(_e){}
-    ypAISelectedCodes=new Set();
-    try{localStorage.removeItem('BURKAB_YP_AI_SELECTED_CODES');}catch(_e){}
-    ypAIRender(r);
-    showToast(`✅ AI analizi tamamlandı. ${Array.isArray(r.oneriler)?r.oneriler.length:0} kritik parça değerlendirildi.`,'ok');
-  }catch(e){console.warn(e);const list=document.getElementById('ypAIList');if(list)list.innerHTML=`<div class="yp-ai-empty" style="color:#b42318">⚠️ ${ypAIEsc(e.message)}</div>`;showToast('⚠️ '+e.message,'err');}
-  finally{showLoading(false);const btn=document.getElementById('ypAIButon');if(btn){btn.disabled=false;btn.textContent='🤖 AI ANALİZİNİ ÇALIŞTIR';}}
-}
-function ypAIRender(r){
-  const arr=Array.isArray(r.oneriler)?r.oneriler:[];
-  const summary=document.getElementById('ypAISummary'), list=document.getElementById('ypAIList');
-  if(!summary||!list)return;
-  const sip=arr.filter(x=>Number(x.sistemOnayliMiktar||x.onerilenMiktar)>0 && String(x.karar||'').toUpperCase()!=='SIPARIS_GEREKMEZ').length;
-  const diff=arr.filter(x=>x.miktarFarki).length;
-  const urgent=arr.filter(x=>String(x.karar||'').toUpperCase()==='ACIL').length;
-  const no=arr.filter(x=>String(x.karar||'').toUpperCase()==='SIPARIS_GEREKMEZ').length;
-  summary.style.display='grid';
-  summary.innerHTML=`<div class="yp-ai-kpi"><b>${arr.length}</b><span>ANALİZ EDİLEN</span></div><div class="yp-ai-kpi"><b>${sip}</b><span>SİPARİŞ ADAYI</span></div><div class="yp-ai-kpi"><b>${urgent}</b><span>ACİL</span></div><div class="yp-ai-kpi"><b>${diff}</b><span>AI → SİSTEM FARKI</span></div><div class="yp-ai-kpi"><b>${no}</b><span>SİPARİŞ GEREKMEZ</span></div>`;
-  if(!arr.length){list.innerHTML='<div class="yp-ai-empty">Kritik seviyede parça bulunmadı.</div>';ypAIOnayButonGuncelle();return;}
-  list.innerHTML=arr.map((x,i)=>{
-    const qty=Number(x.sistemOnayliMiktar??x.onerilenMiktar??0), ai=Number(x.aiOnerilenMiktar??qty), diffFlag=!!x.miktarFarki, karar=String(x.karar||'').toUpperCase();
-    const disabled=qty<=0||karar==='SIPARIS_GEREKMEZ';
-    const checked=ypAISelectedCodes.has(String(x.stokKodu||''));
-    return `<div class="yp-ai-row"><div class="yp-ai-row-top"><div class="yp-ai-check"><label class="yp-ai-selectbox" title="Siparişe seç/seçimi kaldır"><input class="yp-ai-select" type="checkbox" data-code="${ypAIEsc(x.stokKodu)}" ${checked?'checked':''} ${disabled?'disabled':''} onchange="ypAISelectionDegistir(this)"><span class="yp-ai-checkmark">✓</span></label><div><div class="yp-ai-code">${ypAIEsc(x.stokKodu)} — ${ypAIEsc(x.parcaAdi)}</div><div class="yp-ai-name">Tedarikçi: <b>${ypAIEsc(x.tedarikci||'—')}</b> · Birim: <b>${ypAIEsc(x.birim||'ADET')}</b> · Karar: <b class="${ypAIKararClass(karar)}">${ypAIEsc(karar)}</b></div></div></div><div class="yp-ai-name">Güven: <b>${ypAIFmt(x.guven)}%</b></div></div><div class="yp-ai-meta">Kullanılabilir: <b>${ypAIFmt(x.kullanilabilir)}</b> · Min: <b>${ypAIFmt(x.minimumStok)}</b> · Max: <b>${ypAIFmt(x.maksimumStok)}</b> · Termin: <b>${ypAIFmt(x.terminGun)} gün</b> · Aylık tüketim: <b>${ypAIFmt(x.tuketim?.agirlikliAylikTuketim)}</b> · Açık sipariş: <b>${ypAIFmt(x.acikSiparisMiktari)}</b></div><div class="yp-ai-qty"><span class="yp-ai-pill ai">🤖 AI: ${ypAIFmt(ai)} ${ypAIEsc(x.birim||'ADET')}</span><span class="yp-ai-pill sys">🛡️ SİSTEM: ${ypAIFmt(qty)} ${ypAIEsc(x.birim||'ADET')}</span>${diffFlag?`<span class="yp-ai-pill diff">⚠️ MİKTAR DÜZELTİLDİ</span>`:''}</div><div class="yp-ai-reason"><b>Neden:</b> ${ypAIEsc(x.sistemGerekce||x.gerekce||'—')}<br><span style="color:#777">Hedef stok: ${ypAIFmt(x.hedefStok)} · Termin tüketimi: ${ypAIFmt(x.terminTuketimi)} · Güvenlik stoğu: ${ypAIFmt(x.guvenlikStogu)} (${ypAIFmt(x.guvenlikAyi)} ay)</span></div></div>`;
-  }).join('');
-  ypAIOnayButonGuncelle();
-}
-function ypAIOnayla(){
-  try {
-    if(!ypAIAnalizSonucu || !Array.isArray(ypAIAnalizSonucu.oneriler)){
-      showToast('⚠️ Önce AI analizi çalıştırın.','err');
-      return false;
-    }
-    const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>
-      ypAISelectedCodes.has(String(x.stokKodu||'')) &&
-      Number(x.sistemOnayliMiktar ?? x.onerilenMiktar ?? 0) > 0
-    );
-    if(!sec.length){
-      showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');
-      return false;
-    }
-    // ÖNEMLİ: Burada kesinlikle Apps Script çağrısı yok.
-    // Sadece seçilenleri ekranda önizliyoruz.
-    ypAIOnizlemeAc(sec);
-    return false;
-  } catch(e) {
-    console.error('ypAIOnayla:', e);
-    alert('Önizleme açılamadı: ' + (e && e.message ? e.message : e));
-    return false;
-  }
-}
-
-// Güvenlik ağı: bazı tarayıcı/tema katmanları inline onclick olayını yutarsa buton yine çalışır.
-document.addEventListener('click', function(ev){
-  const b=ev.target && ev.target.closest ? ev.target.closest('#ypAIOnayButon') : null;
-  if(!b) return;
-  if(b.disabled) return;
-  ev.preventDefault();
-  ev.stopPropagation();
-  ypAIOnaylaVeGonder();
-}, true);
-
-function ypAIOnizlemeAc(sec){
-  const eski=document.getElementById('ypAIOnizlemeModal'); if(eski) eski.remove();
-  const toplam=sec.reduce((t,x)=>t+Number(x.sistemOnayliMiktar??x.onerilenMiktar??0),0);
-  const now=new Date();
-  const tarih=now.toLocaleString('tr-TR');
-  const rows=sec.map((x,i)=>{
-    const qty=Number(x.sistemOnayliMiktar??x.onerilenMiktar??0);
-    const ai=Number(x.aiOnerilenMiktar??qty);
-    return `<tr><td>${i+1}</td><td><b>${ypAIEsc(x.stokKodu)}</b><br><span>${ypAIEsc(x.parcaAdi||'')}</span></td><td>${ypAIEsc(x.tedarikci||'—')}</td><td>${ypAIEsc(x.birim||'ADET')}</td><td>${ypAIFmt(x.kullanilabilir)}</td><td>${ypAIFmt(x.minimumStok)}</td><td>${ypAIFmt(ai)}</td><td><b>${ypAIFmt(qty)}</b></td><td>${ypAIEsc(x.karar||'PLANLI')}</td></tr>`;
-  }).join('');
-  const m=document.createElement('div');
-  m.id='ypAIOnizlemeModal';
-  m.innerHTML=`<div class="yp-ai-print-backdrop"><div class="yp-ai-print-modal">
-    <div class="yp-ai-print-head"><div><b>📄 BURKAB YEDEK PARÇA SATINALMA ÖNİZLEMESİ</b><div>${tarih} · ${sec.length} parça · Toplam miktar: ${ypAIFmt(toplam)}</div></div><button class="yp-ai-print-close" onclick="ypAIOnizlemeKapat()">✕</button></div>
-    <div class="yp-ai-print-body" id="ypAIPrintArea">
-      <div class="yp-ai-print-title">BURKAB A.Ş. — YEDEK PARÇA SATINALMA TALEP LİSTESİ</div>
-      <div class="yp-ai-print-sub">AI analizi + satınalma güvenlik algoritması sonucunda seçilen parçalar. <b>Henüz sipariş kaydı oluşturulmamıştır ve e-posta gönderilmemiştir.</b></div>
-      <table class="yp-ai-print-table"><thead><tr><th>#</th><th>Stok Kodu / Parça</th><th>Tedarikçi</th><th>Birim</th><th>Mevcut</th><th>Min</th><th>AI</th><th>Sistem</th><th>Öncelik</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="yp-ai-print-foot">Toplam seçili parça: <b>${sec.length}</b> · Toplam sipariş miktarı: <b>${ypAIFmt(toplam)}</b></div>
-    </div>
-    <div class="yp-ai-print-actions">
-      <button class="yp-btn outline" onclick="ypAIOnizlemeYazdir()">🖨 YAZDIR / PDF OLARAK KAYDET</button>
-      <button class="yp-btn outline" onclick="ypAIOnizlemeKapat()">KAPAT / DÜZENLE</button>
-      <button class="yp-btn green" onclick="ypAIOnaylaVeGonder()">✅ PDF'Yİ GÖRDÜM — ONAYLA VE E-POSTA GÖNDER</button>
-    </div>
-    <div class="yp-ai-print-warning">⚠️ <b>Önemli:</b> Bu ekranda gördüğünüz liste henüz <b>YedekParca_Siparisler</b> tablosuna yazılmadı. Son yeşil butona basılınca sipariş kayıtları oluşturulacak ve PDF e-posta ile gönderilecektir.</div>
-  </div></div>`;
-  document.body.appendChild(m);
-}
-function ypAIOnizlemeKapat(){document.getElementById('ypAIOnizlemeModal')?.remove();}
-function ypAIOnizlemeYazdir(){
-  const area=document.getElementById('ypAIPrintArea'); if(!area)return;
-  const w=window.open('','_blank','width=1200,height=850');
-  if(!w){showToast('⚠️ Yazdırma penceresi tarayıcı tarafından engellendi. Açılır pencerelere izin verin.','err');return;}
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BURKAB Yedek Parça Satınalma</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:12px}.title{font-size:18px;font-weight:700;margin-bottom:8px}.sub{margin-bottom:18px;color:#555}.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{border:1px solid #bbb;padding:7px;text-align:left;vertical-align:top}.tbl th{background:#eee}.tbl td:nth-child(5),.tbl td:nth-child(6),.tbl td:nth-child(7),.tbl td:nth-child(8){text-align:right}.foot{margin-top:14px;font-size:13px;font-weight:700}@media print{body{margin:12mm}}</style></head><body><div class="title">BURKAB A.Ş. — YEDEK PARÇA SATINALMA TALEP LİSTESİ</div><div class="sub">${new Date().toLocaleString('tr-TR')} · Seçilen parçalar</div><table class="tbl"><thead>${area.querySelector('thead')?.innerHTML||''}</thead><tbody>${area.querySelector('tbody')?.innerHTML||''}</tbody></table><div class="foot">${area.querySelector('.yp-ai-print-foot')?.innerText||''}</div><script>window.onload=function(){setTimeout(function(){window.print()},250)};<\/script></body></html>`);
-  w.document.close();
-}
-async function ypAIOnaylaVeGonder(){
-  if(!ypAIAnalizSonucu?.oneriler?.length){showToast('⚠️ AI analiz sonucu bulunamadı.','err');return;}
-  const sec=(ypAIAnalizSonucu.oneriler||[]).filter(x=>ypAISelectedCodes.has(String(x.stokKodu||''))&&Number(x.sistemOnayliMiktar??x.onerilenMiktar)>0);
-  if(!sec.length){showToast('⚠️ Önce siparişe alınacak parçaları seçin.','err');return;}
-
-  // KRİTİK KURAL: Bu aşamada hiçbir sipariş kaydı ve e-posta oluşturulmaz.
-  // Sadece seçilen AI önerileri PDF teklif önizlemesine gönderilir.
-  try{
-    showLoading(true);
-    ypAIPendingApproval=sec.map(x=>Object.assign({},x,{onerilenMiktar:Number(x.sistemOnayliMiktar??x.onerilenMiktar??0)}));
-    const r=await gsRequest({action:'yedekParcaAIPdfOnizle',oneriler:ypAIPendingApproval,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
-    if(!r?.ok)throw new Error(r?.error||'PDF önizlemesi oluşturulamadı.');
-    ypAIPreviewFileId=String(r.fileId||'');
-    ypAIPreviewToken=String(r.previewToken||'');
-    if(!ypAIPreviewFileId)throw new Error('PDF dosya kimliği alınamadı.');
-    if(!ypAIPreviewToken)throw new Error('PDF önizleme onay anahtarı alınamadı.');
-    const pdfPreviewUrl='https://drive.google.com/file/d/'+encodeURIComponent(ypAIPreviewFileId)+'/preview';
-    ypAIPdfModalAc(pdfPreviewUrl,r.fileName,r.orderCount);
-    showToast('📄 PDF hazır. Kontrol et; ONAYLA butonuna basmadan sipariş ve e-posta işlemi yapılmaz.','ok');
-  }catch(e){
-    console.warn(e);showToast('⚠️ '+e.message,'err');
-    ypAIPendingApproval=[];
-  }finally{showLoading(false);}
-}
-
-async function ypAIPreviewOnaylaVeGonder(){
-  if(!ypAIPendingApproval.length){showToast('⚠️ Onaylanacak önizleme bulunamadı.','err');return;}
-  const ok=confirm(`${ypAIPendingApproval.length} seçili parça için PDF'yi kontrol ettiniz mi?\n\nONAY verirseniz:\n• Sipariş kayıtları oluşturulur\n• Aynı onaylı miktarlar kullanılır\n• PDF e-posta eki olarak gönderilir\n\nBu işlem geri alınamaz.`);
-  if(!ok)return;
-  try{
-    showLoading(true);
-    const r=await gsRequest({action:'yedekParcaAIOnaylaVeGonder',previewToken:ypAIPreviewToken,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
-    if(!r?.ok)throw new Error(r?.error||'Sipariş ve e-posta işlemi başarısız.');
-    ypAIOnayliSiparisIds=Array.isArray(r.created)?r.created.map(x=>String(x.id||'')).filter(Boolean):[];
-    try{localStorage.setItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS',JSON.stringify(ypAIOnayliSiparisIds));}catch(_e){}
-    ypAIPendingApproval=[];
-    ypAIPreviewToken='';
-    ypAIPreviewFileId='';
-    ypAISelectedCodes=new Set();
-    try{localStorage.setItem('BURKAB_YP_AI_SELECTED_CODES','[]');}catch(_e){}
-    showToast(`✅ ${Number(r.orderCount||r.createdCount||0)} sipariş oluşturuldu ve e-posta gönderildi.`,'ok');
-    ypAIPdfModalKapat();
-    ypAIOnizlemeKapat();
-    ypAIOnayButonGuncelle();
-    ypYuklendi=false; await ypVerileriYukle(true);
-  }catch(e){console.warn(e);showToast('⚠️ '+e.message,'err');}
-  finally{showLoading(false);}
-}
-
-function ypAIPdfYazdir(){
-  // Google Drive PDF iframe'i farklı origin'de olduğu için iframe.contentWindow.print()
-  // güvenilir değildir. Yazdırma butonu PDF'yi ayrı sekmede açar; tarayıcının PDF
-  // görüntüleyicisindeki yazdırma düğmesi doğrudan kullanılabilir.
-  const iframe=document.querySelector('#ypAIPdfModal iframe');
-  const url=iframe?.src||window.__ypAIPdfUrl||'';
-  if(!url){showToast('⚠️ PDF adresi bulunamadı.','err');return;}
-  const w=window.open(url,'_blank','noopener,noreferrer');
-  if(!w){showToast('⚠️ Yazdırma sekmesi tarayıcı tarafından engellendi. Açılır pencerelere izin verin.','err');return;}
-}
-
-function ypAIPdfModalKapat(){
-  const m=document.getElementById('ypAIPdfModal');
-  if(m)m.remove();
-  if(window.__ypAIPdfUrl){try{URL.revokeObjectURL(window.__ypAIPdfUrl);}catch(_e){} window.__ypAIPdfUrl='';}
-}
-function ypAIPdfModalAc(pdfUrl,fileName,orderCount){
-  ypAIPdfModalKapat();
-  const m=document.createElement('div');
-  m.id='ypAIPdfModal';
-  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';
-  m.innerHTML=`<div style="width:min(1200px,98vw);height:min(92vh,900px);background:#fff;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:#202020;color:#fff">
-      <div><b>📄 BURKAB Yedek Parça Satınalma PDF</b><div style="font-size:11px;color:#ccc;margin-top:3px">${ypAIEsc(fileName||'PDF')} · ${Number(orderCount||0)} sipariş</div></div>
-      <button onclick="ypAIPdfModalKapat()" style="border:0;background:#555;color:#fff;border-radius:7px;padding:8px 12px;cursor:pointer">✕ KAPAT</button>
-    </div>
-    <iframe title="BURKAB PDF Önizleme" src="${pdfUrl}" style="flex:1;width:100%;border:0;background:#777"></iframe>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid #ddd;background:#fafafa;flex-wrap:wrap">
-      <div style="font-size:12px;color:#555">PDF'yi kontrol et. <b>Gönder</b> butonuna basmadan hiçbir e-posta gönderilmez.</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="ypAIPdfYazdir()" style="padding:10px 16px;border:1px solid #16805f;background:#fff;color:#16805f;border-radius:7px;font-weight:700;cursor:pointer">🖨 YAZDIR</button>
-        <button onclick="ypAIPdfModalKapat()" style="padding:10px 16px;border:1px solid #bbb;background:#fff;border-radius:7px;cursor:pointer">KAPAT / DÜZENLE</button>
-        <button onclick="ypAIPreviewOnaylaVeGonder()" style="padding:10px 18px;border:0;background:#087f5b;color:#fff;border-radius:7px;font-weight:700;cursor:pointer">✅ PDF'Yİ GÖRDÜM — ONAYLA VE E-POSTA GÖNDER</button>
-      </div>
-    </div>
-  </div>`;
-  document.body.appendChild(m);
-}
-async function ypAIPdfOnizle(){
-  if(!ypAIOnayliSiparisIds.length){showToast('⚠️ Önce seçili siparişleri oluşturun.','err');return;}
-  try{
-    showLoading(true);
-    const btn=document.getElementById('ypAIRaporButon');
-    if(btn){btn.disabled=true;btn.textContent='⏳ PDF HAZIRLANIYOR...';}
-    const r=await gsRequest({action:'yedekParcaAIPdfOnizle',orderIds:ypAIOnayliSiparisIds,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
-    if(!r?.ok)throw new Error(r?.error||'PDF önizlemesi oluşturulamadı.');
-    ypAIPreviewFileId=String(r.fileId||'');
-    if(!ypAIPreviewFileId)throw new Error('PDF dosya kimliği alınamadı.');
-    // PDF'yi base64 olarak JSONP ile taşımıyoruz. Büyük PDF'lerde yanıt kesilebildiği
-    // için Drive'ın doğrudan önizleme adresini iframe içinde açıyoruz.
-    const pdfPreviewUrl='https://drive.google.com/file/d/'+encodeURIComponent(ypAIPreviewFileId)+'/preview';
-    ypAIPdfModalAc(pdfPreviewUrl,r.fileName,r.orderCount);
-    showToast("📄 PDF hazır. Önce PDF'yi kontrol et; onay vermeden e-posta gönderilmez.",'ok');
-    if(btn){btn.disabled=false;btn.textContent='📄 PDF ÖNİZLEME';btn.style.display='inline-block';}
-  }catch(e){
-    console.warn(e);showToast('⚠️ '+e.message,'err');
-    const btn=document.getElementById('ypAIRaporButon');if(btn){btn.disabled=false;btn.textContent='📄 PDF ÖNİZLEME';}
-  }finally{showLoading(false);}
-}
-
-async function ypAIOnayliRaporMailGonder(){
-  if(!ypAIOnayliSiparisIds.length){showToast('⚠️ Önce sipariş taleplerini oluşturun.','err');return;}
-  if(!ypAIPreviewFileId){showToast('⚠️ Önce PDF önizlemesini açıp kontrol edin.','err');return;}
-  const ok=confirm(`${ypAIOnayliSiparisIds.length} sipariş için ekranda görüntülediğiniz PDF, satınalma ve muhasebe adreslerine gönderilsin mi?\n\nEvet = E-POSTA GÖNDER\nHayır = Gönderme`);
-  if(!ok)return;
-  const btn=document.getElementById('ypAIRaporButon');
-  try{
-    showLoading(true);
-    if(btn){btn.disabled=true;btn.textContent='⏳ E-POSTA GÖNDERİLİYOR...';}
-    const r=await gsRequest({action:'yedekParcaAIOnayliRaporMail',orderIds:ypAIOnayliSiparisIds,pdfFileId:ypAIPreviewFileId,kullanici:'BAKIM MODÜLÜ - AI SATINALMA'});
-    if(!r?.ok)throw new Error(r?.error||'E-posta gönderilemedi.');
-    showToast(`✅ PDF onaylandı ve ${Number(r.sentCount||0)} sipariş talebi için e-posta gönderildi.`,'ok');
-    ypAIPdfModalKapat();
-    ypAIOnayliSiparisIds=[]; ypAIPreviewFileId='';
-    try{localStorage.removeItem('BURKAB_YP_AI_ONAYLI_SIPARIS_IDS');}catch(_e){}
-    ypAIOnayButonGuncelle();
-    if(btn){btn.textContent='📄 PDF ÖNİZLEME';btn.classList.remove('green');btn.classList.add('outline');btn.style.display='none';}
-  }catch(e){console.warn(e);showToast('⚠️ '+e.message,'err');}
-  finally{showLoading(false);if(btn){btn.disabled=false;}}
-}
-
 function renderKritikParcalar(){const box=document.getElementById('ypKritikListe');if(!box)return;if(!ypYuklendi){ypVerileriYukle();return;}const q=ypN(document.getElementById('ypKritikArama')?.value),f=document.getElementById('ypKritikFiltre')?.value||'';let list=ypStoklar.filter(p=>['UYARI','KRITIK','STOK_YOK'].includes(ypDurum(p))).filter(p=>!q||ypN([p.stokKodu,p.parcaAdi,p.makineGrubu].join(' ')).includes(q)).filter(p=>!f||ypDurum(p)===f).sort((a,b)=>ypRisk(b)-ypRisk(a));document.getElementById('ypKritikKpi').innerHTML=ypKpiHtml(ypStoklar);box.innerHTML=list.length?list.map(p=>{const d=ypDurum(p),c=ypRenk(d),risk=ypRisk(p),oneri=Math.max(1,ypNum(p.maksimumStok)-ypNum(p.mevcutStok));return `<div class="yp-critical-row" style="--c:${c}"><div class="yp-critical-top"><div><div class="yp-code">${ypEsc(p.stokKodu)} — ${ypEsc(p.parcaAdi)}</div><div style="font-size:12px;color:#666;margin-top:4px">Makine: <b>${ypEsc(p.makineGrubu||'—')}</b> · Kullanılabilir: <b>${ypKullanilabilir(p)}</b> · Min: <b>${ypNum(p.minimumStok)}</b> · Termin: <b>${ypNum(p.terminGun)} gün</b> · Alternatif: <b>${ypEsc(p.alternatifParca||'—')}</b></div></div><div style="text-align:right"><div class="yp-risk-score">${risk}</div><span class="yp-badge ${d==='UYARI'?'yp-warn':d==='KRITIK'?'yp-critical':'yp-zero'}">${ypEtiket(d)}</span></div></div><div class="yp-progress" style="--c:${c};--w:${risk}%"><i></i></div><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:9px;flex-wrap:wrap"><span style="font-size:12px;color:#555">Önerilen sipariş: <b>${oneri} ${ypEsc(p.birim||'ADET')}</b></span><button class="yp-btn primary" onclick="ypSiparisModalAc('${ypEsc(p.stokKodu)}',${oneri})">SİPARİŞ TALEBİ</button></div></div>`;}).join(''):'<div class="empty">Kritik veya uyarı seviyesinde parça yok. ✅</div>';ypBadgeGuncelle();}
 function ypBadgeGuncelle(){const n=ypStoklar.filter(p=>['KRITIK','STOK_YOK'].includes(ypDurum(p))).length;document.querySelectorAll('#kritikParcaBadge').forEach(b=>{b.textContent=n;b.style.display=n?'inline-flex':'none'});document.querySelectorAll('#kritikParcaTab').forEach(t=>t.classList.toggle('yp-alert-tab',n>0));}
 function ypModalKapat(id){document.getElementById(id)?.classList.remove('open');}
@@ -11873,8 +11550,161 @@ function ypHareketGecmisiPDF(printOnly=false){
 function ypHareketModalAc(kod='',tip='GIRIS'){ypParcaSelectDoldur();document.getElementById('yph-kod').value=kod;document.getElementById('yph-tip').value=tip;document.getElementById('yph-miktar').value=1;document.getElementById('yph-belge').value='';document.getElementById('yph-aciklama').value='';const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));document.getElementById('yph-fiyat').value=p?.birimFiyat||'';document.getElementById('ypHareketModal').classList.add('open');}
 async function ypHareketKaydet(){const hareket={stokKodu:document.getElementById('yph-kod').value,tip:document.getElementById('yph-tip').value,miktar:ypNum(document.getElementById('yph-miktar').value),belgeNo:ypN(document.getElementById('yph-belge').value),birimFiyat:ypNum(document.getElementById('yph-fiyat').value),aciklama:ypN(document.getElementById('yph-aciklama').value)};if(!hareket.stokKodu||hareket.miktar<=0||!hareket.aciklama){showToast('❗ Parça, miktar ve açıklama zorunludur.','err');return;}try{showLoading(true);const r=await gsRequest({action:'yedekParcaHareket',hareket});if(!r?.ok)throw new Error(r?.error||'Hareket başarısız');ypModalKapat('ypHareketModal');ypYuklendi=false;await ypVerileriYukle(true);showToast('✅ Stok hareketi işlendi.','ok');}catch(e){showToast('⚠️ '+e.message,'err')}finally{showLoading(false);}}
 function ypSiparisModalAc(kod='',miktar){ypParcaSelectDoldur();const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod));document.getElementById('yps-kod').value=kod;document.getElementById('yps-miktar').value=miktar||Math.max(1,ypNum(p?.maksimumStok)-ypNum(p?.mevcutStok));document.getElementById('yps-tedarikci').value=p?.tedarikci||'';const d=new Date();d.setDate(d.getDate()+Math.max(1,ypNum(p?.terminGun)||7));document.getElementById('yps-tarih').value=d.toISOString().slice(0,10);document.getElementById('yps-not').value='';document.getElementById('ypSiparisModal').classList.add('open');}
+// ── KRİTİK YEDEK PARÇA SİPARİŞ LİSTESİ: seç → oluştur (sipariş talepleri + PDF) → yazdır / indir → e-posta → geri dönüş takibi ──
+let _yplPdfUrl = '', _yplAktifNo = '';
+const YPL_GERIDONUS_UYARI_GUN = 3;
+const YPL_KAPALI = ['TAMAMLANDI', 'TESLIM_ALINDI', 'TESLIM ALINDI', 'IPTAL', 'İPTAL', 'KAPANDI', 'KAPALI', 'REDDEDILDI', 'REDDEDİLDİ'];   // sunucu (YedekParca_v5_8.gs) ile aynı
+const yplAcik_ = kod => ypSiparisler.filter(s => ypN(s.stokKodu) === ypN(kod) && !YPL_KAPALI.includes(ypN(s.durum))).reduce((t, s) => t + ypNum(s.miktar), 0);
+function yplKapat_() { document.getElementById('yplModal')?.remove(); if (_yplPdfUrl) { try { URL.revokeObjectURL(_yplPdfUrl); } catch (e) {} _yplPdfUrl = ''; } document.body.style.overflow = ''; }
+function yplKutu_(baslik, alt, icerik, alt2) {
+  yplKapat_();
+  const m = document.createElement('div'); m.id = 'yplModal'; m.className = 'ypl-ov';
+  m.innerHTML = `<div class="ypl-box"><div class="ypl-head"><div><b>${baslik}</b><small>${alt || ''}</small></div><button class="ypl-x" onclick="yplKapat_()">✕ KAPAT</button></div><div class="ypl-body">${icerik}</div><div class="ypl-foot">${alt2 || ''}</div></div>`;
+  document.body.appendChild(m); document.body.style.overflow = 'hidden';
+}
+// 1) Aday seçimi
+async function yplListeModalAc() {
+  if (!ypYuklendi) { await ypVerileriYukle(); }
+  const ad = ypStoklar.filter(p => ['KRITIK', 'STOK_YOK'].includes(ypDurum(p))).sort((a, b) => ypRisk(b) - ypRisk(a)).map(p => {
+    const k = ypKullanilabilir(p), acik = yplAcik_(p.stokKodu), max = Math.max(ypNum(p.maksimumStok), ypNum(p.minimumStok) + 1);
+    return { p, k, acik, oneri: Math.max(0, Math.ceil(max - k - acik)), d: ypDurum(p) };
+  });
+  if (!ad.length) { showToast('✅ Sipariş gerektiren kritik parça yok.', 'ok'); return; }
+  const satir = ad.map((x, i) => `<tr class="${x.oneri > 0 ? '' : 'pasif'}" id="yplr${i}"><td><input type="checkbox" id="yplc${i}" data-kod="${ypEsc(x.p.stokKodu)}" data-o="${x.d === 'STOK_YOK' ? 'ACİL' : 'YÜKSEK'}" ${x.oneri > 0 ? 'checked' : ''} onchange="document.getElementById('yplr${i}').classList.toggle('pasif',!this.checked);yplSay_()"></td>
+    <td><b>${ypEsc(x.p.stokKodu)}</b><br><span style="color:#555">${ypEsc(x.p.parcaAdi)}</span></td><td>${ypEsc(x.p.makineGrubu || '—')}<br><small>Raf: ${ypEsc(x.p.rafKonumu || '—')}</small></td>
+    <td><span class="ypl-b ${x.d === 'STOK_YOK' ? 's' : 'k'}">${x.d === 'STOK_YOK' ? 'STOK YOK' : 'KRİTİK'}</span><br>${x.k} / min ${ypNum(x.p.minimumStok)}</td>
+    <td>${x.acik > 0 ? `<span class="ypl-b a">AÇIK SİPARİŞ ${x.acik}</span>` : '—'}</td><td>${ypEsc(x.p.tedarikci || '—')}</td>
+    <td><input type="number" min="0" step="1" id="yplm${i}" value="${x.oneri}" oninput="yplSay_()"> ${ypEsc(x.p.birim || 'ADET')}</td></tr>`).join('');
+  yplKutu_('📋 KRİTİK YEDEK PARÇA SİPARİŞ LİSTESİ', 'Seçilen kalemler için sipariş talebi açılır, PDF hazırlanır. E-posta ancak PDF\'yi gördükten sonra, ayrı onayla gider.',
+    `<div style="margin-bottom:8px;font-size:12px;color:#555">Önerilen miktar = maksimum stok − (kullanılabilir + açık sipariş). Açık siparişi zaten karşılayan parçalar işaretsiz gelir. <b>🤖 AI İLE ÖNER</b>: geçmiş tüketim, termin ve makine kritikliğine göre miktar/öncelik önerir (sistem güvenlik kuralıyla sınırlanır).</div>
+     <div id="yplAIBilgi" style="margin-bottom:8px;font-size:12px"></div>
+     <table class="ypl-tbl"><thead><tr><th></th><th>Parça</th><th>Makine / Raf</th><th>Durum</th><th>Açık sipariş</th><th>Tedarikçi</th><th>Miktar</th></tr></thead><tbody>${satir}</tbody></table>
+     <div style="margin-top:10px"><label style="font-size:12px;color:#555">LİSTE NOTU (opsiyonel, PDF'te görünür)</label><input id="yplNot" maxlength="160" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:6px"></div>`,
+    `<span id="yplSay" style="font-weight:700"></span><span style="flex:1"></span><button class="ypl-btn o" id="yplAIBtn" onclick="yplAIOner_()">🤖 AI İLE ÖNER</button><button class="ypl-btn o" onclick="yplKapat_()">VAZGEÇ</button><button class="ypl-btn" id="yplOlusturBtn" onclick="yplOlustur_()">📄 LİSTEYİ OLUŞTUR + PDF HAZIRLA</button>`);
+  window._yplAdaySayisi = ad.length; window._yplUid = 'YPL' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); yplSay_();
+}
+function yplSec_() {
+  const o = [];
+  for (let i = 0; i < (window._yplAdaySayisi || 0); i++) {
+    const c = document.getElementById('yplc' + i), m = ypNum(document.getElementById('yplm' + i)?.value);
+    if (c && c.checked && m > 0) { const ai = (window._yplAI || {})[ypN(c.dataset.kod)]; o.push({ k: c.dataset.kod, m, o: c.dataset.o, n: ai ? ('AI ' + ai.karar + ': ' + String(ai.gerekce || ai.sistemGerekce || '')).slice(0, 60) : '' }); }
+  }
+  return o;
+}
+function yplSay_() { const s = yplSec_(), el = document.getElementById('yplSay'); if (el) el.textContent = s.length + ' kalem seçili · toplam miktar ' + s.reduce((t, x) => t + x.m, 0); }
+// 1b) AI ile öner: miktar / öncelik / gerekçe (nihai miktarı sunucudaki güvenlik kuralı belirler)
+window._yplAI = {};
+async function yplAIOner_() {
+  const btn = document.getElementById('yplAIBtn'), bilgi = document.getElementById('yplAIBilgi'); if (!btn) return;
+  btn.disabled = true; btn.textContent = '⏳ AI ANALİZ EDİYOR...';
+  bilgi.innerHTML = '<span style="color:#555">AI analizi çalışıyor — kritik parça sayısına göre 10-40 sn sürebilir...</span>';
+  try {
+    const r = await gsRequest({ action: 'yedekParcaAIAnaliz' }, { timeoutMs: 180000 });
+    if (!r?.ok) throw new Error(r?.error || 'AI analizi başarısız.');
+    const harita = {}; (r.oneriler || []).forEach(x => { harita[ypN(x.stokKodu)] = x; });
+    window._yplAI = harita;
+    let acil = 0, fark = 0, gerekmez = 0, sistemde = 0;
+    for (let i = 0; i < (window._yplAdaySayisi || 0); i++) {
+      const c = document.getElementById('yplc' + i), x = c && harita[ypN(c.dataset.kod)]; if (!x) continue;
+      const q = Math.max(0, Math.floor(ypNum(x.sistemOnayliMiktar))), gerek = x.karar === 'SIPARIS_GEREKMEZ' || q <= 0;
+      const m = document.getElementById('yplm' + i); m.value = q;
+      c.checked = !gerek; document.getElementById('yplr' + i).classList.toggle('pasif', gerek);
+      c.dataset.o = x.karar === 'ACIL' ? 'ACİL' : x.karar === 'YUKSEK' ? 'YÜKSEK' : 'NORMAL';
+      if (x.karar === 'ACIL') acil++; if (x.miktarFarki) fark++; if (gerek) gerekmez++; if (x.aiDurum === 'SISTEM') sistemde++;
+      const td = m.closest('td'); td.querySelector('.yplAi')?.remove();
+      const etiket = (x.aiDurum === 'SISTEM' ? '⚙ sistem kuralı' : '🤖 AI') + ' · ' + x.karar.replace('SIPARIS_GEREKMEZ', 'GEREKMEZ') + (x.miktarFarki ? ' · AI ' + x.aiOnerilenMiktar + ' → sistem ' + q : '');
+      td.insertAdjacentHTML('beforeend', `<div class="yplAi" title="${ypEsc(x.sistemGerekce || x.gerekce)}" style="font-size:10px;color:#444;max-width:230px;margin-top:4px;line-height:1.3">${ypEsc(etiket)}<br><span style="color:#777">${ypEsc(String(x.gerekce || x.sistemGerekce || '').slice(0, 90))}</span></div>`);
+    }
+    yplSay_();
+    bilgi.innerHTML = `✅ <b>AI analizi tamam</b> (${ypEsc(r.tarih || '')}): ${acil} acil · ${fark} kalemde AI ile sistem miktarı farklı (sistem kuralı uygulandı) · ${gerekmez} kalem sipariş gerektirmiyor`
+      + (sistemde || r.aiHata ? `<br><span style="color:#b26a00">⚠ ${sistemde} kalem için AI cevabı alınamadı, sistem kuralı kullanıldı. ${ypEsc(r.aiHata || '')}</span>` : '');
+  } catch (e) { console.warn(e); bilgi.innerHTML = '<span style="color:#c62828">⚠️ ' + ypEsc(e.message) + ' — miktarlar sistem önerisiyle kaldı, yine de listeyi oluşturabilirsiniz.</span>'; }
+  finally { btn.disabled = false; btn.textContent = '🤖 AI İLE TEKRAR ÖNER'; }
+}
+// 2) Oluştur: sipariş talepleri + PDF
+async function yplOlustur_() {
+  const sec = yplSec_();
+  if (!sec.length) { showToast('❗ En az bir kalem seçin ve miktarı girin.', 'err'); return; }
+  if (sec.length > 60) { showToast('❗ Bir listede en çok 60 kalem olabilir.', 'err'); return; }
+  if (!confirm(sec.length + ' kalem için SİPARİŞ TALEPLERİ açılacak ve PDF hazırlanacak.\n(E-posta bu aşamada GİTMEZ.)\n\nDevam edilsin mi?')) return;
+  const btn = document.getElementById('yplOlusturBtn'); if (btn) { btn.disabled = true; btn.textContent = '⏳ HAZIRLANIYOR...'; }
+  try {
+    showLoading(true);
+    const r = await gsRequest({ action: 'ypListeOlustur', uid: window._yplUid, k: sec, not: document.getElementById('yplNot')?.value || '' }, { timeoutMs: 180000 });
+    if (!r?.ok) throw new Error(r?.error || 'Liste oluşturulamadı.');
+    ypYuklendi = false; ypVerileriYukle(true); yplGecmisYukle();
+    yplPdfGoster_(r);
+    showToast('✅ ' + r.listeNo + ' oluşturuldu. PDF\'yi kontrol edip e-postayı gönderin.', 'ok');
+  } catch (e) { console.warn(e); showToast('⚠️ ' + e.message, 'err'); if (btn) { btn.disabled = false; btn.textContent = '📄 LİSTEYİ OLUŞTUR + PDF HAZIRLA'; } }
+  finally { showLoading(false); }
+}
+// 3) PDF önizle / yazdır / indir / e-posta
+function yplPdfGoster_(r) {
+  const bin = atob(r.pdfBase64), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }));
+  yplKutu_('📄 ' + r.listeNo, `${r.kalemSayisi} kalem · toplam miktar ${r.toplamMiktar} · ${r.siparisSayisi} sipariş talebi kayıtlı`,
+    `<iframe class="ypl-frame" id="yplFrame" src="${url}" title="PDF"></iframe><div id="yplMailDurum" style="margin-top:8px;font-size:12px">E-posta durumu: <b>${ypEsc(r.mailDurumu || 'BEKLİYOR')}</b> · Alıcılar: ${(r.alicilar || []).map(ypEsc).join(', ')}</div>`,
+    `<button class="ypl-btn o" onclick="yplYazdir_()">🖨 YAZDIR</button><a class="ypl-btn o" style="text-decoration:none" href="${url}" download="${ypEsc(r.fileName || r.listeNo + '.pdf')}">⬇ İNDİR</a><a class="ypl-btn o" style="text-decoration:none" href="${url}" target="_blank" rel="noopener">↗ YENİ SEKMEDE AÇ</a>
+     <span style="flex:1"></span><button class="ypl-btn g" id="yplMailBtn" onclick="yplMailGonder_()">✉ PDF'Yİ GÖRDÜM — E-POSTA GÖNDER</button>`);
+  _yplPdfUrl = url; _yplAktifNo = r.listeNo; window._yplAlicilar = r.alicilar || [];
+}
+function yplYazdir_() {
+  const f = document.getElementById('yplFrame');
+  try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { if (_yplPdfUrl) window.open(_yplPdfUrl, '_blank'); showToast('PDF yeni sekmede açıldı; oradan yazdırın.', 'info'); }
+}
+async function yplMailGonder_(tekrar) {
+  if (!_yplAktifNo) return;
+  if (!confirm(_yplAktifNo + ' listesi şu adreslere PDF ekli gönderilsin mi?\n\n' + (window._yplAlicilar || []).join('\n') + '\n\nEvet = E-POSTA GÖNDER')) return;
+  const btn = document.getElementById('yplMailBtn'); if (btn) { btn.disabled = true; btn.textContent = '⏳ GÖNDERİLİYOR...'; }
+  try {
+    showLoading(true);
+    const r = await gsRequest({ action: 'ypListeMailGonder', listeNo: _yplAktifNo, tekrar: !!tekrar }, { timeoutMs: 90000 });
+    if (r && r.gonderilmis && !tekrar) { if (confirm(r.error + '\n\nYine de TEKRAR gönderilsin mi?')) { showLoading(false); return yplMailGonder_(true); } throw new Error('Tekrar gönderim iptal edildi.'); }
+    if (!r?.ok) throw new Error(r?.error || 'E-posta gönderilemedi.');
+    const d = document.getElementById('yplMailDurum'); if (d) d.innerHTML = '✅ E-posta GÖNDERİLDİ · ' + (r.alicilar || []).map(ypEsc).join(', ');
+    if (btn) btn.textContent = '✅ GÖNDERİLDİ';
+    showToast('✅ E-posta gönderildi (' + (r.alicilar || []).length + ' alıcı).', 'ok'); yplGecmisYukle();
+  } catch (e) { console.warn(e); showToast('⚠️ ' + e.message, 'err'); if (btn) { btn.disabled = false; btn.textContent = "✉ PDF'Yİ GÖRDÜM — E-POSTA GÖNDER"; } }
+  finally { showLoading(false); }
+}
+// 4) Geçmiş + geri dönüş takibi
+async function yplGecmisYukle() {
+  const box = document.getElementById('yplGecmis'); if (!box) return;
+  try {
+    const r = await gsRequest({ action: 'ypListeGetir' });
+    if (!r?.ok) throw new Error(r?.error || 'Liste geçmişi alınamadı.');
+    if (!r.listeler.length) { box.innerHTML = '<div class="empty">Henüz sipariş listesi oluşturulmadı.</div>'; return; }
+    box.innerHTML = `<table class="ypl-tbl"><thead><tr><th>Liste No</th><th>Tarih</th><th>Hazırlayan</th><th>Kalem</th><th>E-posta</th><th>Geri dönüş</th><th>Gün</th><th></th></tr></thead><tbody>` + r.listeler.map(l => {
+      const bekle = l.geriDonus !== 'GERİ DÖNÜŞ ALINDI', gec = bekle && l.gun >= YPL_GERIDONUS_UYARI_GUN;
+      const mail = l.mailDurumu === 'GÖNDERİLDİ' ? '<span class="ypl-b g">GÖNDERİLDİ</span>' : `<span class="ypl-b ${String(l.mailDurumu).startsWith('HATA') ? 'k' : 'n'}">${ypEsc(String(l.mailDurumu || 'BEKLİYOR').slice(0, 14))}</span>`;
+      const geri = l.geriDonus === 'GERİ DÖNÜŞ ALINDI' ? '<span class="ypl-b g">ALINDI</span>' : `<span class="ypl-b ${gec ? 'k' : 'a'}">${ypEsc(l.geriDonus)}</span>`;
+      return `<tr style="${gec ? 'background:#fdecea' : ''}"><td><b>${ypEsc(l.listeNo)}</b>${l.durum === 'KISMI' ? ' <span class="ypl-b k">KISMİ</span>' : ''}</td><td>${ypEsc(l.tarih)} ${ypEsc(l.saat)}</td><td>${ypEsc(l.hazirlayan)}</td><td>${l.kalem} · ${l.toplam}</td><td>${mail}</td>
+        <td>${geri}${l.geriDonusNotu ? '<br><small>' + ypEsc(l.geriDonusNotu) + '</small>' : ''}</td><td style="font-weight:800;${gec ? 'color:#c62828' : ''}">${bekle ? l.gun + ' g' : '—'}</td>
+        <td style="white-space:nowrap"><button class="yp-btn outline" style="padding:4px 8px" onclick="yplPdfAc_('${ypEsc(l.listeNo)}')">📄 PDF</button> <button class="yp-btn outline" style="padding:4px 8px" onclick="yplGeriDonusAc_('${ypEsc(l.listeNo)}','${ypEsc(l.geriDonus)}')">↩ Geri dönüş</button></td></tr>`;
+    }).join('') + '</tbody></table>';
+  } catch (e) { box.innerHTML = `<div class="empty" style="color:#c62828">⚠️ ${ypEsc(e.message)}</div>`; }
+}
+async function yplPdfAc_(no) {
+  try { showLoading(true); const r = await gsRequest({ action: 'ypListePdf', listeNo: no }, { timeoutMs: 90000 }); if (!r?.ok) throw new Error(r?.error || 'PDF alınamadı.'); r.mailDurumu = ''; yplPdfGoster_(r); }
+  catch (e) { showToast('⚠️ ' + e.message, 'err'); } finally { showLoading(false); }
+}
+function yplGeriDonusAc_(no, mevcut) {
+  yplKutu_('↩ GERİ DÖNÜŞ KAYDI — ' + no, 'Satınalmanın dönüşünü işleyin. Kayıt, liste geçmişinde ve YedekParca_SiparisListeleri sayfasında saklanır.',
+    `<div style="display:grid;gap:10px;max-width:520px"><div><label style="font-size:12px;color:#555">DURUM</label><select id="yplGd" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:6px">
+      ${['BEKLİYOR', 'KISMİ GERİ DÖNÜŞ', 'GERİ DÖNÜŞ ALINDI'].map(x => `<option ${x === mevcut ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div><label style="font-size:12px;color:#555">NOT (kim döndü, termin, fiyat, eksik kalemler...)</label><textarea id="yplGn" rows="3" maxlength="300" style="width:100%;padding:9px;border:1px solid #bbb;border-radius:6px"></textarea></div></div>`,
+    `<span style="flex:1"></span><button class="ypl-btn o" onclick="yplKapat_()">VAZGEÇ</button><button class="ypl-btn g" onclick="yplGeriDonusKaydet_('${ypEsc(no)}')">💾 KAYDET</button>`);
+}
+async function yplGeriDonusKaydet_(no) {
+  try {
+    showLoading(true);
+    const r = await gsRequest({ action: 'ypListeGeriDonus', listeNo: no, durum: document.getElementById('yplGd').value, not: document.getElementById('yplGn').value.trim() });
+    if (!r?.ok) throw new Error(r?.error || 'Kaydedilemedi.');
+    yplKapat_(); showToast('✅ Geri dönüş kaydedildi.', 'ok'); yplGecmisYukle();
+  } catch (e) { showToast('⚠️ ' + e.message, 'err'); } finally { showLoading(false); }
+}
+
 function ypTopluSiparisModalAc(){const p=ypStoklar.filter(x=>['KRITIK','STOK_YOK'].includes(ypDurum(x))).sort((a,b)=>ypRisk(b)-ypRisk(a))[0];if(!p){showToast('✅ Sipariş gerektiren kritik parça yok.','ok');return;}ypSiparisModalAc(p.stokKodu);}
-async function ypKritikSiparisBaslat(){try{if(!Array.isArray(ypStoklar)||!ypStoklar.length){await ypVerileriYukle(true);}const kritik=ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR'&&['KRITIK','STOK_YOK'].includes(ypDurum(p)));if(!kritik.length){showToast('✅ Sipariş gerektiren kritik parça yok.','ok');return;}const panel=document.getElementById('ypAIPanel');if(panel)panel.scrollIntoView({behavior:'smooth',block:'start'});showToast(`🤖 ${kritik.length} kritik parça için AI satınalma analizi başlatılıyor...`,'ok');await ypAIAnalizCalistir();}catch(e){console.warn(e);showToast('⚠️ Kritik sipariş ekranı başlatılamadı: '+e.message,'err');}}
 async function ypSiparisKaydet(){const siparis={stokKodu:document.getElementById('yps-kod').value,miktar:ypNum(document.getElementById('yps-miktar').value),hedefTarih:document.getElementById('yps-tarih').value,oncelik:document.getElementById('yps-oncelik').value,tedarikci:ypN(document.getElementById('yps-tedarikci').value),not:ypN(document.getElementById('yps-not').value),durum:'TALEP_ACILDI'};if(!siparis.stokKodu||siparis.miktar<=0){showToast('❗ Parça ve sipariş miktarı zorunludur.','err');return;}try{showLoading(true);const r=await gsRequest({action:'yedekParcaSiparisSave',siparis});if(!r?.ok)throw new Error(r?.error||'Sipariş talebi başarısız');ypModalKapat('ypSiparisModal');ypYuklendi=false;await ypVerileriYukle(true);showToast('✅ Sipariş talebi oluşturuldu.','ok');}catch(e){showToast('⚠️ '+e.message,'err')}finally{showLoading(false);}}
 async function ypBakimdanStokDus(kayit){const list=parseParcalar(kayit.parcalar);const stoklu=list.filter(x=>x.stokKodu||ypStoklar.some(p=>ypN(p.stokKodu)===ypN(x.ad)));if(!stoklu.length)return {ok:true,skipped:true};const hareketler=stoklu.map(x=>({stokKodu:x.stokKodu||x.ad,tip:'CIKIS',miktar:ypNum(x.adet),belgeNo:kayit.formNo||String(kayit.id),birimFiyat:ypNum(x.fiyat),aciklama:'BAKIM FORMUNDAN OTOMATİK TÜKETİM',kaynak:'BAKIM'}));const r=await gsRequest({action:'yedekParcaTopluHareket',hareketler});if(!r?.ok)throw new Error(r?.error||'Parça stok düşümü başarısız');ypYuklendi=false;return r;}
 // ── YENİ KAYIT / YEDEK PARÇA — YAZDIKÇA FİLTRELENEN SEÇİM ──
