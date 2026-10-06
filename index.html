@@ -10632,7 +10632,7 @@ function renderTedarikciListesi() {
       ${t.yetkili  ? `<div class="ted-satir"><span class="ted-lbl">Yetkili</span><span class="ted-val">${t.yetkili}</span></div>` : ''}
       ${t.tel      ? `<div class="ted-satir"><span class="ted-lbl">Tel</span><span class="ted-val" style="font-family:'IBM Plex Mono',monospace">${t.tel}</span></div>` : ''}
       ${t.mail     ? `<div class="ted-satir"><span class="ted-lbl">E-Posta</span><span class="ted-val">${t.mail}</span></div>` : ''}
-      ${t.sure     ? `<div class="ted-satir"><span class="ted-lbl">Temin Süresi</span><span class="ted-val">${t.sure} gün</span></div>` : ''}
+      ${(Number(t.sure)>0) ? `<div class="ted-satir"><span class="ted-lbl">Temin Süresi</span><span class="ted-val">${t.sure} gün</span></div>` : ''}
       ${t.degerlendirme ? `<div class="ted-satir"><span class="ted-lbl">Son Değerlendirme</span><span class="ted-val">${t.degerlendirme}</span></div>` : ''}
       ${t.sonraki  ? `<div class="ted-satir"><span class="ted-lbl">Sonraki Değerlendirme</span><span class="ted-val" style="color:${sonrakiGecti?'#d32f2f':'inherit'}">${t.sonraki}${sonrakiGecti?' ⚠️':''}</span></div>` : ''}
       ${t.not      ? `<div style="margin-top:8px;font-size:11px;color:#666;background:#f7f5f0;border-radius:5px;padding:6px 10px">${t.not}</div>` : ''}
@@ -10754,21 +10754,36 @@ function gsTedarikciYukle() {
 
     window[cb] = (data) => {
       if (data && data.ok && Array.isArray(data.data)) {
+        // Başlık adlarını esnek eşleştir (Türkçe karakter / büyük-küçük harf / boşluk farkı olsa da çalışsın)
+        const nk = v => String(v||'').toLocaleLowerCase('tr')
+          .replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c')
+          .replace(/[^a-z0-9]/g,'');
+        const al = (row, ...adaylar) => {
+          const map = {};
+          Object.keys(row).forEach(k => { map[nk(k)] = row[k]; });
+          for (const a of adaylar) {
+            const v = map[nk(a)];
+            if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+          }
+          return '';
+        };
+        if (data.data[0]) console.log('[Tedarikci] Sheets başlıkları:', Object.keys(data.data[0]));
+
         const gelen = data.data.map(row => ({
-          id:              row['ID']                       || '',
-          firma:           row['Firma Adi']                || '',
-          kategori:        row['Kategori']                 || '',
-          durum:           row['Durum']                   || 'ONAYLANDI',
-          yetkili:         row['Yetkili Kisi']             || '',
-          tel:             row['Telefon']                  || '',
-          mail:            row['E-Posta']                  || '',
-          adres:           row['Web / Adres']              || '',
-          degerlendirme:   row['Son Degerlendirme']        || '',
-          sonraki:         row['Sonraki Degerlendirme']    || '',
-          sure:            row['Temin Suresi (gun)']       || '',
-          not:             row['Notlar / Kosullar']        || '',
-          guncelleme:      row['Son Guncelleme']           || '',
-        }));
+          id:              al(row,'ID','Id','Kod'),
+          firma:           al(row,'Firma Adi','Firma Adı','Firma','Tedarikçi','Tedarikci','Tedarikçi Adı','Unvan','Firma Ünvanı'),
+          kategori:        al(row,'Kategori','Tedarik Kategorisi'),
+          durum:           al(row,'Durum','Onay Durumu') || 'ONAYLANDI',
+          yetkili:         al(row,'Yetkili Kisi','Yetkili Kişi','Yetkili'),
+          tel:             al(row,'Telefon','Tel'),
+          mail:            al(row,'E-Posta','Eposta','Mail','Email'),
+          adres:           al(row,'Web / Adres','Adres','Web'),
+          degerlendirme:   al(row,'Son Degerlendirme','Son Değerlendirme'),
+          sonraki:         al(row,'Sonraki Degerlendirme','Sonraki Değerlendirme'),
+          sure:            al(row,'Temin Suresi (gun)','Temin Süresi (gün)','Temin Suresi','Termin'),
+          not:             al(row,'Notlar / Kosullar','Notlar / Koşullar','Notlar','Not'),
+          guncelleme:      al(row,'Son Guncelleme','Son Güncelleme'),
+        })).filter(x => x.firma || x.id);   // tamamen boş satırları alma
 
         // Sheets'te henüz görünmeyen yeni local kayıtları koru.
         const yerel = tedYukle();
