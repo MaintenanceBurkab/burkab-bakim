@@ -3323,6 +3323,14 @@ function beyAksiyon(tur, alarmId) {
   if (tur === 'tarih')     return beyModalAc(a, 'tarih');
   if (tur === 'yetkinlik') return beyModalAc(a, 'yetkinlik');
 }
+function beyKriterGuncelle(i) {
+  const cb = document.getElementById('beyK' + i), kutu = document.getElementById('beyKB' + i), satir = document.getElementById('beyKL' + i);
+  if (!cb || !kutu || !satir) return;
+  kutu.textContent = cb.checked ? '✓' : '';
+  kutu.style.background = cb.checked ? '#7b1fa2' : '#fff';
+  satir.style.background = cb.checked ? '#f3e5f5' : '';
+  satir.style.borderColor = cb.checked ? '#7b1fa2' : '#e3e3e3';
+}
 function beyModalKapat() { const m = document.getElementById('beyModal'); if (m) m.remove(); }
 function beyModalAc(a, tur) {
   beyModalKapat();
@@ -3341,9 +3349,10 @@ function beyModalAc(a, tur) {
     baslik = 'Yetkinlik Değerlendirme'; btn = 'DEĞERLENDİRMEYİ KAYDET'; renk = '#7b1fa2';
     govde = `<div style="font-size:12px;color:#666;margin-bottom:8px">Tüm maddeler işaretlenirse <b>YETKİN</b>, bir madde bile eksikse <b>UYGUN DEĞİL</b> sonucu verilir.</div>` +
       BEY_KRITERLER.map((k, i) => `
-        <label style="display:flex;gap:10px;align-items:flex-start;padding:9px;border:1px solid #e3e3e3;border-radius:8px;margin-bottom:6px;cursor:pointer">
-          <input type="checkbox" id="beyK${i + 1}" style="margin-top:3px;width:18px;height:18px">
-          <span style="font-size:13px"><b>${i + 1}.</b> ${beyEsc(k)}</span>
+        <label id="beyKL${i + 1}" style="display:flex;gap:12px;align-items:center;padding:10px;border:1px solid #e3e3e3;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background .15s,border-color .15s">
+          <input type="checkbox" id="beyK${i + 1}" onchange="beyKriterGuncelle(${i + 1})" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none">
+          <span id="beyKB${i + 1}" style="flex-shrink:0;width:26px;height:26px;border:2px solid #7b1fa2;border-radius:6px;background:#fff;color:#fff;font-size:18px;font-weight:900;line-height:1;display:flex;align-items:center;justify-content:center"></span>
+          <span style="font-size:14px"><b>${i + 1}.</b> ${beyEsc(k)}</span>
         </label>`).join('');
   }
   const m = document.createElement('div');
