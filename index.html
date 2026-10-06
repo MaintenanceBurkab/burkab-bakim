@@ -2902,6 +2902,7 @@ async function doLogin() {
     if (nm) nm.textContent = currentUser.name || currentUser.username;
 
     applyRoleUI(currentUser.role);
+    ymSunucudanYukle().catch(e => console.warn('Yetki matrisi yüklenemedi:', e));
     idbOpen().then(() => syncPending()).catch(e => console.warn('idbOpen hatası:', e));
   } catch(err) {
     console.error('doLogin hatası:', err);
@@ -9607,6 +9608,7 @@ function renderYetkiMatrisi() {
       </table>
     </div>
     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="yetkiMatrisiKaydet()" style="background:#d32f2f;color:#fff;border:1.5px solid #b71c1c;border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">💾 Yetkileri Kaydet</button>
       <button onclick="ymVarsayilanaDon()" style="background:#fde8e8;color:#d32f2f;border:1.5px solid rgba(211,47,47,.3);border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">↺ Varsayılana Dön</button>
       <button onclick="ymExport()" style="background:#e3f2fd;color:#0277bd;border:1.5px solid rgba(2,119,189,.3);border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">📥 CSV İndir</button>
     </div>`;
@@ -9618,17 +9620,33 @@ function ymCheckDegis(cb) {
   yetkiMatrisi[rol][islem]=cb.checked;
 }
 
-function yetkiMatrisiKaydet() {
+async function yetkiMatrisiKaydet() {
+  if (!currentUser || currentUser.role !== 'admin') { showToast('🚫 Yetki matrisini yalnızca admin değiştirebilir.','err'); return; }
   document.querySelectorAll('.ym-check:not([disabled])').forEach(cb=>{
     const rol=cb.dataset.rol, islem=cb.dataset.islem;
     if(!yetkiMatrisi[rol]) yetkiMatrisi[rol]={};
     yetkiMatrisi[rol][islem]=cb.checked;
   });
   yetkiMatrisi = ymNormalize(yetkiMatrisi);
-  ymKaydet(yetkiMatrisi);
-  adminLogEkle('Yetki matrisi güncellendi');
-  showToast('✅ Yetki matrisi kaydedildi!','ok');
-  renderYetkiMatrisi();
+  try {
+    const sonuc = await gsRequest({ action:'saveYetkiMatrisi', matrisi:yetkiMatrisi });
+    if (!sonuc || !sonuc.ok) throw new Error((sonuc && sonuc.error) || 'Yetki matrisi sunucuya kaydedilemedi.');
+    ymKaydet(yetkiMatrisi);
+    adminLogEkle('Yetki matrisi güncellendi');
+    showToast('✅ Yetki matrisi kaydedildi ve sunucuya işlendi.','ok');
+    renderYetkiMatrisi();
+  } catch (e) { showToast('❌ Yetki matrisi kaydedilemedi: ' + (e.message || e),'err'); }
+}
+
+async function ymSunucudanYukle() {
+  try {
+    const sonuc = await gsRequest({ action:'getYetkiMatrisi' });
+    if (sonuc && sonuc.ok && sonuc.matrisi) {
+      yetkiMatrisi = ymNormalize(sonuc.matrisi);
+      ymKaydet(yetkiMatrisi);
+      renderYetkiMatrisi();
+    }
+  } catch (e) { console.warn('Yetki matrisi sunucu yükleme hatası:', e); }
 }
 
 function ymVarsayilanaDon() {
