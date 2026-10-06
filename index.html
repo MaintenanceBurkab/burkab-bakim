@@ -10783,7 +10783,7 @@ function gsTedarikciYukle() {
           sure:            al(row,'Temin Suresi (gun)','Temin Süresi (gün)','Temin Suresi','Termin'),
           not:             al(row,'Notlar / Kosullar','Notlar / Koşullar','Notlar','Not'),
           guncelleme:      al(row,'Son Guncelleme','Son Güncelleme'),
-        })).filter(x => x.firma || x.id);   // tamamen boş satırları alma
+        })).filter(x => (x.firma || x.id) && String(x.durum).toLocaleUpperCase('tr') !== 'PASİF');   // boş ve silinmiş (PASİF) satırları alma
 
         // Sheets'te henüz görünmeyen yeni local kayıtları koru.
         const yerel = tedYukle();
