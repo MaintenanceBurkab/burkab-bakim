@@ -1992,11 +1992,15 @@ tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<style>
+@media(max-width:820px){#dijitalPlanBakimModal>div{width:100%!important;border-radius:10px!important}#dpbfPlanOzeti{grid-template-columns:repeat(2,minmax(0,1fr))!important}#dpbfGercekFormBilgi{grid-template-columns:1fr!important}#dpbfKontroller [data-dpbf]>div:nth-child(2){grid-template-columns:1fr!important}#dpbfKontroller [data-dpbf] div[style*="repeat(3,minmax(0,1fr))"]{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:560px){#dpbfPlanOzeti{grid-template-columns:1fr!important}#dpbfKontroller [data-dpbf] div[style*="repeat(3,minmax(0,1fr))"]{grid-template-columns:1fr!important}#dpbfKontroller [data-dpbf] div[style*="grid-template-columns:1fr auto"]{grid-template-columns:1fr!important}}
+</style>
 <!-- ── DİJİTAL PLANLI BAKIM FORMU ── -->
 <div id="dijitalPlanBakimModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:1300;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto">
   <div style="width:min(1050px,98vw);background:#fff;border-radius:16px;box-shadow:0 28px 90px rgba(0,0,0,.42);overflow:hidden;margin:auto">
     <div style="background:linear-gradient(90deg,#004d40,#00695c);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:3">
-      <div><div style="font-size:18px;font-weight:800">📋 PLANLI BAKIM FORMU — DİJİTAL UYGULAMA</div><div id="dpbfAlt" style="font-size:11px;color:#c8e6c9;margin-top:4px">Mevcut Planlı Bakım Formunun dijital doldurma ekranı</div></div>
+      <div><div id="dpbfBaslik" style="font-size:18px;font-weight:800">PLANLI BAKIM FORMU <span id="dpbfBaslikBadge" style="background:#1976d2;padding:3px 7px;border-radius:5px;font-size:11px;margin-left:7px">PLANLI</span></div><div id="dpbfAlt" style="font-size:11px;color:#c8e6c9;margin-top:4px">Mevcut Planlı Bakım Formunun dijital doldurma ekranı</div></div>
       <button onclick="dijitalPlanBakimKapat()" style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:20px;cursor:pointer">✕</button>
     </div>
     <div style="padding:18px">
@@ -2005,9 +2009,39 @@ tr:last-child td { border-bottom: none; }
         <div style="background:#f2f8f6;padding:10px 13px;font-size:12px;font-weight:800;color:#004d40">PLANLI BAKIM FORMUNDAKİ MEVCUT BİLGİLER</div>
         <div style="padding:13px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px" id="dpbfBilgiler"></div>
       </div>
-      <div style="border:1px solid #d9d9d9;border-radius:12px;overflow:hidden;margin-bottom:16px">
-        <div style="background:#f7f5f0;padding:11px 13px;font-size:12px;font-weight:800;color:#333">🔧 BAKIM TALİMATI / KONTROL ADIMLARI</div>
-        <div id="dpbfKontroller" style="padding:12px"></div>
+      <div style="border:1px solid #b7d9d1;border-radius:12px;overflow:hidden;margin-bottom:16px">
+        <div style="background:#e8f5f2;padding:11px 13px;font-size:12px;font-weight:800;color:#004d40;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>📋 GERÇEK BAKIM FORMU — BAKIM NOKTALARI</span><span id="dpbfFormNo" style="font-size:10px;color:#607d78"></span>
+        </div>
+        <div id="dpbfGercekFormBilgi" style="padding:12px 12px 0;display:grid;grid-template-columns:1fr 1fr;gap:9px"></div>
+        <div style="padding:12px">
+          <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:8px">🔧 YAPILAN İŞLEMLER — FORMDAKİ BAKIM NOKTALARI</div>
+          <div id="dpbfKontroller"></div>
+        </div>
+      </div>
+      <div id="dpbfSayacWrap" style="display:none;border:1px solid #b3d5e7;border-radius:12px;padding:14px;margin-bottom:16px;background:#f4fbff">
+        <div style="font-size:12px;font-weight:900;color:#01579b;margin-bottom:8px">🔢 MAKİNE BASIM ADEDİ / SAYAÇ</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">
+          <label style="font-size:10px;font-weight:800;color:#536168">MEVCUT BASIM ADEDİ
+            <input id="dpbfBaskiAdedi" type="number" min="0" step="1" inputmode="numeric" oninput="dpbfSayacGuncelle()" placeholder="Örn. 76450" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #b8cbd4;border-radius:7px;padding:9px;font-size:14px;font-weight:800">
+          </label>
+          <div id="dpbfSayacDurum" style="border:1px solid #2e7d32;border-radius:8px;padding:10px 14px;font-size:11px;font-weight:900;text-align:center;min-width:210px;background:#e8f5e9;color:#2e7d32">NORMAL</div>
+        </div>
+        <div style="font-size:10px;color:#607d8b;margin-top:7px">80.000 adetten fazla ise amirine bildirim gerekir. 75.000 ve üzeri sistem tarafından yaklaşan limit olarak işaretlenir.</div>
+      </div>
+      <div style="border:1px solid #cfd8d6;border-radius:12px;padding:14px;margin-bottom:16px;background:#fbfdfc">
+        <div style="font-size:12px;font-weight:800;color:#004d40;margin-bottom:10px">🧰 KULLANILAN YEDEK PARÇA</div>
+        <div id="dpbfParcaSatirlari"></div>
+        <button type="button" onclick="dpbfParcaSatiriEkle()" style="border:1px dashed #00897b;background:#fff;color:#00695c;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer">＋ YEDEK PARÇA EKLE</button>
+      </div>
+      <div style="border:1px solid #cfd8d6;border-radius:12px;padding:14px;margin-bottom:16px;background:#fbfdfc">
+        <div style="font-size:12px;font-weight:800;color:#004d40;margin-bottom:10px">⏱️ MÜDAHALE / DURUŞ BİLGİLERİ</div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px">
+          <label style="font-size:10px;font-weight:800;color:#666">MÜDAHALE EDİLDİĞİ SAAT<input id="dpbfMudahaleSaat" type="time" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #ccc;border-radius:6px;padding:7px"></label>
+          <label style="font-size:10px;font-weight:800;color:#666">BİTİŞ SAAT<input id="dpbfBitisSaat" type="time" oninput="dpbfDurusHesapla()" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #ccc;border-radius:6px;padding:7px"></label>
+          <label style="font-size:10px;font-weight:800;color:#666">DURUŞ SÜRESİ (dk)<input id="dpbfDurusSuresi" type="number" min="0" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #ccc;border-radius:6px;padding:7px"></label>
+          <label style="font-size:10px;font-weight:800;color:#666">BAKIM ELEMANI<input id="dpbfBakimElemani" type="text" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #ccc;border-radius:6px;padding:7px"></label>
+        </div>
       </div>
       <div style="border:1px solid #ddd;border-radius:12px;padding:14px;margin-bottom:16px">
         <div style="font-size:12px;font-weight:800;color:#333;margin-bottom:10px">📝 BAKIMCI AÇIKLAMASI / SONUÇ</div>
@@ -11440,34 +11474,118 @@ function dijitalPlanBakimAcById(id){
 let _dpbfPlan=null;
 function dpbfEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function dpbfAdimlariOlustur(plan){
+  // Tek dijital Planlı Bakım Formu motoru: tasarım tüm makinelerde aynıdır,
+  // kontrol noktaları makineye göre değişir. FR-43 operatör günlük formu dahil değildir.
+  const mak=String(plan?.makine||'').trim().toUpperCase();
+  if(mak==='US-03'){
+    const arr=[
+      {kat:'ULTRASONİK KAYNAK BÖLGESİ',text:'Sonotrode kontrolü',detay:'Aşınma, hasar ve kaynak yüzeyinin durumunu kontrol et. Gerekirse üreticiye uygun bakım/değişim gereksinimini belirt.'},
+      {kat:'ULTRASONİK KAYNAK BÖLGESİ',text:'Anvil / örs kontrolü',detay:'Aşınma, hasar ve kaynak yüzeyinin durumunu kontrol et.'},
+      {kat:'ULTRASONİK KAYNAK BÖLGESİ',text:'Side Slider / yan kızak kontrolü',detay:'Serbest hareket, aşınma, kirlenme ve genel mekanik durumu kontrol et.'},
+      {kat:'TEMİZLİK VE MAKİNE DURUMU',text:'Kaynak bölgesinin temizliği',detay:'Kaynak bölgesindeki üretim kalıntılarını ve kirlenmeyi kontrol et; uygun temizlik yöntemini uygula.'},
+      {kat:'TEMİZLİK VE MAKİNE DURUMU',text:'Makine içerisindeki üretim artıklarının temizlenmesi',detay:'Makine içindeki üretim artıkları, kir ve birikintileri kontrol et ve uygun yöntemle temizle.'},
+      {kat:'TEMİZLİK VE MAKİNE DURUMU',text:'Fan filtresi kontrolü',detay:'Kirlenme ve tıkanmayı kontrol et. Gerekiyorsa temizleme/değiştirme ihtiyacını belirt.'},
+      {kat:'TEMİZLİK VE MAKİNE DURUMU',text:'Kondens / bakım ünitesi filtresi kontrolü',detay:'Kondens birikimini kontrol et; gerekiyorsa tahliye işlemini yap.'},
+      {kat:'FONKSİYON / TEKNİK KONTROL',text:'Makine Diagnosis kontrolü',detay:'Makinenin teşhis/diagnosis fonksiyonunu çalıştır ve varsa bakım/arıza bildirimlerini kontrol et.'},
+      {kat:'FONKSİYON / TEKNİK KONTROL',text:'Bakım uyarılarının kontrolü',detay:'Ekrandaki bakım mesajlarını kontrol et, gerekli işlemleri gerçekleştir ve uygun şekilde kapat/acknowledge et.'},
+      {kat:'FONKSİYON / TEKNİK KONTROL',text:'Ultrasonik sistemin çalışma kontrolü',detay:'Ultrasonik sistemin normal çalışma durumunu ve proses tepkisini kontrol et.'},
+      {kat:'FONKSİYON / TEKNİK KONTROL',text:'Sonotrode–Anvil çalışma durumunun kontrolü',detay:'Sonotrode ve Anvil birlikte çalışırken hareket, temas ve mekanik davranışı kontrol et.'},
+      {kat:'FONKSİYON / TEKNİK KONTROL',text:'Kaynak işleminin fonksiyon testi',detay:'Uygun numune ile kaynak fonksiyonunu doğrula ve sonucu kaydet.'},
+      {kat:'FONKSİYON / TEKNİK KONTROL',text:'Kalibrasyon / self-calibration kontrolü',detay:'Gerekli kalibrasyon/self-calibration durumunu ve sistemin kalibrasyon sonucunu kontrol et.'},
+      {kat:'HAREKETLİ PARÇALAR / YAĞLAMA',text:'Side Slider kızaklarının kontrolü',detay:'Kızakların hareketini, yüzey durumunu ve aşınma belirtilerini kontrol et.'},
+      {kat:'HAREKETLİ PARÇALAR / YAĞLAMA',text:'Anvil hareket mekanizmasının kontrolü',detay:'Anvil hareket mekanizmasının serbest ve düzgün çalışmasını kontrol et.'},
+      {kat:'HAREKETLİ PARÇALAR / YAĞLAMA',text:'Gerekli yağlama noktalarının kontrolü',detay:'Üretici tarafından tanımlanan yağlama noktalarının durumunu kontrol et.'},
+      {kat:'HAREKETLİ PARÇALAR / YAĞLAMA',text:'Üreticiye uygun yağlama işlemi',detay:'Üretici tarafından belirtilen yöntem ve malzemeye uygun yağlama işlemini uygula ve yapılan işlemi kaydet.'},
+      {kat:'GÜVENLİK KONTROLLERİ',text:'Koruyucu kapakların kontrolü',detay:'Koruyucu kapakların, muhafazaların ve bağlantılarının sağlamlığını kontrol et.'},
+      {kat:'GÜVENLİK KONTROLLERİ',text:'Emniyet fonksiyonlarının kontrolü',detay:'Makinenin emniyet fonksiyonlarını ve ilgili durdurma davranışlarını kontrol et.'},
+      {kat:'GÜVENLİK KONTROLLERİ',text:'Safety relay / emniyet röleleri fonksiyon kontrolü',detay:'Emniyet rölelerinin fonksiyonunu ve ilgili güvenlik devresini kontrol et.'},
+      {kat:'GÜVENLİK KONTROLLERİ',text:'Makine güvenlik sistemlerinin fonksiyon testi',detay:'Makinenin güvenlik sistemlerinin planlanan fonksiyon testini gerçekleştir ve sonucu kaydet.'},
+      {kat:'GÜVENLİK KONTROLLERİ',text:'Bakım sonrası koruyucu ve güvenlik ekipmanlarının kontrolü',detay:'Bakım sonrası tüm koruyucu ve güvenlik ekipmanlarının doğru şekilde yerine takıldığını ve işlevinin uygun olduğunu doğrula.'}
+    ];
+    return arr.map((x,i)=>({id:i+1,...x,durum:'',aciklama:'',foto:'',video:'',refFotoDogru:'',refFotoHatali:'',refVideo:''}));
+  }
   const raw=[String(plan?.gorev||'').trim(),String(plan?.notlar||'').trim()].filter(Boolean).join('\n');
   let arr=raw.split(/\r?\n|\s*;\s*|\s*•\s*/).map(x=>x.replace(/^\s*[-–—*]\s*/, '').trim()).filter(Boolean);
   if(!arr.length) arr=['Planlı bakım görevinin gerçekleştirilmesi ve ekipmanın genel kontrolü.'];
-  return arr.map((text,i)=>({id:i+1,text,durum:'',aciklama:'',foto:''}));
+  return arr.map((text,i)=>({id:i+1,text,detay:'Planlı bakım görevini talimatına uygun şekilde gerçekleştir.',kat:'PLANLI BAKIM',durum:'',aciklama:'',foto:'',video:'',refFotoDogru:'',refFotoHatali:'',refVideo:''}));
+}
+function dpbfSayacDurum(v){
+  const n=Number(v)||0;
+  if(n>80000)return {cls:'bad',text:'80.000 ÜZERİ — AMİRİNE BİLDİR',color:'#c62828',bg:'#ffebee'};
+  if(n>=75000)return {cls:'warn',text:'80.000 ADEDE YAKLAŞIYOR',color:'#ef6c00',bg:'#fff3e0'};
+  return {cls:'ok',text:'NORMAL',color:'#2e7d32',bg:'#e8f5e9'};
+}
+function dpbfSayacGuncelle(){
+  const inp=document.getElementById('dpbfBaskiAdedi'),badge=document.getElementById('dpbfSayacDurum');
+  if(!inp||!badge)return;
+  const st=dpbfSayacDurum(inp.value); badge.textContent=st.text; badge.style.color=st.color; badge.style.background=st.bg; badge.style.borderColor=st.color;
 }
 function dijitalPlanBakimAc(plan){
   _dpbfPlan=JSON.parse(JSON.stringify(plan||{}));
   const modal=document.getElementById('dijitalPlanBakimModal'); if(!modal)return;
   const adimlar=dpbfAdimlariOlustur(_dpbfPlan); _dpbfPlan._adimlar=adimlar;
   const f=v=>v?String(v).split('-').reverse().join('.'):'—';
-  document.getElementById('dpbfAlt').textContent=`${_dpbfPlan.makine||'—'} · ${_dpbfPlan.gorev||'—'} · Plan tarihi ${f(_dpbfPlan.tarih)}`;
+  const isUS03=String(_dpbfPlan.makine||'').trim().toUpperCase()==='US-03';
+  document.getElementById('dpbfBaslik').firstChild.textContent=`${_dpbfPlan.makine||'—'} — PLANLI BAKIM FORMU `;
+  document.getElementById('dpbfBaslikBadge').textContent=isUS03?'FR-111':'PLANLI';
+  document.getElementById('dpbfAlt').textContent=`${_dpbfPlan.makine||'—'} · ${isUS03?'ULTRASONIC PERİYODİK BAKIM':'PERİYODİK BAKIM'} · ${_dpbfPlan.periyot||'Tek Seferlik'} · Plan tarihi ${f(_dpbfPlan.tarih)}`;
   document.getElementById('dpbfPlanOzeti').innerHTML=[
     ['🏭 BÖLÜM',_dpbfPlan.bolum],['⚙️ MAKİNE',_dpbfPlan.makine],['👷 SORUMLU',_dpbfPlan.bakimci],['📅 PLAN TARİHİ',f(_dpbfPlan.tarih)],['🔁 PERİYOT',_dpbfPlan.periyot||'Tek Seferlik'],['⏱️ TAHMİNİ SÜRE',_dpbfPlan.sure?(_dpbfPlan.sure+' dk'):'—'],['📋 GÖREV',_dpbfPlan.gorev],['📝 NOT',_dpbfPlan.notlar||'—']
-  ].map(x=>`<div style="background:#f7f9f8;border:1px solid #e1e8e5;border-radius:8px;padding:9px"><div style="font-size:9px;color:#718078;font-weight:800;letter-spacing:.5px">${dpbfEsc(x[0])}</div><div style="font-size:12px;color:#222;font-weight:700;margin-top:3px;word-break:break-word">${dpbfEsc(x[1]||'—')}</div></div>`).join('');
+  ].map(x=>`<div style="background:#f7fafb;border:1px solid #dbe5e8;border-radius:8px;padding:9px"><div style="font-size:9px;color:#718078;font-weight:800;letter-spacing:.5px">${dpbfEsc(x[0])}</div><div style="font-size:12px;color:#222;font-weight:800;margin-top:3px;word-break:break-word">${dpbfEsc(x[1]||'—')}</div></div>`).join('');
   document.getElementById('dpbfBilgiler').innerHTML=[
     ['Bölüm',_dpbfPlan.bolum],['Makine',_dpbfPlan.makine],['Bakım Gereksinimi / Görev',_dpbfPlan.gorev],['Sorumlu Bakımcı',_dpbfPlan.bakimci],['Planlanan Tarih',_dpbfPlan.tarih],['Periyot',_dpbfPlan.periyot||'Tek Seferlik'],['Tahmini Süre',_dpbfPlan.sure?(_dpbfPlan.sure+' dakika'):'—'],['Notlar / Yapılacaklar',_dpbfPlan.notlar||'—']
   ].map(x=>`<div style="border-bottom:1px solid #eee;padding:6px 0"><span style="display:block;font-size:10px;color:#888;font-weight:700">${dpbfEsc(x[0])}</span><b style="font-size:12px">${dpbfEsc(x[1]||'—')}</b></div>`).join('');
-  document.getElementById('dpbfKontroller').innerHTML=adimlar.map((a,i)=>`<div data-dpbf="${i}" style="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:9px;background:#fff">
-    <div style="display:flex;align-items:flex-start;gap:10px"><div style="min-width:28px;height:28px;border-radius:50%;background:#e8f5e9;color:#00695c;display:flex;align-items:center;justify-content:center;font-weight:800">${i+1}</div><div style="flex:1"><div style="font-weight:800;font-size:13px;color:#222">${dpbfEsc(a.text)}</div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button type="button" data-dp-durum="UYGUN" onclick="dpbfDurum(${i},'UYGUN')" style="border:1px solid #2e7d32;background:#fff;color:#2e7d32;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer">✓ UYGUN</button><button type="button" data-dp-durum="UYGUN_DEGIL" onclick="dpbfDurum(${i},'UYGUN_DEGIL')" style="border:1px solid #d32f2f;background:#fff;color:#d32f2f;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer">✕ UYGUN DEĞİL</button><button type="button" data-dp-durum="YAPILDI" onclick="dpbfDurum(${i},'YAPILDI')" style="border:1px solid #0277bd;background:#fff;color:#0277bd;border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer">🔧 YAPILDI</button></div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:9px"><input id="dpbfAcik_${i}" placeholder="Açıklama / tespit / yapılan işlem" style="min-width:0;border:1px solid #ccc;border-radius:6px;padding:8px" oninput="dpbfAciklama(${i},this.value)"><label style="border:1px dashed #aaa;border-radius:6px;padding:7px 9px;font-size:10px;font-weight:700;cursor:pointer;color:#555">📷 FOTO<input type="file" accept="image/*" style="display:none" onchange="dpbfFoto(${i},this)"></label></div><div id="dpbfFoto_${i}" style="font-size:10px;color:#777;margin-top:5px"></div>
-    </div></div></div>`).join('');
+  document.getElementById('dpbfFormNo').innerHTML=isUS03?`<span style="background:#1976d2;color:#fff;padding:4px 8px;border-radius:6px">FR-111</span> · ULTRASONIC PERİYODİK BAKIM`:'PLANLI BAKIM FORMU';
+  document.getElementById('dpbfGercekFormBilgi').innerHTML=`
+    <label style="font-size:10px;font-weight:800;color:#666">TARİH / SAAT<input id="dpbfTarihSaat" type="datetime-local" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #ccd7db;border-radius:6px;padding:8px"></label>
+    <label style="font-size:10px;font-weight:800;color:#666">HAT NO / MAKİNE NO<input id="dpbfHatMakine" type="text" value="${dpbfEsc(_dpbfPlan.makine||'')}" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #ccd7db;border-radius:6px;padding:8px"></label>`;
+  const katRenk={
+    'ULTRASONİK KAYNAK BÖLGESİ':'#0277bd','TEMİZLİK VE MAKİNE DURUMU':'#00897b','FONKSİYON / TEKNİK KONTROL':'#6a1b9a','HAREKETLİ PARÇALAR / YAĞLAMA':'#e65100','GÜVENLİK KONTROLLERİ':'#c62828','PLANLI BAKIM':'#00695c'
+  };
+  const medyaKarti=(baslik,tip,src,icon,empty)=>src
+    ? `<div style="border:1px solid #d8e2e6;border-radius:8px;overflow:hidden;background:#fff"><div style="font-size:9px;font-weight:900;color:#1976d2;padding:5px 7px;border-bottom:1px solid #edf1f2">${icon} ${baslik}</div>${tip==='video'?`<video controls preload="metadata" style="width:100%;height:104px;object-fit:cover;background:#101820" src="${dpbfEsc(src)}"></video>`:`<img src="${dpbfEsc(src)}" alt="${dpbfEsc(baslik)}" style="display:block;width:100%;height:104px;object-fit:cover">`}</div>`
+    : `<div style="height:118px;border:1px dashed #c8d5da;border-radius:8px;background:#f8fafb;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#8a969b;padding:8px"><div style="font-size:22px">${icon}</div><b style="font-size:9px;color:#536168">${baslik}</b><span style="font-size:8px;margin-top:3px">${empty}</span></div>`;
+  document.getElementById('dpbfKontroller').innerHTML=`<div style="background:#fff8e1;border:1px solid #f0c36d;border-radius:9px;padding:9px 11px;margin-bottom:12px;font-size:10px;color:#795548"><b>ℹ KONTROL:</b> Her noktada doğru/hatalı referans görseli ve varsa video incelenir. Sonuç seçilir; gerekli tespit, fotoğraf ve video kaydedilir.</div>`+adimlar.map((a,i)=>{
+    const renk=katRenk[a.kat]||'#00695c';
+    return `<div data-dpbf="${i}" style="border:1px solid #d7e0e3;border-radius:12px;margin-bottom:12px;background:#fff;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+      <div style="padding:10px 12px;background:#f7fafb;border-bottom:1px solid #e8eef0;display:flex;align-items:center;gap:9px"><span style="min-width:31px;height:31px;border-radius:50%;background:${renk};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900">${i+1}</span><div style="flex:1"><div style="font-size:9px;font-weight:900;color:${renk};letter-spacing:.5px">${dpbfEsc(a.kat)}</div><div style="font-size:13px;font-weight:900;color:#1f2930;margin-top:2px">${dpbfEsc(a.text)}</div></div><span style="font-size:9px;border:1px solid #d5dde0;border-radius:20px;padding:4px 8px;color:#69767b">BAKIM NOKTASI</span></div>
+      <div style="padding:10px 12px;display:grid;grid-template-columns:minmax(185px,1.05fr) minmax(410px,2fr) minmax(210px,.95fr);gap:10px;align-items:start">
+        <div><div style="font-size:10px;color:#657278;line-height:1.5;margin-bottom:10px">${dpbfEsc(a.detay||'Kontrolü talimatına uygun şekilde gerçekleştir.')}</div><div style="display:grid;gap:6px"><button type="button" data-dp-durum="UYGUN" onclick="dpbfDurum(${i},'UYGUN')" style="border:1px solid #2e7d32;background:#fff;color:#2e7d32;border-radius:7px;padding:8px;font-size:10px;font-weight:900;cursor:pointer">✓ UYGUN</button><button type="button" data-dp-durum="UYGUN_DEGIL" onclick="dpbfDurum(${i},'UYGUN_DEGIL')" style="border:1px solid #d32f2f;background:#fff;color:#d32f2f;border-radius:7px;padding:8px;font-size:10px;font-weight:900;cursor:pointer">✕ UYGUN DEĞİL</button><button type="button" data-dp-durum="YAPILDI" onclick="dpbfDurum(${i},'YAPILDI')" style="border:1px solid #0277bd;background:#fff;color:#0277bd;border-radius:7px;padding:8px;font-size:10px;font-weight:900;cursor:pointer">↻ YAPILDI</button></div></div>
+        <div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px">${medyaKarti('DOĞRU DURUM','image',a.refFotoDogru,'✓','Referans görseli henüz tanımlanmadı')}${medyaKarti('HATALI DURUM','image',a.refFotoHatali,'○','Referans görseli henüz tanımlanmadı')}${medyaKarti('VİDEO','video',a.refVideo,'▶','Referans video henüz tanımlanmadı')}</div><div style="font-size:9px;color:#6c777c;margin-top:5px">Referans medya, makine talimatı tanımlandığında bu alana bağlanabilir.</div></div>
+        <div><div style="font-size:9px;font-weight:900;color:#1976d2;margin-bottom:4px">AÇIKLAMA / TESPİT</div><textarea id="dpbfAcik_${i}" placeholder="Tespit, yapılan işlem, ölçüm değeri..." style="width:100%;min-height:80px;box-sizing:border-box;border:1px solid #ccd6da;border-radius:7px;padding:8px;font-size:10px;resize:vertical" oninput="dpbfAciklama(${i},this.value)"></textarea><div style="display:flex;gap:5px;margin-top:6px"><label style="flex:1;text-align:center;border:1px dashed #9aa9ae;border-radius:7px;padding:8px 4px;font-size:9px;font-weight:900;cursor:pointer;color:#536168;background:#fff">📷 FOTOĞRAF EKLE<input type="file" accept="image/*" style="display:none" onchange="dpbfFoto(${i},this)"></label><label style="flex:1;text-align:center;border:1px dashed #9aa9ae;border-radius:7px;padding:8px 4px;font-size:9px;font-weight:900;cursor:pointer;color:#536168;background:#fff">🎥 VİDEO EKLE<input type="file" accept="video/*" style="display:none" onchange="dpbfVideo(${i},this)"></label></div><div id="dpbfMedya_${i}" style="font-size:9px;color:#718078;margin-top:5px"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+  const sayacWrap=document.getElementById('dpbfSayacWrap');
+  if(sayacWrap) sayacWrap.style.display=isUS03?'block':'none';
+  if(isUS03){const si=document.getElementById('dpbfBaskiAdedi');if(si)si.value='';dpbfSayacGuncelle();}
   document.getElementById('dpbfSonucNotu').value='';
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const dt=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const ts=document.getElementById('dpbfTarihSaat');if(ts)ts.value=dt;
+  const be=document.getElementById('dpbfBakimElemani');if(be)be.value=_dpbfPlan.bakimci||currentUser?.name||'';
+  const ms=document.getElementById('dpbfMudahaleSaat');if(ms)ms.value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const bs=document.getElementById('dpbfBitisSaat');if(bs)bs.value='';
+  const ds=document.getElementById('dpbfDurusSuresi');if(ds)ds.value='';
+  const ps=document.getElementById('dpbfParcaSatirlari');if(ps)ps.innerHTML='';
   modal.style.display='flex';
+}
+
+function dpbfParcaSatiriEkle(){
+  const box=document.getElementById('dpbfParcaSatirlari'); if(!box)return;
+  const i=box.querySelectorAll('[data-dpbf-parca]').length;
+  box.insertAdjacentHTML('beforeend',`<div data-dpbf-parca="${i}" style="display:grid;grid-template-columns:1.3fr .7fr .8fr .8fr auto;gap:7px;margin-bottom:7px"><input placeholder="ID No / Parça" data-parca-id style="border:1px solid #ccc;border-radius:6px;padding:7px"><input placeholder="Adet" type="number" min="0" data-parca-adet style="border:1px solid #ccc;border-radius:6px;padding:7px"><input placeholder="Birim fiyat" type="number" min="0" step="0.01" data-parca-fiyat style="border:1px solid #ccc;border-radius:6px;padding:7px"><input placeholder="Tutar" data-parca-tutar readonly style="border:1px solid #ddd;border-radius:6px;padding:7px;background:#f5f5f5"><button type="button" onclick="this.parentElement.remove()" style="border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer">✕</button></div>`);
+  const row=box.lastElementChild; const adet=row.querySelector('[data-parca-adet]'),fiyat=row.querySelector('[data-parca-fiyat]'),tutar=row.querySelector('[data-parca-tutar]');
+  const calc=()=>{tutar.value=((parseFloat(adet.value)||0)*(parseFloat(fiyat.value)||0)).toFixed(2)}; adet.oninput=calc; fiyat.oninput=calc;
+}
+function dpbfDurusHesapla(){
+  const a=document.getElementById('dpbfMudahaleSaat')?.value,b=document.getElementById('dpbfBitisSaat')?.value,out=document.getElementById('dpbfDurusSuresi');
+  if(!a||!b||!out)return; let [ah,am]=a.split(':').map(Number),[bh,bm]=b.split(':').map(Number); let m=(bh*60+bm)-(ah*60+am); if(m<0)m+=1440; out.value=m;
 }
 function dpbfDurum(i,d){if(!_dpbfPlan?._adimlar?.[i])return;_dpbfPlan._adimlar[i].durum=d;const box=document.querySelector(`[data-dpbf="${i}"]`);if(box){box.querySelectorAll('button[data-dp-durum]').forEach(b=>{const on=b.dataset.dpDurum===d;b.style.background=on?(d==='UYGUN'?'#e8f5e9':d==='UYGUN_DEGIL'?'#fde8e8':'#e3f2fd'):'#fff';b.style.fontWeight=on?'900':'800';});}}
 function dpbfAciklama(i,v){if(_dpbfPlan?._adimlar?.[i])_dpbfPlan._adimlar[i].aciklama=v;}
-function dpbfFoto(i,input){const f=input?.files?.[0];if(!f||!_dpbfPlan?._adimlar?.[i])return;_dpbfPlan._adimlar[i].foto=f.name;const el=document.getElementById('dpbfFoto_'+i);if(el)el.textContent='📎 '+f.name+' (fotoğraf seçildi)';}
+function dpbfFoto(i,input){const f=input?.files?.[0];if(!f||!_dpbfPlan?._adimlar?.[i])return;_dpbfPlan._adimlar[i].foto=f.name;const el=document.getElementById('dpbfMedya_'+i);if(el)el.innerHTML='📎 Fotoğraf seçildi: <b>'+dpbfEsc(f.name)+'</b>'; }
+function dpbfVideo(i,input){const f=input?.files?.[0];if(!f||!_dpbfPlan?._adimlar?.[i])return;_dpbfPlan._adimlar[i].video=f.name;const el=document.getElementById('dpbfMedya_'+i);if(el)el.innerHTML='📎 Video seçildi: <b>'+dpbfEsc(f.name)+'</b>'; }
 function dijitalPlanBakimKapat(){const m=document.getElementById('dijitalPlanBakimModal');if(m)m.style.display='none';_dpbfPlan=null;}
 async function dijitalPlanBakimKaydet(sonucTip){
   if(!_dpbfPlan)return;
@@ -11475,12 +11593,21 @@ async function dijitalPlanBakimKaydet(sonucTip){
   const eksik=ad.filter(x=>!x.durum);
   if(eksik.length){showToast('❗ Tüm kontrol maddeleri için UYGUN / UYGUN DEĞİL / YAPILDI seçin.','err');return;}
   const durum=sonucTip==='tamam'?'TAMAMLANDI':'KISMEN TAMAMLANDI';
-  const yapi=ad.map((x,i)=>`${i+1}. ${x.text} → ${x.durum}${x.aciklama?' | '+x.aciklama:''}${x.foto?' | FOTO: '+x.foto:''}`).join('\n');
+  const baskiAdedi=String(document.getElementById('dpbfBaskiAdedi')?.value||'').trim();
+  if(String(_dpbfPlan.makine||'').trim().toUpperCase()==='US-03' && !baskiAdedi){showToast('❗ US-03 için makine basım adedini girin.','err');return;}
+  const yapi=(baskiAdedi?`MAKİNE BASIM ADEDİ: ${baskiAdedi} adet\n`:'')+ad.map((x,i)=>`${i+1}. ${x.text} → ${x.durum}${x.aciklama?' | '+x.aciklama:''}${x.foto?' | FOTO: '+x.foto:''}${x.video?' | VİDEO: '+x.video:''}`).join('\n');
   const sonucNotu=(document.getElementById('dpbfSonucNotu')?.value||'').trim();
   const g=(id,v='')=>{const el=document.getElementById(id);if(el)el.value=v;};
   const tarih=yerelYMD();
+  const tarihSaat=document.getElementById('dpbfTarihSaat')?.value||'';
+  const hatMakine=document.getElementById('dpbfHatMakine')?.value||_dpbfPlan.makine||'';
+  const mudahaleSaat=document.getElementById('dpbfMudahaleSaat')?.value||'';
+  const bitisSaat=document.getElementById('dpbfBitisSaat')?.value||'';
+  const durusSuresi=parseInt(document.getElementById('dpbfDurusSuresi')?.value,10)||0;
+  const bakimElemani=document.getElementById('dpbfBakimElemani')?.value||_dpbfPlan.bakimci||currentUser?.name||'';
+  const parcalar=Array.from(document.querySelectorAll('#dpbfParcaSatirlari [data-dpbf-parca]')).map(r=>({idNo:r.querySelector('[data-parca-id]')?.value||'',adet:parseFloat(r.querySelector('[data-parca-adet]')?.value)||0,birimFiyat:parseFloat(r.querySelector('[data-parca-fiyat]')?.value)||0,tutar:parseFloat(r.querySelector('[data-parca-tutar]')?.value)||0})).filter(x=>x.idNo||x.adet||x.birimFiyat);
   const bakimci=String(_dpbfPlan.bakimci||currentUser?.name||'').trim();
-  const rec={id:Date.now(),formNo:'',islem:'PLANLI BAKIM',bolum:_dpbfPlan.bolum||'',makine:_dpbfPlan.makine||'',bildiren:currentUser?.name||bakimci||'PLANLI BAKIM',proje:'',mdNo:'',revNo:'',arizaTuru:'',arizaKodu:'PLN',konu:_dpbfPlan.gorev||'',tarihBas:tarih,tarihBit:tarih,arizaBas:'',onarimBas:'',onarimBit:'',arizaBit:'',sure:parseInt(_dpbfPlan.sure,10)||0,bakimci:bakimci,kalite:'',yapilan:`${yapi}${sonucNotu?'\n\nSONUÇ / BAKIMCI AÇIKLAMASI:\n'+sonucNotu:''}`,riskSeviye:'',cozumSure:'',durusEtkisi:'',parcalar:[],toplamMaliyet:'',teminDurumu:'',riskAksiyon:JSON.stringify({kaynak:'DIJITAL_PLANLI_BAKIM',planId:_dpbfPlan.id,sonuc:durum,adimlar:ad}),kayitYapan:currentUser?.name||bakimci||'Bilinmiyor',kayitZaman:new Date().toISOString(),durum:'TAMAMLANDI',kayitKaynagi:'MANUEL_BAKIM'};
+  const rec={id:Date.now(),formNo:'',islem:'PLANLI BAKIM',bolum:_dpbfPlan.bolum||'',makine:hatMakine||_dpbfPlan.makine||'',bildiren:currentUser?.name||bakimci||'PLANLI BAKIM',proje:'',mdNo:'',revNo:'',arizaTuru:'',arizaKodu:'PLN',konu:_dpbfPlan.gorev||'',tarihBas:tarih,tarihBit:tarih,arizaBas:mudahaleSaat,onarimBas:'',onarimBit:bitisSaat,arizaBit:'',sure:parseInt(_dpbfPlan.sure,10)||0,bakimci:bakimElemani,kalite:'',yapilan:`${yapi}${sonucNotu?'\n\nSONUÇ / BAKIMCI AÇIKLAMASI:\n'+sonucNotu:''}`,riskSeviye:'',cozumSure:'',durusEtkisi:durusSuresi?'DURUŞ VAR':'DURUŞ YOK',parcalar:parcalar,toplamMaliyet:parcalar.reduce((t,x)=>t+x.tutar,0),teminDurumu:'',riskAksiyon:JSON.stringify({kaynak:'DIJITAL_PLANLI_BAKIM',formKaynak:String(_dpbfPlan.makine||'').toUpperCase()==='US-03'?'FR-111 ULTRASONIC PERİYODİK BAKIM FORMU':'PLANLI_BAKIM',planId:_dpbfPlan.id,sonuc:durum,baskiAdedi:baskiAdedi?Number(baskiAdedi):null,adimlar:ad}),kayitYapan:currentUser?.name||bakimci||'Bilinmiyor',kayitZaman:new Date().toISOString(),durum:'TAMAMLANDI',kayitKaynagi:'MANUEL_BAKIM'};
   try{
     showLoading(true);
     const r=await gsKaydet(rec); if(r?.formNo)rec.formNo=r.formNo;
