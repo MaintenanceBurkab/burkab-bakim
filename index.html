@@ -3260,6 +3260,142 @@ document.getElementById('tarihBit').value = today;
 // BAKIM BİRİMİ EĞİTİMLERİ — ALARM YÜKLEME
 // ============================================================
 
+
+// ============================================================
+// BAKIM EĞİTİMİ — ORTAK KART, AKSİYON BUTONLARI VE FORMLAR
+// ============================================================
+// Yetkinlik değerlendirme maddeleri (5 adet).
+const BEY_KRITERLER = [
+  'Bakım noktalarını gösterdi',
+  'Doğru durumu tanıdı',
+  'Hatalı durumu tanıdı',
+  'Günlük kontrolü doğru uyguladı',
+  'Uygunsuzlukta ne yapacağını biliyor'
+];
+const beyEsc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const BEY_RENK = {
+  'YENİ PERSONEL / YETKİNLİK YOK': '#d32f2f',
+  'ŞARTLI ONAY BEKLİYOR': '#e65100',
+  'EĞİTİM PLANLANDI': '#1565c0',
+  'EĞİTİM GECİKTİ': '#c62828',
+  'YETKİNLİK ONAYI BEKLİYOR': '#f9a825'
+};
+function beyBtn(metin, renk, onclick) {
+  return `<button onclick="${onclick}" style="margin-top:10px;width:100%;border:none;border-radius:7px;padding:9px 12px;background:${renk};color:#fff;font-weight:800;cursor:pointer">${metin}</button>`;
+}
+function beyAksiyonHtml(a) {
+  const id = beyEsc(String(a.alarmId || '').replace(/'/g, ''));
+  switch (a.alarmTipi) {
+    case 'ŞARTLI ONAY BEKLİYOR':
+      return beyBtn('ŞARTLI KABUL ET', '#e65100', `beyAksiyon('sartli','${id}')`);
+    case 'EĞİTİM PLANLANDI':
+    case 'EĞİTİM GECİKTİ':
+      return beyBtn('✅ EĞİTİMİ TAMAMLA', '#2e7d32', `beyAksiyon('tamamla','${id}')`) +
+             `<button onclick="beyAksiyon('tarih','${id}')" style="margin-top:6px;width:100%;border:1px solid #bbb;border-radius:7px;padding:8px 12px;background:#fff;font-weight:700;cursor:pointer">📅 Eğitim Tarihini Değiştir</button>`;
+    case 'YETKİNLİK ONAYI BEKLİYOR':
+      return beyBtn('🎓 YETKİNLİK DEĞERLENDİR', '#7b1fa2', `beyAksiyon('yetkinlik','${id}')`);
+    default:
+      return '';
+  }
+}
+function beyKartHtml(a) {
+  const renk = BEY_RENK[a.alarmTipi] || '#d32f2f';
+  const satir = (t, v) => v ? `<div style="font-size:12px;color:#666;margin-top:4px">${t}: ${beyEsc(v)}</div>` : '';
+  return `
+    <div style="background:#fff;border:1px solid #ddd;border-left:5px solid ${renk};border-radius:10px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="font-weight:900">${beyEsc(a.alarmTipi)}</div>
+      <div style="margin-top:8px"><strong>${beyEsc(a.adSoyad) || '—'}</strong></div>
+      ${satir('Sicil', a.sicilNo || '—')}
+      ${satir('Grup', a.grupAdi || a.grupId || '—')}
+      ${satir('FR-40', a.kaynakFormNo || '—')}
+      ${satir('Planlanan tarih', a.planlananTarih ? String(a.planlananTarih).slice(0, 10) : '')}
+      ${satir('Eğitim durumu', a.egitimDurumu)}
+      ${a.aciklama ? `<div style="font-size:12px;color:#777;margin-top:8px">${beyEsc(a.aciklama)}</div>` : ''}
+      ${beyAksiyonHtml(a)}
+    </div>`;
+}
+function beyAksiyon(tur, alarmId) {
+  const a = (window._bakimEgitimAlarmlar || []).find(x => String(x.alarmId) === String(alarmId));
+  if (!a) { showToast('Alarm kaydı bulunamadı. Sayfayı yenileyin.', 'err'); return; }
+  if (tur === 'sartli') return beySartliKabulUI(a);
+  if (!a.egitimId) { showToast('Bu alarma bağlı eğitim kaydı bulunamadı (EgitimId yok).', 'err'); return; }
+  if (tur === 'tamamla')   return beyModalAc(a, 'tamamla');
+  if (tur === 'tarih')     return beyModalAc(a, 'tarih');
+  if (tur === 'yetkinlik') return beyModalAc(a, 'yetkinlik');
+}
+function beyModalKapat() { const m = document.getElementById('beyModal'); if (m) m.remove(); }
+function beyModalAc(a, tur) {
+  beyModalKapat();
+  let baslik = '', govde = '', btn = '', renk = '#2e7d32';
+  if (tur === 'tamamla') {
+    baslik = 'Eğitimi Tamamla'; btn = 'EĞİTİMİ TAMAMLA';
+    govde = `<label style="font-weight:700;font-size:13px">Eğitimci notu (isteğe bağlı)</label>
+      <textarea id="beyNot" rows="4" style="width:100%;margin-top:6px;padding:8px;border:1px solid #bbb;border-radius:8px;font-family:inherit" placeholder="Eğitimde yapılanlar, gözlemler..."></textarea>
+      <div style="font-size:12px;color:#666;margin-top:8px">Eğitim tamamlanınca "YETKİNLİK ONAYI BEKLİYOR" alarmı açılır ve yetkinlik değerlendirmesi yapılabilir.</div>`;
+  } else if (tur === 'tarih') {
+    baslik = 'Eğitim Tarihini Değiştir'; btn = 'TARİHİ KAYDET'; renk = '#1565c0';
+    const mevcut = a.planlananTarih ? String(a.planlananTarih).slice(0, 10) : '';
+    govde = `<label style="font-weight:700;font-size:13px">Yeni planlanan tarih</label>
+      <input type="date" id="beyTarih" value="${beyEsc(mevcut)}" style="width:100%;margin-top:6px;padding:9px;border:1px solid #bbb;border-radius:8px">`;
+  } else {
+    baslik = 'Yetkinlik Değerlendirme'; btn = 'DEĞERLENDİRMEYİ KAYDET'; renk = '#7b1fa2';
+    govde = `<div style="font-size:12px;color:#666;margin-bottom:8px">Tüm maddeler işaretlenirse <b>YETKİN</b>, bir madde bile eksikse <b>UYGUN DEĞİL</b> sonucu verilir.</div>` +
+      BEY_KRITERLER.map((k, i) => `
+        <label style="display:flex;gap:10px;align-items:flex-start;padding:9px;border:1px solid #e3e3e3;border-radius:8px;margin-bottom:6px;cursor:pointer">
+          <input type="checkbox" id="beyK${i + 1}" style="margin-top:3px;width:18px;height:18px">
+          <span style="font-size:13px"><b>${i + 1}.</b> ${beyEsc(k)}</span>
+        </label>`).join('');
+  }
+  const m = document.createElement('div');
+  m.id = 'beyModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.4)">
+      <div style="font-size:17px;font-weight:900">${baslik}</div>
+      <div style="margin:6px 0 14px;font-size:13px;color:#555"><b>${beyEsc(a.adSoyad)}</b> — Sicil: ${beyEsc(a.sicilNo || '—')}<br>${beyEsc(a.grupAdi || a.grupId || '')}</div>
+      ${govde}
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="beyModalKapat()" style="flex:1;padding:10px;border:1px solid #bbb;border-radius:8px;background:#fff;font-weight:700;cursor:pointer">Vazgeç</button>
+        <button id="beyModalOnay" onclick="beyModalGonder('${tur}','${beyEsc(String(a.alarmId).replace(/'/g, ''))}')" style="flex:2;padding:10px;border:none;border-radius:8px;background:${renk};color:#fff;font-weight:800;cursor:pointer">${btn}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+}
+async function beyModalGonder(tur, alarmId) {
+  const a = (window._bakimEgitimAlarmlar || []).find(x => String(x.alarmId) === String(alarmId));
+  if (!a) { showToast('Alarm kaydı bulunamadı.', 'err'); return; }
+  let istek;
+  if (tur === 'tamamla') {
+    istek = { action: 'beyEgitimTamamla', egitimId: a.egitimId, egitimciNotu: (document.getElementById('beyNot') || {}).value || '' };
+  } else if (tur === 'tarih') {
+    const t = (document.getElementById('beyTarih') || {}).value || '';
+    if (!t) { showToast('Tarih seçin.', 'err'); return; }
+    istek = { action: 'beyEgitimTarihGuncelle', egitimId: a.egitimId, planlananTarih: t };
+  } else {
+    istek = { action: 'beyYetkinlikDegerlendir', egitimId: a.egitimId };
+    for (let i = 1; i <= 5; i++) istek['kriter' + i] = !!(document.getElementById('beyK' + i) || {}).checked;
+    const eksik = [1,2,3,4,5].filter(i => !istek['kriter' + i]).length;
+    if (eksik && !confirm(eksik + ' madde işaretlenmedi. Sonuç "UYGUN DEĞİL" olarak kaydedilecek.\n\nDevam edilsin mi?')) return;
+  }
+  const btn = document.getElementById('beyModalOnay');
+  if (btn) { btn.disabled = true; btn.textContent = 'Kaydediliyor...'; }
+  try {
+    const sonuc = await gsRequest(istek);
+    if (!sonuc || !sonuc.ok) throw new Error((sonuc && sonuc.error) || 'İşlem gerçekleştirilemedi.');
+    beyModalKapat();
+    if (tur === 'yetkinlik' && sonuc.sonuc === 'UYGUN DEĞİL') {
+      alert('⚠️ ' + (sonuc.mesaj || 'Personel bu makine/prosese uygun değil.'));
+    } else {
+      showToast('✅ ' + (sonuc.mesaj || 'İşlem tamamlandı.'), 'ok');
+    }
+    await bakimEgitimYukle();
+  } catch (e) {
+    console.error('BEY işlem hatası:', e);
+    showToast('❌ ' + (e.message || 'İşlem başarısız.'), 'err');
+    if (btn) { btn.disabled = false; btn.textContent = 'Tekrar Dene'; }
+  }
+}
+
 async function bakimEgitimYukle() {
 
   const alan = document.getElementById('bakimEgitimIcerik');
@@ -3379,64 +3515,7 @@ async function bakimEgitimYukle() {
           grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
           gap:14px">
 
-          ${acik.map(a => `
-
-            <div style="
-              background:#fff;
-              border:1px solid #ddd;
-              border-left:5px solid #d32f2f;
-              border-radius:10px;
-              padding:15px;
-              box-shadow:0 2px 8px rgba(0,0,0,.06)">
-
-              <div style="font-weight:900">
-                ${a.alarmTipi || ''}
-              </div>
-
-              <div style="margin-top:8px">
-                <strong>${a.adSoyad || '—'}</strong>
-              </div>
-
-              <div style="font-size:12px;color:#666;margin-top:5px">
-                Sicil: ${a.sicilNo || '—'}
-              </div>
-
-              <div style="font-size:12px;color:#666;margin-top:4px">
-                Grup: ${a.grupAdi || a.grupId || '—'}
-              </div>
-
-              <div style="font-size:12px;color:#666;margin-top:4px">
-                FR-40: ${a.kaynakFormNo || '—'}
-              </div>
-
-              <div style="font-size:12px;color:#777;margin-top:8px">
-                ${a.aciklama || ''}
-              </div>
-
-              ${
-                a.alarmTipi === 'ŞARTLI ONAY BEKLİYOR'
-                ? `
-                  <button
-                    onclick="beySartliKabulUI(${JSON.stringify(a).replace(/"/g,'&quot;')})"
-                    style="
-                      margin-top:12px;
-                      width:100%;
-                      border:none;
-                      border-radius:7px;
-                      padding:9px 12px;
-                      background:#e65100;
-                      color:#fff;
-                      font-weight:800;
-                      cursor:pointer">
-                    ŞARTLI KABUL ET
-                  </button>
-                `
-                : ''
-              }
-
-            </div>
-
-          `).join('')}
+          ${acik.map(a => beyKartHtml(a)).join('')}
 
         </div>
       `;
@@ -3494,48 +3573,7 @@ function bakimEgitimAlarmFiltrele(tip) {
     return;
   }
 
-  alan.innerHTML = filtreli.map((a, index) => `
-    <div style="
-      background:#fff;
-      border:1px solid #ddd;
-      border-radius:10px;
-      padding:15px;
-      margin-bottom:10px">
-
-      <div style="font-weight:900">
-        ${a.alarmTipi || ''}
-      </div>
-
-      <div style="margin-top:7px">
-        ${a.adSoyad || '—'} — Sicil: ${a.sicilNo || '—'}
-      </div>
-
-      <div style="font-size:12px;color:#666;margin-top:5px">
-        ${a.grupAdi || a.grupId || '—'}
-      </div>
-
-      ${
-        a.alarmTipi === 'ŞARTLI ONAY BEKLİYOR'
-        ? `
-          <button
-            onclick="beySartliKabulUI(window._bakimEgitimAlarmlar.find(x => x.alarmId === '${String(a.alarmId).replace(/'/g,"\\'")}'))"
-            style="
-              margin-top:10px;
-              background:#e65100;
-              color:#fff;
-              border:0;
-              border-radius:7px;
-              padding:9px 16px;
-              font-weight:800;
-              cursor:pointer">
-            ŞARTLI KABUL ET
-          </button>
-        `
-        : ''
-      }
-
-    </div>
-  `).join('');
+  alan.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">' + filtreli.map(a => beyKartHtml(a)).join('') + '</div>';
 }
 
 
@@ -3551,12 +3589,12 @@ async function beySartliKabulUI(alarm) {
   }
 
   const onay = confirm(
-    'PERSONEL YENİ\\n\\n' +
+    'PERSONEL YENİ\n\n' +
     (alarm.adSoyad || '') +
     ' / Sicil: ' + (alarm.sicilNo || '') +
-    '\\n\\n' +
+    '\n\n' +
     'Personel şartlı olarak kabul edilecek ve ' +
-    'eğitim ertesi güne otomatik planlanacaktır.\\n\\n' +
+    'eğitim ertesi güne otomatik planlanacaktır.\n\n' +
     'Devam edilsin mi?'
   );
 
