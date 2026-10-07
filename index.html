@@ -3259,13 +3259,17 @@ loadData().then(async () => {
 
   // Eski bakım kayıtlarında daha önce boş kalan işçilik/Toplam maliyet alanlarını
   // sunucudaki aynı ISCILIK_UCRETI hesabıyla bir kez geriye dönük tamamla.
-  if (isOnline) {
+  let _maliyetBayrak = null;
+  try { _maliyetBayrak = localStorage.getItem('bakimMaliyetGuncellendi_v1'); } catch (_) {}
+  if (isOnline && _maliyetBayrak !== '1') {   // tüm kayıtları tarayan işlem: sadece güncelleme gerekiyorsa tekrar çalışır
     try {
       const r = await gsRequest({ action:'bakimMaliyetleriniGuncelle' });
       if (r?.ok && r.updated > 0) {
         await loadData();
         refreshAllDatalist();
         showToast('✅ Eski bakım maliyetleri güncellendi (' + r.updated + ' kayıt)', 'ok');
+      } else if (r?.ok) {
+        try { localStorage.setItem('bakimMaliyetGuncellendi_v1', '1'); } catch (_) {}
       }
     } catch (e) {
       console.warn('Eski bakım maliyeti güncellemesi atlandı:', e);
@@ -3439,28 +3443,10 @@ async function beyModalGonder(tur, alarmId) {
   }
 }
 
-async function bakimEgitimYukle() {
-
+function bakimEgitimCiz(alarmlar) {
   const alan = document.getElementById('bakimEgitimIcerik');
   const alarmAlan = document.getElementById('bakimEgitimAlarmGrid');
-
-  if (alan) {
-    alan.innerHTML = '<div style="padding:20px;text-align:center">⏳ Eğitim ve yetkinlik kayıtları yükleniyor...</div>';
-  }
-
-  try {
-
-    const sonuc = await gsRequest({
-      action: 'beyGetAlarmlar'
-    });
-
-    if (!sonuc || !sonuc.ok) {
-      throw new Error(sonuc?.error || 'Alarm kayıtları alınamadı.');
-    }
-
-    const alarmlar = Array.isArray(sonuc.alarmlar)
-      ? sonuc.alarmlar
-      : [];
+  window._bakimEgitimAlarmlar = alarmlar;
 
     // --------------------------------------------------------
     // 5 ALARM TÜRÜ
@@ -3564,7 +3550,35 @@ async function bakimEgitimYukle() {
       `;
     }
 
-    window._bakimEgitimAlarmlar = alarmlar;
+}
+
+async function bakimEgitimYukle() {
+
+  const alan = document.getElementById('bakimEgitimIcerik');
+  const alarmAlan = document.getElementById('bakimEgitimAlarmGrid');
+
+  // Daha önce yüklendiyse son görüntüyü anında göster, güncel veriyi arkadan getir.
+  if (Array.isArray(window._bakimEgitimAlarmlar)) {
+    bakimEgitimCiz(window._bakimEgitimAlarmlar);
+  } else if (alan) {
+    alan.innerHTML = '<div style="padding:20px;text-align:center">⏳ Eğitim ve yetkinlik kayıtları yükleniyor...</div>';
+  }
+
+  try {
+
+    const sonuc = await gsRequest({
+      action: 'beyGetAlarmlar'
+    });
+
+    if (!sonuc || !sonuc.ok) {
+      throw new Error(sonuc?.error || 'Alarm kayıtları alınamadı.');
+    }
+
+    const alarmlar = Array.isArray(sonuc.alarmlar)
+      ? sonuc.alarmlar
+      : [];
+
+    bakimEgitimCiz(alarmlar);
 
   } catch (e) {
 
@@ -13414,6 +13428,34 @@ async function aksiyonKaydetLocal(id) {
   }
 }
 
+
+// ============================================================
+// ARKA PLAN YOKLAMA KORUMASI
+// - Sekme arka plandaysa (gizliyse) sunucuya istek atma
+// - Önceki istek bitmeden aynı yoklamayı tekrar başlatma
+// - Sekme tekrar görününce hemen bir kez güncelle
+// ============================================================
+(function pollGuard() {
+  ['bildirimKontrolEt', 'otonomArizaKontrolEt', 'liveVeriCek'].forEach(function (ad) {
+    var orijinal = window[ad];
+    if (typeof orijinal !== 'function') return;
+    var mesgul = false;
+    window[ad] = async function () {
+      if (document.hidden || mesgul) return;
+      mesgul = true;
+      try { return await orijinal.apply(this, arguments); }
+      finally { mesgul = false; }
+    };
+  });
+  var sonGorunur = Date.now();
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { sonGorunur = Date.now(); return; }
+    if (Date.now() - sonGorunur > 60000 && typeof currentUser !== 'undefined' && currentUser) {
+      try { bildirimKontrolEt(); } catch (e) {}
+      try { if (typeof otonomArizaKontrolEt === 'function') otonomArizaKontrolEt(); } catch (e) {}
+    }
+  });
+})();
 </script>
   <!-- ══ AI RAPOR MODAL ══ -->
 <div id="aiRaporModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99998;align-items:center;justify-content:center;padding:20px">
