@@ -2479,16 +2479,35 @@ tr:last-child td { border-bottom: none; }
 
     </div>
 
-    <!-- ALARM KARTLARI -->
-    <div id="bakimEgitimAlarmGrid"
-         class="kpi-grid"
-         style="grid-template-columns:repeat(5,1fr);margin-top:14px">
+    <style>
+      .bey-alt-btn{border:1px solid #cdb4db;background:#fff;color:#4a148c;padding:9px 14px;border-radius:999px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit}
+      .bey-alt-btn:hover{background:#f3e5f5}
+      .bey-alt-btn.active{background:#7b1fa2;color:#fff;border-color:#7b1fa2}
+    </style>
+
+    <!-- ALT MENÜ -->
+    <div id="beyAltMenu" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <button class="bey-alt-btn active" id="beyAlt-alarm" onclick="beyAltSekme('alarm')">📋 İŞLEM / ALARMLAR</button>
+      <button class="bey-alt-btn" id="beyAlt-grup" onclick="beyAltSekme('grup')">🧩 EĞİTİM GRUPLARI</button>
+      <button class="bey-alt-btn" id="beyAlt-egitim" onclick="beyAltSekme('egitim')">👥 EĞİTİM ALANLAR</button>
+      <button class="bey-alt-btn" id="beyAlt-yetkinlik" onclick="beyAltSekme('yetkinlik')">📅 YETKİNLİK BİTİŞ TARİHLERİ</button>
     </div>
 
-    <!-- KAYITLAR -->
-    <div id="bakimEgitimIcerik"
-         style="margin-top:18px">
+    <!-- 1) İŞLEM / ALARMLAR -->
+    <div id="beyPane-alarm">
+      <div id="bakimEgitimAlarmGrid"
+           class="kpi-grid"
+           style="grid-template-columns:repeat(5,1fr);margin-top:14px">
+      </div>
+      <div id="bakimEgitimIcerik"
+           style="margin-top:18px">
+      </div>
     </div>
+
+    <!-- 2) EĞİTİM GRUPLARI / 3) EĞİTİM ALANLAR / 4) YETKİNLİK BİTİŞ TARİHLERİ -->
+    <div id="beyPane-grup" style="display:none;margin-top:14px"></div>
+    <div id="beyPane-egitim" style="display:none;margin-top:14px"></div>
+    <div id="beyPane-yetkinlik" style="display:none;margin-top:14px"></div>
 
   </div>
 
@@ -3443,9 +3462,216 @@ async function beyModalGonder(tur, alarmId) {
   }
 }
 
+// ============================================================
+// BAKIM EĞİTİMİ — AŞAMA HİYERARŞİSİ (her kişi+grup için tek kart)
+// ============================================================
+const BEY_RANK = {
+  'YENİ PERSONEL / YETKİNLİK YOK': 1,
+  'ŞARTLI ONAY BEKLİYOR': 2,
+  'EĞİTİM PLANLANDI': 3,
+  'EĞİTİM GECİKTİ': 4,
+  'YETKİNLİK ONAYI BEKLİYOR': 5
+};
+const BEY_ASAMA_SIRA = [
+  ['YETKİNLİK ONAYI BEKLİYOR', '🟡'],
+  ['EĞİTİM GECİKTİ', '🔴'],
+  ['EĞİTİM PLANLANDI', '🔵'],
+  ['ŞARTLI ONAY BEKLİYOR', '🟠'],
+  ['YENİ PERSONEL / YETKİNLİK YOK', '🔴']
+];
+// Aynı kişi (ad) + aynı grup için sadece EN İLERİ aşamadaki alarm gösterilir;
+// aynı aşamada tekrarlar varsa en eski (ilk form) kalır.
+function beyHiyerarsiSadelestir(alarmlar) {
+  const acik = (alarmlar || []).filter(a => String(a.durum || '').toUpperCase() === 'AÇIK');
+  const adN = t => String(t || '').toLocaleUpperCase('tr').replace(/\s+/g, ' ').trim();
+  const gN = g => /^GRUP-K0[1-5]$/.test(String(g || '').trim()) ? 'BEG-0001' : String(g || '').trim();
+  const ms = a => { const t = new Date(a.olusturmaTarihi).getTime(); return isNaN(t) ? Number.MAX_VALUE : t; };
+  const en = {};
+  acik.forEach(a => {
+    const rk = BEY_RANK[String(a.alarmTipi || '').trim()] || 0;
+    const kisi = adN(a.adSoyad) + '|' + gN(a.grupId);
+    const key = rk ? kisi : kisi + '|' + a.alarmId;      // bilinmeyen türler elenmesin
+    const cur = en[key];
+    if (!cur || rk > cur.rk || (rk === cur.rk && ms(a) < ms(cur.a))) en[key] = { a, rk };
+  });
+  return Object.values(en).map(x => x.a);
+}
+function beyBolumluHtml(acik) {
+  const bilinen = new Set(BEY_ASAMA_SIRA.map(x => x[0]));
+  const bolumler = BEY_ASAMA_SIRA.map(x => [x[0], x[1], acik.filter(a => String(a.alarmTipi || '').trim() === x[0])]);
+  const diger = acik.filter(a => !bilinen.has(String(a.alarmTipi || '').trim()));
+  if (diger.length) bolumler.push(['DİĞER', '⚪', diger]);
+  return bolumler.filter(b => b[2].length).map(b => `
+    <div style="margin:18px 0 8px;font-weight:900;font-size:14px;color:#333;border-bottom:2px solid #eee;padding-bottom:6px">
+      ${b[1]} ${beyEsc(b[0])} <span style="color:#888;font-weight:700">(${b[2].length})</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
+      ${b[2].map(a => beyKartHtml(a)).join('')}
+    </div>`).join('');
+}
+
+// ============================================================
+// BAKIM EĞİTİMİ — ALT MENÜ (Alarmlar / Gruplar / Eğitim Alanlar / Yetkinlik Bitiş)
+// ============================================================
+let _beyAktifAlt = 'alarm';
+let _beyOzet = null, _beyOzetZaman = 0;
+const _beyFiltre = { egitim: { grup: '', durum: '', ara: '' }, yetkinlik: { grup: '', durum: '', ara: '' } };
+const BEY_ALT_IDLER = ['alarm', 'grup', 'egitim', 'yetkinlik'];
+const beyTrN = t => String(t == null ? '' : t).toLocaleLowerCase('tr');
+const beyTarihGoster = s => { if (!s) return '—'; const p = String(s).slice(0, 10).split('-'); return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : String(s); };
+const beyChip = (metin, renk, bg) => `<span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;color:${renk};background:${bg};white-space:nowrap">${beyEsc(metin)}</span>`;
+const BEY_HATA_KUTU = (mesaj, tekrar) => `<div style="padding:18px;background:#fff3f3;border:1px solid #e5bcbc;border-radius:10px;color:#a40000">❌ ${beyEsc(mesaj)} <button onclick="${tekrar}" style="margin-left:10px;padding:6px 12px;border-radius:7px;border:1px solid #a40000;background:#fff;color:#a40000;font-weight:800;cursor:pointer">Tekrar dene</button></div>`;
+
+async function beyAltSekme(id) {
+  if (!BEY_ALT_IDLER.includes(id)) id = 'alarm';
+  _beyAktifAlt = id;
+  BEY_ALT_IDLER.forEach(x => {
+    const p = document.getElementById('beyPane-' + x); if (p) p.style.display = (x === id) ? '' : 'none';
+    const b = document.getElementById('beyAlt-' + x); if (b) b.classList.toggle('active', x === id);
+  });
+  if (id === 'alarm') { bakimEgitimYukle(); return; }
+
+  const pane = document.getElementById('beyPane-' + id);
+  if (_beyOzet) beyOzetCiz(id);                       // önbellek varsa anında göster
+  else if (pane) pane.innerHTML = '<div style="padding:20px;text-align:center">⏳ Yükleniyor...</div>';
+  if (_beyOzet && Date.now() - _beyOzetZaman < 60000) return;   // 1 dakikadan tazeyse tekrar çekme
+
+  try {
+    await beyOzetYukle();
+    if (_beyAktifAlt === id) beyOzetCiz(id);
+  } catch (e) {
+    console.error('BEY özet hatası:', e);
+    if (!_beyOzet && pane) pane.innerHTML = BEY_HATA_KUTU(e.message || 'Veriler yüklenemedi.', `beyAltSekme('${id}')`);
+    else showToast('⚠️ ' + (e.message || 'Güncel veri alınamadı') + ' — son görüntü gösteriliyor.', 'err');
+  }
+}
+async function beyOzetYukle() {
+  const s = await gsRequest({ action: 'beyGetOzet' }, { timeoutMs: 90000 });
+  if (!s || !s.ok) throw new Error((s && s.error) || 'Özet alınamadı.');
+  _beyOzet = s; _beyOzetZaman = Date.now();
+  return s;
+}
+async function beyOzetYenile() {
+  _beyOzetZaman = 0;
+  showToast('🔄 Yenileniyor...', '');
+  try { await beyOzetYukle(); beyOzetCiz(_beyAktifAlt); }
+  catch (e) { showToast('❌ ' + (e.message || 'Yenilenemedi'), 'err'); }
+}
+function beyGrupSec(grupId) {
+  _beyFiltre.yetkinlik = { grup: grupId, durum: '', ara: '' };
+  beyAltSekme('yetkinlik');
+}
+function beyFiltreDegis(id, alan, deger) {
+  _beyFiltre[id][alan] = deger;
+  if (alan === 'ara') {
+    clearTimeout(beyFiltreDegis._t);
+    beyFiltreDegis._t = setTimeout(() => beyListeCiz(id), 180);
+  } else beyListeCiz(id);
+}
+function beyTablo(basliklar, satirlar, bos) {
+  if (!satirlar.length) return `<div style="padding:20px;text-align:center;background:#f7f7f7;border-radius:10px;color:#666">${beyEsc(bos)}</div>`;
+  return `<div style="overflow-x:auto;border:1px solid #e0e0e0;border-radius:10px;background:#fff">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>${basliklar.map(b => `<th style="text-align:left;padding:10px;background:#f3e5f5;color:#4a148c;font-size:11px;letter-spacing:.3px;white-space:nowrap">${b}</th>`).join('')}</tr></thead>
+      <tbody>${satirlar.join('')}</tbody>
+    </table></div>`;
+}
+const beyTd = (ic, ek = '') => `<td style="padding:9px 10px;border-top:1px solid #eee;${ek}">${ic}</td>`;
+
+function beyOzetCiz(id) {
+  const p = document.getElementById('beyPane-' + id);
+  if (!p || !_beyOzet) return;
+  if (id === 'grup') return beyGrupCiz(p);
+
+  const gruplar = _beyOzet.gruplar || [];
+  const f = _beyFiltre[id];
+  const grupOpt = '<option value="">Tüm gruplar</option>' + gruplar.map(g => `<option value="${beyEsc(g.grupId)}" ${f.grup === g.grupId ? 'selected' : ''}>${beyEsc(g.grupAdi)}</option>`).join('');
+  const durumlar = id === 'egitim' ? ['PLANLANDI', 'TAMAMLANDI'] : ['GEÇERLİ', 'YAKLAŞIYOR', 'SÜRESİ DOLDU'];
+  const durumOpt = '<option value="">Tüm durumlar</option>' + durumlar.map(d => `<option value="${beyEsc(d)}" ${f.durum === d ? 'selected' : ''}>${beyEsc(d)}</option>`).join('');
+  const kontrol = 'width:auto!important;display:inline-block!important;flex:0 0 auto;margin:0!important;padding:9px 10px;border:1px solid #cfcfcf;border-radius:8px;font-family:inherit;font-size:13px;background:#fff;height:auto';
+  p.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <select onchange="beyFiltreDegis('${id}','grup',this.value)" style="${kontrol}">${grupOpt}</select>
+      <select onchange="beyFiltreDegis('${id}','durum',this.value)" style="${kontrol}">${durumOpt}</select>
+      <input type="search" placeholder="Ad veya sicil ara..." value="${beyEsc(f.ara)}" oninput="beyFiltreDegis('${id}','ara',this.value)" style="${kontrol};min-width:220px">
+      <button onclick="beyOzetYenile()" style="${kontrol};cursor:pointer;font-weight:800">🔄 Yenile</button>
+    </div>
+    <div id="beyOzetSayac-${id}"></div>
+    <div id="beyListe-${id}"></div>`;
+  beyListeCiz(id);
+}
+
+function beyListeCiz(id) {
+  const kutu = document.getElementById('beyListe-' + id);
+  if (!kutu || !_beyOzet) return;
+  const f = _beyFiltre[id];
+  const ara = beyTrN(f.ara).trim();
+  const eslesir = k => (!f.grup || k.grupId === f.grup) &&
+    (!ara || beyTrN(k.adSoyad).includes(ara) || String(k.sicilNo || '').includes(ara));
+
+  if (id === 'egitim') {
+    const liste = (_beyOzet.egitimler || []).filter(k => eslesir(k) && (!f.durum || k.durum === f.durum));
+    const renk = { 'PLANLANDI': ['#1565c0', '#e3f2fd'], 'TAMAMLANDI': ['#2e7d32', '#e8f5e9'] };
+    const satirlar = liste.map(k => {
+      const r = renk[k.durum] || ['#555', '#eee'];
+      return `<tr>${beyTd('<b>' + beyEsc(k.adSoyad) + '</b>')}${beyTd(beyEsc(k.sicilNo || '—'))}${beyTd(beyEsc(k.grupAdi || k.grupKodu || '—'))}` +
+        `${beyTd(beyEsc(k.konu || '—'))}${beyTd(beyTarihGoster(k.tarih), 'white-space:nowrap')}${beyTd(beyEsc(k.egitimci || '—'))}${beyTd(beyChip(k.durum, r[0], r[1]))}</tr>`;
+    });
+    const sayac = document.getElementById('beyOzetSayac-egitim');
+    if (sayac) sayac.innerHTML = `<div style="font-size:12px;color:#666;margin-bottom:8px">${liste.length} kayıt</div>`;
+    kutu.innerHTML = beyTablo(['AD SOYAD', 'SİCİL', 'EĞİTİM GRUBU', 'KONU', 'EĞİTİM TARİHİ', 'EĞİTİMCİ', 'DURUM'], satirlar, 'Bu filtreye uygun eğitim kaydı yok.');
+    return;
+  }
+
+  // yetkinlik bitiş tarihleri
+  const tum = (_beyOzet.yetkinlikler || []).filter(eslesir);
+  const say = d => tum.filter(k => k.durum === d).length;
+  const sayac = document.getElementById('beyOzetSayac-yetkinlik');
+  if (sayac) {
+    const kart = (d, etiket, renk, bg) => `<div onclick="beyFiltreDegis('yetkinlik','durum','${d}');beyOzetCiz('yetkinlik')" style="cursor:pointer;flex:1;min-width:140px;padding:10px 12px;border-radius:10px;background:${bg};border:1px solid ${renk}33">
+      <div style="font-size:11px;font-weight:800;color:${renk}">${etiket}</div><div style="font-size:24px;font-weight:900;color:${renk}">${say(d)}</div></div>`;
+    sayac.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      ${kart('GEÇERLİ', '✅ GEÇERLİ', '#2e7d32', '#e8f5e9')}${kart('YAKLAŞIYOR', '⏳ SÜRESİ YAKLAŞAN', '#e65100', '#fff3e0')}${kart('SÜRESİ DOLDU', '⛔ SÜRESİ DOLAN', '#c62828', '#ffebee')}</div>`;
+  }
+  const liste = tum.filter(k => !f.durum || k.durum === f.durum);
+  const stil = { 'GEÇERLİ': ['#2e7d32', '#e8f5e9', ''], 'YAKLAŞIYOR': ['#e65100', '#fff3e0', 'background:#fffaf0'], 'SÜRESİ DOLDU': ['#c62828', '#ffebee', 'background:#fff5f5'] };
+  const satirlar = liste.map(k => {
+    const r = stil[k.durum] || ['#555', '#eee', ''];
+    const kalan = k.kalanGun < 0 ? Math.abs(k.kalanGun) + ' gün geçti' : k.kalanGun + ' gün';
+    return `<tr style="${r[2]}">${beyTd('<b>' + beyEsc(k.adSoyad) + '</b>')}${beyTd(beyEsc(k.sicilNo || '—'))}${beyTd(beyEsc(k.grupAdi || k.grupKodu || '—'))}` +
+      `${beyTd(beyTarihGoster(k.baslangic), 'white-space:nowrap')}${beyTd('<b>' + beyTarihGoster(k.bitis) + '</b>', 'white-space:nowrap')}` +
+      `${beyTd('<span style="color:' + r[0] + ';font-weight:800">' + kalan + '</span>', 'white-space:nowrap')}${beyTd(beyChip(k.durum, r[0], r[1]))}${beyTd(beyEsc(k.degerlendiren || '—'))}</tr>`;
+  });
+  kutu.innerHTML = beyTablo(['AD SOYAD', 'SİCİL', 'EĞİTİM GRUBU', 'YETKİNLİK BAŞLANGIÇ', 'YETKİNLİK BİTİŞ', 'KALAN', 'DURUM', 'DEĞERLENDİREN'], satirlar, 'Bu filtreye uygun yetkinlik kaydı yok.');
+}
+
+function beyGrupCiz(p) {
+  const gruplar = _beyOzet.gruplar || [];
+  if (!gruplar.length) { p.innerHTML = '<div style="padding:20px;text-align:center;background:#f7f7f7;border-radius:10px">Tanımlı eğitim grubu bulunmuyor.</div>'; return; }
+  const kutu = (emoji, etiket, deger, renk) => `<div style="padding:8px 4px;border-radius:8px;background:#fafafa;border:1px solid #eee">
+    <div style="font-size:20px;font-weight:900;color:${renk}">${deger}</div><div style="font-size:10px;font-weight:700;color:#777;margin-top:2px">${emoji} ${etiket}</div></div>`;
+  p.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:12px;color:#666">Bir gruba tıklayınca o grubun yetkinlik bitiş tarihleri açılır.</div>
+      <button onclick="beyOzetYenile()" style="padding:8px 12px;border:1px solid #cfcfcf;border-radius:8px;background:#fff;font-weight:800;cursor:pointer">🔄 Yenile</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+      ${gruplar.map(g => `
+        <div onclick="beyGrupSec('${beyEsc(g.grupId)}')" style="cursor:pointer;background:#fff;border:1px solid #ddd;border-left:5px solid #7b1fa2;border-radius:10px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+          <div style="font-weight:900;font-size:15px">${beyEsc(g.grupAdi)}</div>
+          <div style="font-size:12px;color:#777;margin-top:2px">${g.grupKodu ? beyEsc(g.grupKodu) + ' • ' : ''}Yetkinlik geçerliliği: ${g.gecerlilikGun ? g.gecerlilikGun + ' gün' : '—'}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;text-align:center">
+            ${kutu('✅', 'Yetkin', g.yetkin, '#2e7d32')}${kutu('⏳', 'Süresi yaklaşan', g.yaklasan, '#e65100')}${kutu('⛔', 'Süresi dolan', g.dolan, '#c62828')}
+            ${kutu('🎓', 'Eğitim alan', g.egitimTamam, '#6a1b9a')}${kutu('🔵', 'Eğitim planlı', g.egitimPlanli, '#1565c0')}
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
 function bakimEgitimCiz(alarmlar) {
   const alan = document.getElementById('bakimEgitimIcerik');
   const alarmAlan = document.getElementById('bakimEgitimAlarmGrid');
+  alarmlar = beyHiyerarsiSadelestir(alarmlar);   // her kişi+grup için sadece en ileri aşama
   window._bakimEgitimAlarmlar = alarmlar;
 
     // --------------------------------------------------------
@@ -3538,16 +3764,7 @@ function bakimEgitimCiz(alarmlar) {
 
     if (alan) {
 
-      alan.innerHTML = `
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-          gap:14px">
-
-          ${acik.map(a => beyKartHtml(a)).join('')}
-
-        </div>
-      `;
+      alan.innerHTML = beyBolumluHtml(acik);
     }
 
 }
@@ -3568,7 +3785,7 @@ async function bakimEgitimYukle() {
 
     const sonuc = await gsRequest({
       action: 'beyGetAlarmlar'
-    });
+    }, { timeoutMs: 90000 });
 
     if (!sonuc || !sonuc.ok) {
       throw new Error(sonuc?.error || 'Alarm kayıtları alınamadı.');
@@ -3584,17 +3801,10 @@ async function bakimEgitimYukle() {
 
     console.error('Bakım eğitimi yükleme hatası:', e);
 
-    if (alan) {
-      alan.innerHTML = `
-        <div style="
-          padding:18px;
-          background:#fff3f3;
-          border:1px solid #e5bcbc;
-          border-radius:10px;
-          color:#a40000">
-          ❌ ${e.message || 'Veriler yüklenemedi.'}
-        </div>
-      `;
+    if (Array.isArray(window._bakimEgitimAlarmlar)) {
+      showToast('⚠️ ' + (e.message || 'Güncel veri alınamadı') + ' — son görüntü gösteriliyor.', 'err');
+    } else if (alan) {
+      alan.innerHTML = BEY_HATA_KUTU(e.message || 'Veriler yüklenemedi.', 'bakimEgitimYukle()');
     }
   }
 }
@@ -3796,11 +4006,7 @@ function goTab(id, btn) {
   }
   if (id === 'admin') { renderAdminPanel(); }
   if (id === 'egitim')      { gsEgitimYukle().then(() => renderEgitimListesi()); }
-  if (id === 'bakim-egitim') {
-  if (typeof bakimEgitimYukle === 'function') {
-    bakimEgitimYukle();
-  }
-}
+  if (id === 'bakim-egitim') { beyAltSekme(typeof _beyAktifAlt === 'string' ? _beyAktifAlt : 'alarm'); }
   if (id === 'tedarikci')   { gsTedarikciYukle().then(() => renderTedarikciListesi()); }
   if (id === 'iyilestirme') { gsIyilestirmeYukle().then(() => renderIyilestirme()); }
   if (id === 'otonomtakip') { otoYukle(); setTimeout(otonomDashboardYenile, 150); }
