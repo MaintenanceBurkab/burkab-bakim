@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111">
+<title>FR-43 — Ultrasonik Splice Günlük Bakım (Otonom Bakım / TPM)</title>
+<style>
+:root{
+  --bg:#f4f7fb;--card:#fff;--line:#dfe5ee;--text:#172033;--muted:#687386;
+  --blue:#1769e0;--blue2:#0f56bf;--green:#16a05d;--orange:#f59e0b;--red:#dc3545;
+  --purple:#6f42c1;--shadow:0 8px 24px rgba(22,34,55,.08)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Arial,sans-serif;padding-bottom:92px}
+header{background:linear-gradient(135deg,#10233f,#173c68);color:#fff;padding:18px 22px;box-shadow:0 3px 12px rgba(0,0,0,.15)}
+header .head{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+header b{font-size:16px;letter-spacing:.3px}
+header small{display:block;color:#cbd8e8;margin-top:4px}
+.badge{background:#18a764;color:#fff;border-radius:18px;padding:6px 12px;font-weight:800;font-size:11px;white-space:nowrap}
+main{max-width:1100px;margin:auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0;box-shadow:var(--shadow)}
+.card h2{margin:0 0 14px;font-size:13px;color:#23466f;letter-spacing:.5px;text-transform:uppercase}
+.card .sub{color:var(--muted);font-size:12px;margin-top:-8px;margin-bottom:14px}
+.g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.rq{color:var(--red)}
+input,select,textarea{width:100%;padding:10px 11px;background:#fff;color:var(--text);border:1px solid #ccd5e2;border-radius:9px;font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(23,105,224,.18);border-color:var(--blue)}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.kpi{background:#f7f9fc;border:1px solid var(--line);border-radius:11px;padding:11px}
+.kpi b{display:block;font-size:19px;margin-top:2px}.kpi span{font-size:10px;color:var(--muted);font-weight:700}
+.it{border:1px solid var(--line);border-left:5px solid #cbd3df;padding:14px;margin:12px 0;background:#fbfcfe;border-radius:11px}
+.it.ok{border-left-color:var(--green);background:#f5fcf8}
+.it.warn{border-left-color:var(--orange);background:#fffaf0}
+.it.bad{border-left-color:var(--red);background:#fff5f5}
+.it .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.it .t{font-weight:800;font-size:14px}.it .m{color:var(--muted);font-size:12px;margin:4px 0 9px}
+.tag{display:inline-block;font-size:10px;border:1px solid #ccd5e2;border-radius:12px;padding:2px 8px;margin-right:4px;color:#647084;background:#fff;font-weight:700}
+.tag.k{border-color:#ef9aa3;color:#b42332}.tag.y{border-color:#f3c66b;color:#9a6700}
+.bt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.bt button{padding:10px 6px;border:1px solid #d3dbe6;background:#fff;color:#445066;border-radius:8px;font-weight:800;cursor:pointer}
+.bt button.ok.on{background:#16a05d;color:#fff;border-color:#16a05d}
+.bt button.warn.on{background:#f59e0b;color:#fff;border-color:#f59e0b}
+.bt button.bad.on{background:#dc3545;color:#fff;border-color:#dc3545}
+.val{margin-top:10px;max-width:300px}
+.ex{display:none;margin-top:9px}.it.warn .ex,.it.bad .ex{display:block}
+.sum{display:flex;gap:8px;flex-wrap:wrap;font-weight:800}.sum span{padding:6px 11px;border-radius:15px;background:#f7f9fc;border:1px solid var(--line)}
+.pb{height:9px;background:#e8edf4;border-radius:8px;overflow:hidden;margin-top:10px}.pb i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),#49a1ff);transition:width .2s}
+.notice{padding:12px 14px;border-radius:10px;background:#fff5f5;border:1px solid #f0b4ba;color:#8d2430;margin:14px 0}
+.declare{display:flex!important;gap:10px;align-items:center;color:var(--text)!important;font-size:13px!important;font-weight:600}
+.declare input{width:22px;height:22px;flex:none}
+.mg{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:stretch;gap:4px;overflow-x:auto;overflow-y:hidden;padding:4px 2px 8px;scrollbar-width:thin;width:100%;white-space:nowrap}
+.mg>div{display:flex!important;flex:0 0 34px!important;width:34px!important;min-width:34px!important;height:42px!important;min-height:42px!important;padding:4px 2px!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;text-align:center;font-size:10px;line-height:16px;border-radius:5px;background:#f8fafc;border:1px solid #cfd7e3;color:#687386;font-weight:700}
+.mg>div .tick{display:block;font-size:14px;line-height:14px;color:#b3bbc7}
+.mg>div.done{background:#ecf9f1;border-color:#55b97e;color:#1d6d43}
+.mg>div.done .tick{color:#16a05d;font-weight:900}
+.mg>div.warn{background:#fff9e8;border-color:#e7bd5d;color:#8a6500}
+.mg>div.bad{background:#fff0f1;border-color:#e28b95;color:#a61e2d}
+.mg>div.td{outline:2px solid var(--blue);outline-offset:1px}
+.mg::-webkit-scrollbar{height:7px}.mg::-webkit-scrollbar-thumb{background:#c8d0dc;border-radius:8px}
+#bar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid var(--line);padding:12px;display:flex;gap:10px;justify-content:center;box-shadow:0 -5px 18px rgba(0,0,0,.07);z-index:10}
+.btn{padding:13px 24px;border:0;border-radius:9px;font-weight:800;background:var(--blue);color:#fff;cursor:pointer}.btn:hover{background:var(--blue2)}.btn.s{background:#eef1f5;color:#344054}
+#dm{display:none;margin:0 0 14px;padding:10px 12px;border-radius:9px;background:#fff4d6;border:1px solid #f2d38a;color:#7a5500;font-size:13px}
+#ar{display:none}
+#ok{display:none;text-align:center;padding:55px 12px}.okbox{max-width:600px;margin:auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:30px;box-shadow:var(--shadow)}#ok h1{margin:0 0 8px}
+@media(max-width:850px){.g{grid-template-columns:repeat(2,1fr)}.summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){main{padding:10px}.card{padding:13px}.g{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}header .head{align-items:flex-start}.bt{grid-template-columns:1fr 1fr 1fr}.it .top{display:block}}
+.ref-guide{margin-top:12px;padding:13px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px}
+.ref-guide-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.ref-guide-title{font-size:11px;font-weight:900;color:#526174;text-transform:uppercase;letter-spacing:.35px}
+.ref-guide-note{font-size:10px;color:var(--muted)}
+.ref-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.ref-card{background:#fff;border:1px solid #d7dee8;border-radius:9px;overflow:hidden;cursor:pointer;transition:.15s}
+.ref-card:hover{border-color:var(--blue);box-shadow:0 3px 10px rgba(23,105,224,.10)}
+.ref-thumb{height:115px;background:#eef2f7;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ref-thumb img,.ref-thumb video{width:100%;height:100%;object-fit:cover;display:block}
+.ref-placeholder{font-size:28px;color:#9aa5b5}
+.ref-label{padding:7px 8px;font-size:10px;font-weight:900;color:#3e4a5d}
+.ref-desc{padding:0 8px 8px;font-size:9px;color:#7b8594;line-height:1.3}
+.ref-video .ref-thumb{background:#172033}
+.ref-video .ref-placeholder{color:#fff}
+.ref-admin-note{margin-top:8px;font-size:9px;color:#8a94a4}
+#refLb{display:none;position:fixed;inset:0;background:rgba(8,15,27,.82);z-index:100;align-items:center;justify-content:center;padding:20px}
+#refLb.on{display:flex}
+#refLbBox{position:relative;max-width:min(1000px,96vw);max-height:92vh;background:#fff;border-radius:12px;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#refLbMedia{max-width:92vw;max-height:78vh;display:block;margin:auto}
+#refLbClose{position:absolute;right:8px;top:8px;border:0;background:#111;color:#fff;border-radius:50%;width:34px;height:34px;font-weight:900;cursor:pointer}
+#refLbTitle{font-size:12px;font-weight:800;padding:7px 4px 2px;color:#26344a}
+@media(max-width:700px){.ref-grid{grid-template-columns:1fr 1fr}.ref-thumb{height:100px}}
+@media print{.media-actions{display:none}.media-proof{break-inside:avoid}}
+@media print{body{background:#fff;color:#000;padding:0}#bar,#dm,.ex textarea:placeholder-shown{display:none}.card,.it{box-shadow:none;background:#fff;border-color:#888}input,select,textarea{background:#fff;color:#000;border-color:#888}}
+</style></head><body>
+<header><div class="head">
+  <div><b>BURKAB A.Ş. · FR-43</b><small>ULTRASONİK SPLICE GÜNLÜK BAKIM · OTONOM BAKIM / TPM</small></div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="badge">V6.0</div>
+    <div class="badge">AKTİF FORM</div>
+  </div>
+</div></header>
+<main id="mn">
+<div id="dm"></div>
+<div class="card"><h2>1 · GENEL BİLGİLER</h2><div class="sub">Vardiya başlangıcında ultrasonik kaynak makinesinin günlük bakım kontrollerini kaydedin.</div><div class="g">
+<div class="field"><label>Makine No <span class="rq">*</span></label><select id="mk" onchange="aylik()"><option value="">— Seçiniz —</option></select></div>
+<div class="field"><label>Vardiya <span class="rq">*</span></label><select id="vd"><option value="">— Seçiniz —</option><option value="1">1. Vardiya (07:00–15:00)</option><option value="2">2. Vardiya (15:00–23:00)</option><option value="3">3. Vardiya (23:00–07:00)</option><option value="G">Gündüz (07:00–17:00)</option></select></div>
+<div class="field"><label>Tarih <span class="rq">*</span></label><input type="date" id="tr" onchange="aylik()"></div>
+<div class="field"><label>Kontrol Eden Operatör (Ad Soyad) <span class="rq">*</span></label><input id="op" autocomplete="off"></div>
+</div></div>
+
+<div class="card"><h2>2 · GÜNLÜK BAKIM KONTROLLERİ</h2><div class="sub">Her maddeyi TAMAM, UYARI veya ARIZA olarak değerlendirin. Ölçüm istenen maddelerde değeri girin.</div><div id="its"></div>
+<div class="sum" id="sm"></div><div class="pb"><i id="pg"></i></div></div>
+
+<div id="ar">⚠ <b>ARIZA tespit edildi.</b> Kaydettiğinizde bakım kaydı otomatik açılır. Ayrıca bakım bölümüne sözlü bilgi verin ve makineyi üretime almayın.</div>
+
+<div class="card"><h2>3 · AÇIKLAMA VE BEYAN</h2><textarea id="gn" rows="3" placeholder="Eklemek istediğiniz not (opsiyonel)"></textarea>
+<label style="margin-top:10px;display:flex;gap:8px;align-items:center;color:var(--tx);font-size:13px"><input type="checkbox" id="by" style="width:22px;height:22px;flex:none"> Yukarıdaki kontrolleri yaptığımı beyan ederim. <span class="rq">*</span></label></div>
+
+<div class="card"><h2>4 · AYLIK KAYIT ÖZETİ — <span id="mat">—</span></h2><div class="mg" id="mg"></div><div style="color:var(--mu);font-size:11px;margin-top:8px">Günler yatayda gösterilir. O gün makine için günlük bakım formu gönderildiyse kutunun içine ✓ konur. Çerçeveli gün: bugün.</div></div>
+<div id="refLb" onclick="if(event.target===this)refKapat()">
+  <div id="refLbBox">
+    <button id="refLbClose" type="button" onclick="refKapat()">×</button>
+    <div id="refLbMedia"></div>
+    <div id="refLbTitle"></div>
+  </div>
+</div>
+</main>
+<div id="ok"><h1 id="okh">✅</h1><div id="okm"></div><br><button class="btn" onclick="location.reload()">Yeni Form</button></div>
+<div id="bar"><button class="btn" onclick="gonder()">✓ KAYDI GÖNDER</button><button class="btn s" onclick="window.print()">🖨</button></div>
+
+<script>
+/* ===== AYARLAR ===== */
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec';
+const MAKINELER = ['US-01', 'US-02', 'US-03', 'US-04'];   // makine listesini buradan düzenleyin
+const BOLUM = 'ULTRASONİK KAYNAK';
+const CLIENT_VERSION = 'FR43-1.0.0';
+const PENDING = 'fr43_pending', LOG = 'fr43_log';
+const FR43_GAS_ACTION = 'saveFR43';
+const ITEMS = [
+ { id:'u1', no:'U-01', kriter:'Makina üzerinde bulunabilecek yabancı maddeleri topla.', metod:'Makine yüzeyini ve çevresini gözle kontrol et; tel parçası, PVC kırıntısı, kir varsa topla.', kritiklik:'NORMAL' },
+ { id:'u2', no:'U-02', kriter:'Kaynatma çenelerinin içinde yabancı madde olmadığını kontrol et.', metod:'Sonotrod ve örs (çene) arasına bak; tel artığı veya PVC kalmamalı.', kritiklik:'YÜKSEK' },
+ { id:'u3', no:'U-03', kriter:'Kaynatma çenelerinin içini fırça ve havayla temizle.', metod:'Fırça ve hava tabancasıyla çene içini temizle; sonrasında tekrar gözle kontrol et.', kritiklik:'NORMAL' },
+ { id:'u4', no:'U-04', kriter:'Kaynak yapılacak kablo sıyırma boyunun 13 mm olmasına dikkat et.', metod:'Sıyırma boyunu cetvelle ölç; hedef 13 mm. Ölçülen değeri aşağıya yaz.', kritiklik:'YÜKSEK', deger:{ et:'Ölçülen sıyırma boyu (mm)', birim:'mm' } },
+ { id:'u5', no:'U-05', kriter:'Kaynak yapma esnasında kablo uçlarında PVC olmadığını gör.', metod:'Sıyrılmış tel uçlarına bak; yalıtım (PVC) kalıntısı kaynak bölgesine girmemeli.', kritiklik:'YÜKSEK' },
+ { id:'u6', no:'U-06', kriter:'Kaynak yapılan ilk numuneyi ayırma (çekme) testine göre kontrol et.', metod:'İlk numuneyi çekme cihazıyla test et; sonucu (N) yaz. Uygun değilse ARIZA işaretle ve üretime başlama.', kritiklik:'KRİTİK', deger:{ et:'İlk numune çekme değeri (N)', birim:'N' } }
+];
+const IATF = '§8.5.1.5 h';
+const $ = id => document.getElementById(id), D = {}, N = {}, V = {};
+
+/* ===== ARAYÜZ ===== */
+$('mk').insertAdjacentHTML('beforeend', MAKINELER.map(m => `<option>${m}</option>`).join(''));
+/*
+ * FR-43 GÖRSEL REHBER
+ * Operatör dosya yüklemez.
+ * Aşağıdaki yapı ileride GAS/Drive'dan yönetilecek referans görsellerini gösterir.
+ * Şimdilik boşsa yer tutucu görünür.
+ */
+const REF = {
+  u1: { yer:null, dogru:null, hatali:null, video:null },
+  u2: { yer:null, dogru:null, hatali:null, video:null },
+  u3: { yer:null, dogru:null, hatali:null, video:null },
+  u4: { yer:null, dogru:null, hatali:null, video:null },
+  u5: { yer:null, dogru:null, hatali:null, video:null },
+  u6: { yer:null, dogru:null, hatali:null, video:null }
+};
+
+const REF_META = {
+  yer:   { label:'📍 KONTROL YERİ', icon:'📍', desc:'Makine üzerinde kontrolün yapılacağı bölge.' },
+  dogru: { label:'✅ DOĞRU', icon:'✓', desc:'Uygun / doğru durum örneği.' },
+  hatali:{ label:'❌ HATALI', icon:'✕', desc:'Uygun olmayan durum örneği.' },
+  video: { label:'🎥 UYGULAMA VİDEOSU', icon:'▶', desc:'Kontrol veya uygulamanın nasıl yapılacağını gösterir.' }
+};
+
+function refHtml(item) {
+  const refs = REF[item.id] || {};
+  const keys = ['yer','dogru','hatali','video'];
+  return `<div class="ref-guide">
+    <div class="ref-guide-head">
+      <div class="ref-guide-title">📚 GÖRSEL REHBER</div>
+      <div class="ref-guide-note">Operatör sadece görüntüler; dosya yüklemez.</div>
+    </div>
+    <div class="ref-grid">
+      ${keys.map(k => {
+        const m = REF_META[k], r = refs[k];
+        const has = !!(r && r.url);
+        const body = has
+          ? (r.type === 'video'
+              ? `<video src="${r.url}" muted preload="metadata"></video>`
+              : `<img src="${r.url}" alt="${m.label}">`)
+          : `<div class="ref-placeholder">${m.icon}</div>`;
+        return `<div class="ref-card ${k === 'video' ? 'ref-video' : ''}" onclick="refAc('${item.id}','${k}')">
+          <div class="ref-thumb">${body}</div>
+          <div class="ref-label">${m.label}</div>
+          <div class="ref-desc">${r && r.desc ? r.desc : m.desc}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="ref-admin-note">Görseller bakım/kalite yöneticisi tarafından önceden tanımlanacaktır.</div>
+  </div>`;
+}
+
+function refAc(id, key) {
+  const r = REF[id] && REF[id][key];
+  if (!r || !r.url) {
+    msg('Bu kontrol maddesi için henüz ' + REF_META[key].label.replace(/^[^ ]+ /,'') + ' görseli tanımlanmadı.');
+    return;
+  }
+  const lb = $('refLb'), box = $('refLbMedia'), title = $('refLbTitle');
+  box.innerHTML = r.type === 'video'
+    ? `<video src="${r.url}" controls autoplay style="max-width:92vw;max-height:78vh"></video>`
+    : `<img src="${r.url}" style="max-width:92vw;max-height:78vh;display:block">`;
+  title.textContent = REF_META[key].label;
+  lb.classList.add('on');
+}
+function refKapat(){ $('refLb').classList.remove('on'); $('refLbMedia').innerHTML=''; }
+
+
+$('its').innerHTML = ITEMS.map(i => `<div class="it" id="c-${i.id}">
+ <div class="top"><div><div class="t">${i.no} — ${i.kriter}</div><div class="m">${i.metod}</div></div>
+ <div><span class="tag ${i.kritiklik === 'KRİTİK' ? 'k' : i.kritiklik === 'YÜKSEK' ? 'y' : ''}">${i.kritiklik}</span><span class="tag">${IATF}</span></div></div>
+ <div class="bt"><button class="ok" onclick="sec('${i.id}','ok')">✓ TAMAM</button><button class="warn" onclick="sec('${i.id}','warn')">△ UYARI</button><button class="bad" onclick="sec('${i.id}','bad')">✕ ARIZA</button></div>
+ ${i.deger ? `<div class="val"><label>${i.deger.et}</label><input type="number" step="0.1" inputmode="decimal" oninput="V['${i.id}']=this.value"></div>` : ''}
+ <div class="ex"><label>Açıklama (UYARI/ARIZA için) <span class="rq">*</span></label><textarea id="n-${i.id}" rows="2" oninput="N['${i.id}']=this.value"></textarea></div>
+ ${refHtml(i)}
+ </div>`).join('');
+function sec(id, d) {
+  D[id] = d; const el = $('c-' + id); el.className = 'it ' + d;
+  [...el.querySelectorAll('.bt button')].forEach(b => b.classList.toggle('on', b.className.split(' ')[0] === d));
+  ozet();
+}
+function ozet() {
+  const v = Object.values(D), ok = v.filter(x => x === 'ok').length, w = v.filter(x => x === 'warn').length, b = v.filter(x => x === 'bad').length;
+  $('sm').innerHTML = `<span style="color:var(--ok)">✓ ${ok}</span><span style="color:var(--wr)">△ ${w}</span><span style="color:var(--bd)">✕ ${b}</span><span>${v.length}/${ITEMS.length}</span>`;
+  $('pg').style.width = (v.length / ITEMS.length * 100) + '%'; $('ar').style.display = b ? 'block' : 'none';
+  return { ok, w, b };
+}
+function bugun() { const t = new Date(), p = x => String(x).padStart(2, '0'); return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`; }
+$('tr').value = bugun();
+function msg(t) { $('dm').textContent = t; $('dm').style.display = t ? 'block' : 'none'; }
+
+/* ===== AYLIK TABLO (bu cihazın kayıtları) ===== */
+const log = () => JSON.parse(localStorage.getItem(LOG) || '[]');
+async function aylik() {
+  const m = $('mk').value, t = $('tr').value || bugun(), [y, mo] = t.split('-'); $('mat').textContent = (m || '—') + ' · ' + mo + '.' + y;
+  const gunler = {};
+  log().filter(r => r.mk === m && r.t.slice(0, 7) === y + '-' + mo).forEach(r => {
+    const g = +r.t.slice(8), rank = { ok: 1, warn: 2, bad: 3 };
+    if (!gunler[g] || rank[r.s] > rank[gunler[g]]) gunler[g] = r.s;
+  });
+  const n = new Date(+y, +mo, 0).getDate();
+
+  /*
+   * FR-43 kağıt form mantığı:
+   * Günler yatayda 1–31 olarak küçük kutular halinde gösterilir.
+   * O gün için bu makinede günlük bakım kaydı gönderildiyse kutuya ✓ konur.
+   */
+  const ciz = () => {
+    $('mg').innerHTML = Array.from({ length: n }, (_, i) => {
+      const gun = i + 1;
+      const durum = gunler[gun] || '';
+      const bugun = t === `${y}-${mo}-${String(gun).padStart(2, '0')}`;
+      return `<div class="${durum} ${durum ? 'done' : ''} ${bugun ? 'td' : ''}" title="${durum ? 'Günlük bakım yapıldı ve kayıt gönderildi' : 'Bu gün için kayıt yok'}">
+        <span>${gun}</span><span class="tick">${durum ? '✓' : '·'}</span>
+      </div>`;
+    }).join('');
+  };
+  ciz();
+  if (!m) return;
+  try {
+    const r = await gs({ action:'getFR43Aylik', makine:m, yil:+y, ay:+mo });
+    if (r && r.ok && Array.isArray(r.kayitlar)) {
+      r.kayitlar.forEach(x => {
+        const g = +String(x.tarih || '').slice(8,10);
+        const st = x.durum === 'ARIZA VAR' ? 'bad' : x.durum === 'UYARI VAR' ? 'warn' : 'ok';
+        const rank = { ok:1, warn:2, bad:3 };
+        if (g && (!gunler[g] || rank[st] > rank[gunler[g]])) gunler[g] = st;
+      });
+      ciz();
+    }
+  } catch(e) { /* çevrimdışı ise cihaz kaydı gösterilmeye devam eder */ }
+}
+aylik();
+
+/* ===== GÖNDERİM ===== */
+function gs(payload) {
+  return new Promise((res, rej) => {
+    const cb = 'fr43_' + Date.now() + '_' + Math.random().toString(36).slice(2), s = document.createElement('script'); let bitti = false;
+    const bit = (e, d) => { if (bitti) return; bitti = true; clearTimeout(tm); delete window[cb]; s.remove(); e ? rej(e) : res(d); };
+    window[cb] = d => bit(null, d); s.onerror = () => bit(new Error('Apps Script bağlantı hatası'));
+    s.src = GS_URL + '?callback=' + encodeURIComponent(cb) + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+    document.head.appendChild(s); const tm = setTimeout(() => bit(new Error('Sunucu zaman aşımı')), 20000);
+  });
+}
+const dev = () => { let i = localStorage.getItem('burkab_ob_device'); if (!i) { i = 'DEV-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); localStorage.setItem('burkab_ob_device', i); } return i; };
+function kuyruk(p) { const q = JSON.parse(localStorage.getItem(PENDING) || '[]'); if (!q.some(x => x.form.formNo === p.form.formNo)) q.push(p); localStorage.setItem(PENDING, JSON.stringify(q)); }
+async function bekleyenleriGonder() {
+  let q = JSON.parse(localStorage.getItem(PENDING) || '[]'); if (!q.length) return;
+  const kalan = []; for (const p of q) { try { const r = await gs(p); if (!r || !r.ok) kalan.push(p); } catch (e) { kalan.push(p); } }
+  localStorage.setItem(PENDING, JSON.stringify(kalan));
+  msg(kalan.length ? `${kalan.length} kayıt gönderilmeyi bekliyor (internet gelince otomatik gönderilir).` : '');
+}
+function dogrula() {
+  if (!$('mk').value || !$('vd').value || !$('tr').value || !$('op').value.trim()) { msg('Makine, vardiya, tarih ve operatör adı zorunludur.'); scrollTo(0, 0); return false; }
+  const bos = ITEMS.filter(i => !D[i.id]); if (bos.length) { msg(bos.length + ' madde değerlendirilmedi: ' + bos.map(i => i.no).join(', ')); $('c-' + bos[0].id).scrollIntoView({ block: 'center' }); return false; }
+  const nb = ITEMS.filter(i => D[i.id] === 'bad' && !(N[i.id] || '').trim()); if (nb.length) { msg('ARIZA işaretlenen maddeler için açıklama yazın: ' + nb.map(i => i.no).join(', ')); $('n-' + nb[0].id).focus(); return false; }
+  if (!$('by').checked) { msg('Beyan kutusunu işaretleyin.'); return false; }
+  msg(''); return true;
+}
+let gonderildi = false;
+async function gonder() {
+  if (gonderildi || !dogrula()) return;
+  const mk = $('mk').value, t = $('tr').value, vd = $('vd').value, op = $('op').value.trim(), z = ozet();
+  const formNo = `UB-${mk.replace('-', '')}-${t.replace(/-/g, '')}-V${vd}`;      // makine+gün+vardiya: tekrar gönderimde aynı kayıt güncellenir
+  if (log().some(r => r.no === formNo) && !confirm('Bu makine / gün / vardiya için bu cihazdan zaten kayıt gönderilmiş. Güncellensin mi?')) return;
+  const maddeler = ITEMS.map(i => ({ id: i.id, no: i.no, bolum: 'GÜNLÜK BAKIM', kriter: i.kriter, kritiklik: i.kritiklik, iatf: IATF, durum: D[i.id], not: (N[i.id] || '').trim(),
+    ...(i.deger ? { deger: V[i.id] === undefined || V[i.id] === '' ? null : parseFloat(V[i.id]), birim: i.deger.birim } : {}) }));
+  const genelDurum = z.b ? 'ARIZA VAR' : z.w ? 'UYARI VAR' : 'SORUNSUZ';
+  const form = { uid: `FR43-${formNo}-${dev()}`, formNo, kayitZamani: new Date().toISOString(), tarih: t, makineNo: mk, bolum: BOLUM, vardiya: vd, operator: op,
+    grupId: '', grupUyeleri: [mk], tamamSayisi: z.ok, uyariSayisi: z.w, arizaSayisi: z.b, toplamMadde: ITEMS.length, tamamlanmaPct: Math.round((z.ok + z.w) / ITEMS.length * 100),
+    maddeler, genelNot: $('gn').value.trim(), bakimOnay: '', genelDurum, fotolar: [], videolar: [], fotoZorunlu: false, istemciSurumu: CLIENT_VERSION, kaynak: 'FR-43', cihazId: dev() };
+  const p = { action: FR43_GAS_ACTION, veri: form }; let sunucuda = false;
+  try { const r = await gs(p); if (!r || !r.ok) throw new Error((r && r.error) || 'Sunucu kaydı doğrulanamadı'); sunucuda = true; }
+  catch (e) { kuyruk(p); }
+  const l = log().filter(r => r.no !== formNo); l.push({ no: formNo, mk, t, s: z.b ? 'bad' : z.w ? 'warn' : 'ok' }); localStorage.setItem(LOG, JSON.stringify(l.slice(-400)));
+  gonderildi = true; $('mn').style.display = $('bar').style.display = 'none'; $('ok').style.display = 'block';
+  $('okh').textContent = genelDurum === 'SORUNSUZ' ? '✅ SORUNSUZ' : genelDurum === 'UYARI VAR' ? '△ UYARI VAR' : '⚠️ ARIZA VAR';
+  $('okm').innerHTML = `${mk} · ${t} · Vardiya ${vd} · ${op}<br>Form No: <b>${formNo}</b><br>` + (sunucuda ? 'Kayıt sunucuya işlendi.' + (z.b ? ' Bakım kaydı açıldı.' : '') : '⚠️ Sunucuya ulaşılamadı. Kayıt bu cihazda bekliyor, internet gelince otomatik gönderilir.');
+}
+ozet(); bekleyenleriGonder(); addEventListener('online', bekleyenleriGonder);
+</script></body></html>
