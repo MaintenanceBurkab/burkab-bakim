@@ -4185,7 +4185,7 @@ function aiFmeaLocalActions(risk,makine,kod,konu,stok){
   return a;
 }
   
-function aiFmeaStokKoprusunuGoster(sonuc) {
+window.aiFmeaStokKoprusunuGoster = function(sonuc) {
   const el = document.getElementById('aiFmeaStockBridgeBody');
   if (!el) return;
 
@@ -4218,7 +4218,7 @@ function aiFmeaStokKoprusunuGoster(sonuc) {
     <div style="margin-top:8px;font-weight:600">
       Teknik uygunluk otomatik onaylanmadı.
     </div>`;
-}
+};
 
 async function aiFmeaYenile(force){
   const makine=(document.getElementById('makine')?.value||'').trim();
@@ -4247,7 +4247,7 @@ const merkezSonuc = await gsRequest({
 });
 
 
-    aiFmeaStokKoprusunuGoster(merkezSonuc);
+    window.aiFmeaStokKoprusunuGoster(merkezSonuc);
 
 } catch (e) {
   console.error('Merkezi FMEA stok kontrolü:', e);
