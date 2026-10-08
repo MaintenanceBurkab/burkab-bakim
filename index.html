@@ -4201,15 +4201,15 @@ async function aiFmeaYenile(force){
   
   // Merkezi FMEA + stok bağlantısı (salt okuma)
   try {
-    const merkezSonuc = await gsRequest({
-      action: 'fmeaAnalizStok',
-      payload: {
-        makine: makine,
-        arizaKodu: kod,
-        durusDakika: durus,
-        parcaAdaylari: []
-      }
-    });
+    
+const merkezSonuc = await gsRequest({
+  action: 'fmeaAnalizStok',
+  makine: makine,
+  arizaKodu: kod,
+  durusDakika: durus,
+  parcaAdaylari: []
+});
+
 
     aiFmeaStokKoprusunuGoster(merkezSonuc);
   } catch (e) {
