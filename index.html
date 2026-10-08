@@ -4184,6 +4184,42 @@ function aiFmeaLocalActions(risk,makine,kod,konu,stok){
   if(konu) a.push('Arıza nedenini doğrula ve yapılan işlemin etkinliğini sonraki tekrarlarla kontrol et.');
   return a;
 }
+  
+function aiFmeaStokKoprusunuGoster(sonuc) {
+  const el = document.getElementById('aiFmeaStockBridgeBody');
+  if (!el) return;
+
+  if (!sonuc || sonuc.ok !== true || !sonuc.stokOzet) {
+    el.textContent = 'Merkezi stok yanıtı alınamadı veya yanıt formatı beklenenden farklı.';
+    console.warn('FMEA stok yanıtı:', sonuc);
+    return;
+  }
+
+  const o = sonuc.stokOzet;
+  const satirlar = (o.bildirimler || []).map(x => {
+    const kartlar = (x.stokKartlari || []).map(p =>
+      `${p.stokKodu} – ${p.parcaAdi} | Kullanılabilir stok: ${p.kullanilabilirStok}`
+    );
+
+    return `
+      <div style="padding:8px 0;border-top:1px solid #ddd">
+        <b>${aiFmeaEsc(x.arananParca || x.arananKod || 'Parça')}</b>
+        <div>${aiFmeaEsc(x.mesaj || x.durum || '')}</div>
+        ${kartlar.map(k => `<div>${aiFmeaEsc(k)}</div>`).join('')}
+        <small>Teknik uyum: ONAY BEKLİYOR</small>
+      </div>`;
+  });
+
+  el.innerHTML = `
+    <div>Stok kartı mevcut: <b>${o.stokKartiMevcut ?? 0}</b></div>
+    <div>Kart açılması kontrol edilmeli: <b>${o.stokKartiAcilmali ?? 0}</b></div>
+    <div>Mükerrer kart kontrolü: <b>${o.mukerrerKartKontrolu ?? 0}</b></div>
+    ${satirlar.join('')}
+    <div style="margin-top:8px;font-weight:600">
+      Teknik uygunluk otomatik onaylanmadı.
+    </div>`;
+}
+
 async function aiFmeaYenile(force){
   const makine=(document.getElementById('makine')?.value||'').trim();
   const kod=(document.getElementById('arizaKodu')?.value||'').trim();
