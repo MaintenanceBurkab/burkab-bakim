@@ -4212,13 +4212,15 @@ const merkezSonuc = await gsRequest({
 
 
     aiFmeaStokKoprusunuGoster(merkezSonuc);
-  } catch (e) {
-    console.warn('Merkezi FMEA stok kontrolü:', e);
-    const alan = document.getElementById('aiFmeaStockBridgeBody');
-    if (alan) {
-      alan.textContent = 'Merkezi stok kontrolü alınamadı; yerel stok taraması korunuyor.';
-    }
+
+} catch (e) {
+  console.error('Merkezi FMEA stok kontrolü:', e);
+  const alan = document.getElementById('aiFmeaStockBridgeBody');
+  if (alan) {
+    alan.textContent = 'Merkezi stok kontrolü hatası: ' + (e?.message || String(e));
   }
+}
+
 
   if(!S||!D){
     document.getElementById('aiFmeaState').textContent='Bu arıza kodu için FMEA MASTER S/D değeri bulunamadı.';
