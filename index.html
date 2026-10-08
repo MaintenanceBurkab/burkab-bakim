@@ -4243,7 +4243,11 @@ const merkezSonuc = await gsRequest({
   makine: makine,
   arizaKodu: kod,
   durusDakika: durus,
-  parcaAdaylari: []
+  parcaAdaylari: stok.map(p => ({
+  stokKodu: p.stokKodu || '',
+  parcaAdi: p.parcaAdi || '',
+  kaynak: 'AI-FMEA yerel stok adayı'
+}))
 });
 
 
