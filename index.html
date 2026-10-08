@@ -1449,6 +1449,14 @@ tr:last-child td { border-bottom: none; }
       <div class="aifmea-two">
         <div class="aifmea-box"><h4>⚙️ AI AKSİYON PLANI</h4><div class="aifmea-actions" id="aiFmeaActions"><div class="aifmea-action">Henüz öneri oluşturulmadı.</div></div></div>
         <div class="aifmea-box"><h4>📦 YEDEK PARÇA / STOK</h4><div id="aiFmeaStock"><div style="font-size:11px;color:#777">Arıza analizinden sonra stok taranacak.</div></div></div>
+        
+      <div class="aifmea-box" style="grid-column:1/-1">
+      <h4>🔗 MERKEZİ FMEA – STOK KONTROLÜ</h4>
+      <div id="aiFmeaStockBridgeBody" style="font-size:12px;color:#555">
+        Merkezi stok kontrolü analiz sırasında görüntülenecek.
+     </div>
+  </div>
+
       </div>
       <div class="aifmea-explain" id="aiFmeaExplain"></div>
       <div class="aifmea-footer">
@@ -4190,6 +4198,28 @@ async function aiFmeaYenile(force){
   const S=Number(master?.S||0), D=Number(master?.D||0), O=Number(occ.score||0);
   if(typeof ypYuklendi!=='undefined' && !ypYuklendi && typeof ypVerileriYukle==='function') { try { await ypVerileriYukle(); } catch(e) { console.warn('AI-FMEA stok senkronizasyonu:',e); } }
   const stok=aiFmeaStokTara(makine,konu,kod); aiFmeaRenderStock(stok);
+  
+  // Merkezi FMEA + stok bağlantısı (salt okuma)
+  try {
+    const merkezSonuc = await gsRequest({
+      action: 'fmeaAnalizStok',
+      payload: {
+        makine: makine,
+        arizaKodu: kod,
+        durusDakika: durus,
+        parcaAdaylari: []
+      }
+    });
+
+    aiFmeaStokKoprusunuGoster(merkezSonuc);
+  } catch (e) {
+    console.warn('Merkezi FMEA stok kontrolü:', e);
+    const alan = document.getElementById('aiFmeaStockBridgeBody');
+    if (alan) {
+      alan.textContent = 'Merkezi stok kontrolü alınamadı; yerel stok taraması korunuyor.';
+    }
+  }
+
   if(!S||!D){
     document.getElementById('aiFmeaState').textContent='Bu arıza kodu için FMEA MASTER S/D değeri bulunamadı.';
     document.getElementById('aiFmeaExplain').textContent='AI yeni S/D önerisi üretebilir; yönetici onayı olmadan ana FMEA değiştirilmez.';
