@@ -1064,6 +1064,14 @@ tr:last-child td { border-bottom: none; }
 @media(max-width:1000px){.fmea-kpis{grid-template-columns:repeat(3,1fr)}.fmea-grid2{grid-template-columns:1fr}.fmea-toolbar{grid-template-columns:1fr 1fr}.fmea-toolbar .wide{grid-column:1/-1}}
 @media(max-width:580px){.fmea-wrap{padding:10px 8px 30px}.fmea-kpis{grid-template-columns:repeat(2,1fr)}.fmea-hero-top{flex-direction:column}.fmea-title{font-size:18px}.fmea-toolbar{grid-template-columns:1fr}.fmea-toolbar .wide{grid-column:auto}.fmea-matrix{grid-template-columns:1fr 1fr 1fr}.fmea-kpi b{font-size:19px}}
 
+/* ══════════════════════════════════════════════
+   AI-FMEA — YENİ KAYIT RİSK MOTORU
+   ══════════════════════════════════════════════ */
+.aifmea-panel{display:none;margin-top:16px;border:1px solid #d5d9df;border-radius:11px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.aifmea-panel.show{display:block}.aifmea-head{background:linear-gradient(90deg,#111,#2b2b2b);color:#fff;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}.aifmea-head-title{font-size:13px;font-weight:800;letter-spacing:.6px}.aifmea-head-sub{font-size:10px;color:#aaa;margin-top:3px}.aifmea-live{font-size:10px;color:#ffd700;border:1px solid #665500;padding:5px 9px;border-radius:15px;white-space:nowrap}.aifmea-body{padding:14px}.aifmea-state{font-size:12px;color:#666;margin-bottom:12px}.aifmea-scores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.aifmea-score{border:1px solid #d8dde5;border-radius:8px;padding:10px;text-align:center;background:#fafafa}.aifmea-score b{display:block;font:800 22px 'IBM Plex Mono',monospace}.aifmea-score span{font-size:9px;font-weight:700;color:#777;letter-spacing:.5px}.aifmea-ros{background:#242424;color:#fff}.aifmea-ros b{color:#ffd700}.aifmea-risk{border-radius:9px;padding:12px 14px;margin-bottom:12px;border:1px solid}.aifmea-risk.CRITICAL{background:#ffebee;border-color:#ef9a9a;color:#b71c1c}.aifmea-risk.WARNING{background:#fff3e0;border-color:#ffcc80;color:#bf360c}.aifmea-risk.SAFE{background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20}.aifmea-risk-title{font-weight:900;font-size:14px}.aifmea-risk-note{font-size:11px;margin-top:3px}.aifmea-two{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}.aifmea-box{border:1px solid #dce1e8;border-radius:9px;padding:12px}.aifmea-box h4{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.6px}.aifmea-actions{display:grid;gap:7px}.aifmea-action{padding:8px 10px;border-left:3px solid #f5c400;background:#fafafa;font-size:12px}.aifmea-stock-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #eee;font-size:11px}.aifmea-stock-row:last-child{border-bottom:0}.aifmea-stock-ok{color:#16804f}.aifmea-stock-warn{color:#c62828;font-weight:800}.aifmea-footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.aifmea-btn{border:0;border-radius:7px;padding:10px 13px;font-weight:800;cursor:pointer}.aifmea-btn.primary{background:#f5c400;color:#111}.aifmea-btn.dark{background:#242424;color:#fff}.aifmea-btn.outline{background:#fff;border:1px solid #bbb;color:#333}.aifmea-btn[disabled]{opacity:.5;cursor:not-allowed}.aifmea-explain{font-size:10px;color:#777;line-height:1.45;margin-top:9px}.aifmea-json-note{font-size:10px;color:#777;margin-top:8px}
+@media(max-width:700px){.aifmea-scores{grid-template-columns:repeat(2,1fr)}.aifmea-two{grid-template-columns:1fr}}
+
+
 </style>
 </head>
 <body>
@@ -1214,7 +1222,7 @@ tr:last-child td { border-bottom: none; }
         <div class="field">
           <label>MAKİNE <span class="req">*</span></label>
           <div class="combo-wrap">
-            <input type="text" id="makine" list="makine-list" placeholder="Makine adı / no" oninput="this.value=this.value.toUpperCase()">
+            <input type="text" id="makine" list="makine-list" placeholder="Makine adı / no" oninput="this.value=this.value.toUpperCase(); aiFmeaDebounce()">
             <span class="combo-arrow">▼</span>
           </div>
           <datalist id="makine-list"></datalist>
@@ -1293,14 +1301,14 @@ tr:last-child td { border-bottom: none; }
         <div class="field" style="flex:0 0 auto; max-width:fit-content;">
           <label>ARIZA KODU <span class="req">*</span></label>
           <div class="combo-wrap" style="width:14ch;">
-            <input type="text" id="arizaKodu" list="kod-list" placeholder="" maxlength="6" oninput="this.value=this.value.toUpperCase()" style="width:14ch !important; text-align:center; font-weight:700; letter-spacing:2px;">
+            <input type="text" id="arizaKodu" list="kod-list" placeholder="" maxlength="6" oninput="this.value=this.value.toUpperCase(); aiFmeaDebounce()" style="width:14ch !important; text-align:center; font-weight:700; letter-spacing:2px;">
             <span class="combo-arrow">▼</span>
           </div>
           <datalist id="kod-list"></datalist>
         </div>
         <div class="field">
           <label id="konuLabel">AÇIKLAMA</label>
-          <input type="text" id="konu" placeholder="Kısa açıklama" oninput="this.value=this.value.toUpperCase(); onKonuInput(); aiCheckArizaBtn();" autocomplete="off" list="konuList">
+          <input type="text" id="konu" placeholder="Kısa açıklama" oninput="this.value=this.value.toUpperCase(); onKonuInput(); aiCheckArizaBtn(); aiFmeaDebounce();" autocomplete="off" list="konuList">
 <datalist id="konuList"></datalist>
           <div id="ai-ariza-analiz-blok" style="display:none">
             <button class="ai-inline-btn" type="button" onclick="aiAnalizAriza()">🤖 AI ile Kök Neden &amp; Çözüm Öner</button>
@@ -1330,11 +1338,11 @@ tr:last-child td { border-bottom: none; }
         </div>
         <div class="field">
           <label>ONARIM BAŞLAMA</label>
-          <input type="time" id="onarimBas" onchange="calcSure()">
+          <input type="time" id="onarimBas" onchange="calcSure(); aiFmeaDebounce()">
         </div>
         <div class="field">
           <label>ONARIM BİTİŞ</label>
-          <input type="time" id="onarimBit" onchange="calcSure()">
+          <input type="time" id="onarimBit" onchange="calcSure(); aiFmeaDebounce()">
         </div>
         <div class="field">
           <label>ARIZA BİTİŞ</label>
@@ -1418,7 +1426,40 @@ tr:last-child td { border-bottom: none; }
 
     </div>
   </div>
-   <div class="section">
+ 
+
+  <!-- ── AI-FMEA OTOMATİK RİSK ANALİZİ ── -->
+  <div class="aifmea-panel" id="aiFmeaPanel">
+    <div class="aifmea-head">
+      <div><div class="aifmea-head-title">🤖 AI-FMEA — OTOMATİK BAKIM RİSK ANALİZİ</div><div class="aifmea-head-sub">Arıza + makine + geçmiş tekrar + mevcut FMEA + yedek parça stok kontrolü</div></div>
+      <div class="aifmea-live" id="aiFmeaLive">● HAZIR</div>
+    </div>
+    <div class="aifmea-body">
+      <div class="aifmea-state" id="aiFmeaState">Makine, arıza kodu ve süre girildiğinde analiz otomatik başlatılır.</div>
+      <div class="aifmea-scores">
+        <div class="aifmea-score"><b id="aiFmeaS">—</b><span>ŞİDDET · S</span></div>
+        <div class="aifmea-score"><b id="aiFmeaO">—</b><span>OLASILIK · O</span></div>
+        <div class="aifmea-score"><b id="aiFmeaD">—</b><span>SAPTANABİLİRLİK · D</span></div>
+        <div class="aifmea-score aifmea-ros"><b id="aiFmeaROS">—</b><span>RÖS · S×O×D</span></div>
+      </div>
+      <div class="aifmea-risk SAFE" id="aiFmeaRisk">
+        <div class="aifmea-risk-title" id="aiFmeaRiskTitle">🟢 Analiz bekleniyor</div>
+        <div class="aifmea-risk-note" id="aiFmeaRiskNote">Yeterli veri oluştuğunda karar motoru çalışacaktır.</div>
+      </div>
+      <div class="aifmea-two">
+        <div class="aifmea-box"><h4>⚙️ AI AKSİYON PLANI</h4><div class="aifmea-actions" id="aiFmeaActions"><div class="aifmea-action">Henüz öneri oluşturulmadı.</div></div></div>
+        <div class="aifmea-box"><h4>📦 YEDEK PARÇA / STOK</h4><div id="aiFmeaStock"><div style="font-size:11px;color:#777">Arıza analizinden sonra stok taranacak.</div></div></div>
+      </div>
+      <div class="aifmea-explain" id="aiFmeaExplain"></div>
+      <div class="aifmea-footer">
+        <button class="aifmea-btn primary" id="aiFmeaApproveBtn" onclick="aiFmeaOnaylaTakvimeIsle()" disabled>✅ AKSİYONLARI ONAYLA + TAKVİME İŞLE</button>
+        <button class="aifmea-btn dark" onclick="aiFmeaYenile(true)">🤖 AI ANALİZİNİ YENİLE</button>
+        <button class="aifmea-btn outline" onclick="aiFmeaGizle()">GİZLE</button>
+      </div>
+      <div class="aifmea-json-note">AI önerileri taslaktır. Kritik risklerde yönetici onayı olmadan FMEA veya takvim otomatik değiştirilmez.</div>
+    </div>
+  </div>
+  <div class="section">
     <div class="section-head"><div class="dot"></div>🔩 YEDEK PARÇA TAKİBİ</div>
      <div class="section-body">
       <div id="parcaListesi" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
@@ -4063,6 +4104,140 @@ function fmeaRenderOzet(){
 }
 function fmeaFiltreTemizle(){['fmeaAra','fmeaKategori','fmeaOncelik','fmeaSirala'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=id==='fmeaSirala'?'kod':''});fmeaRender();}
 function fmeaInit(){fmeaRenderOzet();fmeaRender();}
+
+
+// ══════════════════════════════════════════════
+// AI-FMEA — YENİ KAYIT RİSK MOTORU
+// ══════════════════════════════════════════════
+let _aiFmeaTimer = null;
+let _aiFmeaLastKey = '';
+let _aiFmeaResult = null;
+
+function aiFmeaEsc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])); }
+function aiFmeaDebounce(){
+  clearTimeout(_aiFmeaTimer);
+  _aiFmeaTimer=setTimeout(()=>aiFmeaYenile(false),900);
+}
+function aiFmeaGizle(){ document.getElementById('aiFmeaPanel')?.classList.remove('show'); }
+function aiFmeaAc(){ document.getElementById('aiFmeaPanel')?.classList.add('show'); }
+function aiFmeaDurusDakika(){ return parseInt(document.getElementById('sureBadge')?.dataset?.dk||'0',10)||0; }
+function aiFmeaTarih(k){
+  const v=String(k?.tarihBas||k?.tarih||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';
+}
+function aiFmeaKeyDate(k){
+  const d=aiFmeaTarih(k), t=String(k?.arizaBas||k?.onarimBas||'00:00');
+  return d?(d+'T'+(t||'00:00')):'';
+}
+function aiFmea90GunO(makine,kod){
+  const now=Date.now(), limit=now-90*86400000;
+  const arr=(kayitlar||[]).filter(k=>String(k.makine||'').trim().toUpperCase()===String(makine||'').trim().toUpperCase() && String(k.arizaKodu||'').trim().toUpperCase()===String(kod||'').trim().toUpperCase())
+    .map(k=>({k,t:new Date(aiFmeaKeyDate(k)||aiFmeaTarih(k)||'').getTime()})).filter(x=>x.t && x.t>=limit && x.t<=now+86400000).sort((a,b)=>a.t-b.t);
+  // Aynı olayın yakın devam kayıtlarını tek olay kabul et.
+  const uniq=[]; arr.forEach(x=>{const last=uniq[uniq.length-1]; if(!last || x.t-last.t>30*60000) uniq.push(x);});
+  if(uniq.length<2) return {score:'YETERSİZ VERİ',mtbf:null,count:uniq.length,events:uniq.map(x=>x.k)};
+  let total=0; for(let i=1;i<uniq.length;i++) total += (uniq[i].t-uniq[i-1].t)/3600000;
+  const mtbf=total/(uniq.length-1), recent30=uniq.filter(x=>x.t>=now-30*86400000).length;
+  let score;
+  if(mtbf<=48 || recent30>=3) score=10;
+  else if(mtbf<=168 || recent30>=2) score=8;
+  else if(mtbf<=720) score=5;
+  else score=2;
+  return {score,mtbf,count:uniq.length,recent30,events:uniq.map(x=>x.k)};
+}
+function aiFmeaRisk(S,O,D){
+  const n=Number(S),o=Number(O),d=Number(D),ros=n*o*d;
+  if(n>=9 || ros>=120) return {code:'CRITICAL',label:'🔴 KRİTİK RİSK',ros};
+  if(ros>=80) return {code:'WARNING',label:'🟡 ORTA RİSK',ros};
+  return {code:'SAFE',label:'🟢 DÜŞÜK RİSK',ros};
+}
+function aiFmeaMaster(kod){ return (FMEA_MASTER_UI||[]).find(x=>String(x['ARIZA KODU']||'').toUpperCase()===String(kod||'').toUpperCase())||null; }
+function aiFmeaStokTara(makine,konu,kod){
+  const q=(String(konu||'')+' '+String(kod||'')).toLocaleUpperCase('tr-TR');
+  const tokens=q.split(/[^A-ZÇĞİÖŞÜ0-9-]+/i).filter(x=>x.length>=3);
+  if(typeof ypStoklar==='undefined'||!Array.isArray(ypStoklar)||!ypStoklar.length) return [];
+  return ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').map(p=>{
+    const hay=(String(p.parcaAdi||'')+' '+String(p.stokKodu||'')+' '+String(p.makineGrubu||'')).toLocaleUpperCase('tr-TR');
+    let score=0; tokens.forEach(t=>{if(hay.includes(t))score++;});
+    if(String(p.makineGrubu||'').toLocaleUpperCase('tr-TR')===String(makine||'').toLocaleUpperCase('tr-TR'))score+=2;
+    return {p,score};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,6).map(x=>x.p);
+}
+function aiFmeaRenderStock(list){
+  const el=document.getElementById('aiFmeaStock'); if(!el)return;
+  if(!list.length){el.innerHTML='<div style="font-size:11px;color:#777">Kod/açıklama ile eşleşen parça bulunamadı. AI önerisi için analiz yapılabilir.</div>';return;}
+  el.innerHTML=list.map(p=>{const mevcut=ypNum(p.mevcutStok),min=ypNum(p.minimumStok),d=ypDurum(p),risk=(mevcut<=min);return `<div class="aifmea-stock-row"><span><b>${aiFmeaEsc(p.stokKodu)}</b> · ${aiFmeaEsc(p.parcaAdi)}</span><span class="${risk?'aifmea-stock-warn':'aifmea-stock-ok'}">${mevcut} / min ${min} · ${aiFmeaEsc(ypEtiket(d))}</span></div>`}).join('');
+}
+function aiFmeaLocalActions(risk,makine,kod,konu,stok){
+  const a=[];
+  if(risk.code==='CRITICAL'){a.push('Acil bakım müdahalesi ve kök neden analizi başlat.');a.push('Benzer makine/ekipmanlarda aynı arıza modunu kontrol et.');}
+  else if(risk.code==='WARNING'){a.push('Önleyici bakım periyodunu ve kontrol sıklığını gözden geçir.');a.push('Haftalık bakım değerlendirmesine ekle.');}
+  else a.push('Rutin planlı bakım kapsamında izlemeye devam et.');
+  if(stok.some(p=>ypNum(p.mevcutStok)<=ypNum(p.minimumStok))) a.push('İlgili yedek parçaların minimum stok seviyesini kontrol et ve satın alma ihtiyacını değerlendir.');
+  if(konu) a.push('Arıza nedenini doğrula ve yapılan işlemin etkinliğini sonraki tekrarlarla kontrol et.');
+  return a;
+}
+async function aiFmeaYenile(force){
+  const makine=(document.getElementById('makine')?.value||'').trim();
+  const kod=(document.getElementById('arizaKodu')?.value||'').trim();
+  const konu=(document.getElementById('konu')?.value||'').trim();
+  if(!makine || !kod){ if(force)showToast('⚠️ AI-FMEA için Makine ve Arıza Kodu gerekli.','err'); return; }
+  const durus=aiFmeaDurusDakika(), key=makine+'|'+kod+'|'+konu+'|'+durus;
+  aiFmeaAc();
+  if(!force && key===_aiFmeaLastKey)return; _aiFmeaLastKey=key;
+  document.getElementById('aiFmeaLive').textContent='● ANALİZ EDİLİYOR';
+  document.getElementById('aiFmeaState').textContent='FMEA + son 90 gün + stok verisi taranıyor...';
+  const master=aiFmeaMaster(kod), occ=aiFmea90GunO(makine,kod);
+  const S=Number(master?.S||0), D=Number(master?.D||0), O=Number(occ.score||0);
+  if(typeof ypYuklendi!=='undefined' && !ypYuklendi && typeof ypVerileriYukle==='function') { try { await ypVerileriYukle(); } catch(e) { console.warn('AI-FMEA stok senkronizasyonu:',e); } }
+  const stok=aiFmeaStokTara(makine,konu,kod); aiFmeaRenderStock(stok);
+  if(!S||!D){
+    document.getElementById('aiFmeaState').textContent='Bu arıza kodu için FMEA MASTER S/D değeri bulunamadı.';
+    document.getElementById('aiFmeaExplain').textContent='AI yeni S/D önerisi üretebilir; yönetici onayı olmadan ana FMEA değiştirilmez.';
+    document.getElementById('aiFmeaLive').textContent='● VERİ BEKLİYOR'; return;
+  }
+  if(typeof O!=='number'){
+    document.getElementById('aiFmeaS').textContent=S;document.getElementById('aiFmeaO').textContent='—';document.getElementById('aiFmeaD').textContent=D;document.getElementById('aiFmeaROS').textContent='—';
+    document.getElementById('aiFmeaRisk').className='aifmea-risk WARNING';document.getElementById('aiFmeaRiskTitle').textContent='🟡 VERİ YETERSİZ';document.getElementById('aiFmeaRiskNote').textContent='Aynı makine + aynı arıza kodunda son 90 günde en az iki ayrı olay bulunamadı.';
+    document.getElementById('aiFmeaLive').textContent='● YETERSİZ VERİ';return;
+  }
+  const risk=aiFmeaRisk(S,O,D), actions=aiFmeaLocalActions(risk,makine,kod,konu,stok);
+  _aiFmeaResult={makine,kod,konu,durus,S,O,D,ros:risk.ros,risk,actions,stok,master,occ};
+  document.getElementById('aiFmeaS').textContent=S;document.getElementById('aiFmeaO').textContent=O;document.getElementById('aiFmeaD').textContent=D;document.getElementById('aiFmeaROS').textContent=risk.ros;
+  document.getElementById('aiFmeaRisk').className='aifmea-risk '+risk.code;document.getElementById('aiFmeaRiskTitle').textContent=risk.label;document.getElementById('aiFmeaRiskNote').textContent=`${makine} · ${kod} · Duruş/onarım: ${durus||0} dk · Son 90 gün: ${occ.count} olay`;
+  document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('');
+  document.getElementById('aiFmeaExplain').textContent=`Karar motoru: RÖS = ${S} × ${O} × ${D} = ${risk.ros}. ${risk.code==='CRITICAL'?'RÖS ≥ 120 veya S ≥ 9 olduğu için kritik aksiyon eşiği geçildi.':risk.code==='WARNING'?'RÖS 80–119 aralığında olduğu için orta risk aksiyonu önerildi.':'RÖS 80 altında; rutin izleme önerildi.'} O hesabı MTBF ve son 30 gün tekrarlarıyla belirlenmiştir.`;
+  document.getElementById('aiFmeaApproveBtn').disabled=false;
+  document.getElementById('aiFmeaLive').textContent='● HAZIR';
+  // AI sadece açıklayıcı aksiyonları zenginleştirir; puanların yerine geçmez.
+  if(typeof aiCallClaude==='function'){
+    try{
+      const prompt=`AI-FMEA aksiyon önerisi üret. Veriler: Makine=${makine}; Arıza Kodu=${kod}; Açıklama=${konu}; S=${S}; O=${O}; D=${D}; RÖS=${risk.ros}; Risk=${risk.label}; Stok eşleşmeleri=${JSON.stringify(stok.map(p=>({kod:p.stokKodu,parca:p.parcaAdi,mevcut:p.mevcutStok,min:p.minimumStok})))}`;
+      const ai=await aiCallClaude('Sen BURKAB A.Ş. için IATF 16949 odaklı bakım risk analistisin. Puanları değiştirme. Sadece 3-5 somut aksiyon öner; yedek parça adı uydurma; veride olmayan bilgiyi üretme.',prompt);
+      const clean=ai.replace(/^```[\s\S]*?```$/,'').trim();
+      if(clean) document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('')+`<div class="aifmea-action" style="border-left-color:#6a1b9a"><b>🤖 AI ek önerisi:</b><br>${aiRenderMd(clean)}</div>`;
+    }catch(e){console.warn('AI-FMEA AI katmanı:',e);}
+  }
+}
+async function aiFmeaOnaylaTakvimeIsle(){
+  const r=_aiFmeaResult; if(!r)return showToast('⚠️ Önce AI-FMEA analizi tamamlanmalı.','err');
+  if(!currentUser || !['admin','bakim','yonetici','yönetici'].includes(String(currentUser.role||currentUser.rol||'').toLowerCase())) return showToast('🚫 Aksiyon onayı için bakım/yönetici yetkisi gerekiyor.','err');
+  const sorumlu=document.getElementById('rak-sorumlu')?.value?.trim() || (currentUser?.name||'BAKIM');
+  const d=new Date(); d.setDate(d.getDate()+(r.risk.code==='CRITICAL'?1:r.risk.code==='WARNING'?7:14));
+  const termin=d.toISOString().slice(0,10);
+  const kaynakId=String(document.getElementById('formNo')?.value||Date.now());
+  const aksiyonMetni=r.actions.join(' | ')+(r.stok.some(p=>ypNum(p.mevcutStok)<=ypNum(p.minimumStok))?' | STOK RİSKİ: satın alma ihtiyacı değerlendirilecek.':'');
+  try{
+    showLoading(true);
+    // Kayıt henüz Sheets'e yazılmadıysa aksiyon sunucusu kaynak kaydı bulamayacağından burada taslak takvim hazırlıyoruz.
+    const plan={id:'AI-'+Date.now(),bolum:document.getElementById('bolum')?.value||'',makine:r.makine,gorev:'AI-FMEA: '+r.kod+' — '+aksiyonMetni.slice(0,180),bakimci:sorumlu,tarih:termin,periyot:'',sure:Math.max(30,r.durus||60),notlar:`AI-FMEA RÖS ${r.ros} · S${r.S}/O${r.O}/D${r.D} · ${r.risk.label}`,durum:'aktif',olusturan:currentUser?.name||'AI-FMEA',olusturmaTarih:yerelYMD(),tamamlayanKisi:'',tamamlamaTarih:''};
+    await gsPlanlarKaydet(plan);
+    const list=planlarYukle(); list.push(plan); planlarKaydet(list); planUyariKontrol();
+    document.getElementById('rak-sorumlu').value=sorumlu; document.getElementById('rak-termin').value=termin;
+    showToast('✅ AI-FMEA aksiyonu onaylandı ve bakım takvimine işlendi.','ok');
+    document.getElementById('aiFmeaApproveBtn').disabled=true; document.getElementById('aiFmeaLive').textContent='● TAKVİME İŞLENDİ';
+  }catch(e){showToast('⚠️ Takvim kaydı oluşturulamadı: '+(e?.message||e),'err');}
+  finally{showLoading(false);}
+}
 
 // ── TABS ─────────────────────────────────────
 function goTab(id, btn) {
