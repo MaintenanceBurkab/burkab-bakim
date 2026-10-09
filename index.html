@@ -4159,17 +4159,96 @@ function aiFmeaRisk(S,O,D){
   return {code:'SAFE',label:'🟢 DÜŞÜK RİSK',ros};
 }
 function aiFmeaMaster(kod){ return (FMEA_MASTER_UI||[]).find(x=>String(x['ARIZA KODU']||'').toUpperCase()===String(kod||'').toUpperCase())||null; }
-function aiFmeaStokTara(makine,konu,kod){
-  const q=(String(konu||'')+' '+String(kod||'')).toLocaleUpperCase('tr-TR');
-  const tokens=q.split(/[^A-ZÇĞİÖŞÜ0-9-]+/i).filter(x=>x.length>=3);
-  if(typeof ypStoklar==='undefined'||!Array.isArray(ypStoklar)||!ypStoklar.length) return [];
-  return ypStoklar.filter(p=>ypN(p.aktif)!=='HAYIR').map(p=>{
-    const hay=(String(p.parcaAdi||'')+' '+String(p.stokKodu||'')+' '+String(p.makineGrubu||'')).toLocaleUpperCase('tr-TR');
-    let score=0; tokens.forEach(t=>{if(hay.includes(t))score++;});
-    if(String(p.makineGrubu||'').toLocaleUpperCase('tr-TR')===String(makine||'').toLocaleUpperCase('tr-TR'))score+=2;
-    return {p,score};
-  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,6).map(x=>x.p);
+
+function aiFmeaStokTara(makine, konu, kod) {
+  const q = (
+    String(konu || '') + ' ' + String(kod || '')
+  ).toLocaleUpperCase('tr-TR');
+
+  const tokens = q
+    .split(/[^A-ZÇĞİÖŞÜ0-9-]+/i)
+    .filter(x => x.length >= 3);
+
+  if (
+    typeof ypStoklar === 'undefined' ||
+    !Array.isArray(ypStoklar) ||
+    !ypStoklar.length
+  ) {
+    console.warn('FMEA stok taraması: ypStoklar boş veya yüklenmemiş.');
+    return [];
+  }
+
+  const makineKodu = String(makine || '')
+    .trim()
+    .toLocaleUpperCase('tr-TR');
+
+  function makineGrubundaMi(grup) {
+    const g = String(grup || '')
+      .replace(/\s/g, '')
+      .toLocaleUpperCase('tr-TR');
+
+    if (g === makineKodu) return true;
+
+    // TP-01...TP-13 gibi tanımlı makine grupları
+    const aralik = g.match(/^(TP-\d+)\.{2,3}(TP-\d+)$/);
+    if (!aralik) return false;
+
+    const bas = aralik[1].match(/^TP-(\d+)$/);
+    const son = aralik[2].match(/^TP-(\d+)$/);
+    const mevcut = makineKodu.match(/^TP-(\d+)$/);
+
+    if (!bas || !son || !mevcut) return false;
+
+    const n = Number(mevcut[1]);
+    return n >= Number(bas[1]) && n <= Number(son[1]);
+  }
+
+  const sonuclar = ypStoklar
+    .filter(p => ypN(p.aktif) !== 'HAYIR')
+    .map(p => {
+      const hay = (
+        String(p.parcaAdi || '') + ' ' +
+        String(p.stokKodu || '')
+      ).toLocaleUpperCase('tr-TR');
+
+      let skor = 0;
+      tokens.forEach(t => {
+        if (hay.includes(t)) skor++;
+      });
+
+      const grupUyumu = makineGrubundaMi(p.makineGrubu);
+      if (grupUyumu) skor += 2;
+
+      return {
+        p: p,
+        skor: skor,
+        grupUyumu: grupUyumu
+      };
+    });
+
+  // Önce arıza metniyle eşleşenler, sonra makine grubu adayları.
+  const eslesenler = sonuclar
+    .filter(x => x.skor > 2)
+    .sort((a, b) => b.skor - a.skor);
+
+  const grupAdaylari = sonuclar
+    .filter(x => x.grupUyumu)
+    .sort((a, b) => b.skor - a.skor);
+
+  const secilenler = eslesenler.length
+    ? eslesenler.slice(0, 6)
+    : grupAdaylari.slice(0, 6);
+
+  return secilenler.map(x => ({
+    ...x.p,
+    fmeaAdayTuru: x.skor > 2 && x.skor > (x.grupUyumu ? 2 : 0)
+      ? 'METIN_ESLESMESI'
+      : 'MAKINE_GRUBU_ADAYI',
+    teknikUyum: 'ONAY_BEKLIYOR',
+    kesinEslesme: false
+  }));
 }
+
 function aiFmeaRenderStock(list){
   const el=document.getElementById('aiFmeaStock'); if(!el)return;
   if(!list.length){el.innerHTML='<div style="font-size:11px;color:#777">Kod/açıklama ile eşleşen parça bulunamadı. AI önerisi için analiz yapılabilir.</div>';return;}
