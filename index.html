@@ -12109,7 +12109,18 @@ function sicilAIRender(){
   <button class="sicil-ai-start" onclick="makineSicilAI()">🔧 AI ANALİZİNİ BAŞLAT</button><div id="sicilAIResult" class="sicil-ai-result" style="display:none"></div></div></div>`;
 }
 function makinePlanlariAc(){try{goTab('planlar',document.querySelector('.nav-tab[onclick*="planlar"]'));setTimeout(()=>{if(typeof renderPlanlar==='function')renderPlanlar();},250)}catch(e){showToast('Planlı bakım ekranı açılamadı','err')}}
-function planliBakimTalimatAc(){showToast('📄 Planlı bakım talimatı için bu makinenin talimat kartı hazırlanacak.','ok')}
+function planliBakimTalimatAc(){
+  // GitHub deposundaki PDF dosyasının gerçek adı (boşluklar ve Türkçe karakterler dahil).
+  // Dosyayı depo köküne şu adla yükleyin: TL-XXX KESİT GÖRÜNTÜLEME PERİYODİK BAKIM TALİMATI.pdf
+  const url = 'https://maintenanceburkab.github.io/burkab-bakim/TL-XXX%20KES%C4%B0T%20G%C3%96R%C3%9CNT%C3%9CLEME%20PER%C4%B0YOD%C4%B0K%20BAKIM%20TAL%C4%B0MATI.pdf';
+  try {
+    const win = window.open(url, '_blank');
+    if (!win) window.location.href = url;
+    else { try { win.opener = null; } catch (_) {} }
+  } catch (e) {
+    showToast('Talimat PDF açılamadı: ' + (e.message || e), 'err');
+  }
+}
 function planliBakimFormAc(){
   try {
     // Dijital form GitHub Pages'ten yüklenir; ekipman ve aktif plan bilgileri URL ile aktarılır.
