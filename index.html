@@ -12111,8 +12111,8 @@ function sicilAIRender(){
 function makinePlanlariAc(){try{goTab('planlar',document.querySelector('.nav-tab[onclick*="planlar"]'));setTimeout(()=>{if(typeof renderPlanlar==='function')renderPlanlar();},250)}catch(e){showToast('Planlı bakım ekranı açılamadı','err')}}
 function planliBakimTalimatAc(){
   // GitHub deposundaki PDF dosyasının gerçek adı (boşluklar ve Türkçe karakterler dahil).
-  // Dosyayı depo köküne şu adla yükleyin: TL-XXX KESİT GÖRÜNTÜLEME PERİYODİK BAKIM TALİMATI.pdf
-  const url = 'https://maintenanceburkab.github.io/burkab-bakim/TL-XXX%20KES%C4%B0T%20G%C3%96R%C3%9CNT%C3%9CLEME%20PER%C4%B0YOD%C4%B0K%20BAKIM%20TAL%C4%B0MATI.pdf';
+  // Dosyayı depo köküne şu adla yükleyin: TL-XXX_KESIT_GORUNTULEME_PERIYODIK_BAKIM_TALIMATI.pdf
+  const url = 'https://maintenanceburkab.github.io/burkab-bakim/TL-XXX_KESIT_GORUNTULEME_PERIYODIK_BAKIM_TALIMATI.pdf';
   try {
     const win = window.open(url, '_blank');
     if (!win) window.location.href = url;
