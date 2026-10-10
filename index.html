@@ -12111,7 +12111,40 @@ function sicilAIRender(){
 function makinePlanlariAc(){try{goTab('planlar',document.querySelector('.nav-tab[onclick*="planlar"]'));setTimeout(()=>{if(typeof renderPlanlar==='function')renderPlanlar();},250)}catch(e){showToast('Planlı bakım ekranı açılamadı','err')}}
 function planliBakimTalimatAc(){showToast('📄 Planlı bakım talimatı için bu makinenin talimat kartı hazırlanacak.','ok')}
 function planliBakimFormAc(){
-  try{const formTabBtn=document.querySelector('.nav-tab[onclick*="form"]');goTab('form',formTabBtn);setTimeout(()=>{const plan=(planlarYukle()||[]).filter(p=>String(p.makine||'').trim()===String(_sicilMakine||'').trim()&&p.durum!=='tamamlandi').sort((a,b)=>String(a.tarih||'').localeCompare(String(b.tarih||'')))[0];const planliBtn=document.querySelector('.islem-btn[data-v="PLANLI BAKIM"]');if(planliBtn)pickIslem(planliBtn);if(plan){const b=document.getElementById('bolum');if(b){b.value=plan.bolum||'';if(typeof onBolum==='function')onBolum()}const m=document.getElementById('makine');if(m)m.value=_sicilMakine;const k=document.getElementById('konu');if(k)k.value=plan.gorev||'';const y=document.getElementById('yapilan');if(y)y.value=plan.notlar||'';}if(typeof genFormNo==='function')genFormNo();showToast('📋 Planlı bakım formu hazırlandı','ok')},250)}catch(e){showToast('Planlı bakım formu açılamadı: '+(e.message||e),'err')}}
+  try {
+    // Dijital form GitHub Pages'ten yüklenir; ekipman ve aktif plan bilgileri URL ile aktarılır.
+    const baseUrl = 'https://maintenanceburkab.github.io/burkab-bakim/FR-XX_KESIT_GORUNTULEME_DIGITAL_BAKIM_FORMU.html';
+    const data = _sicilData || {};
+    const eq = data.ekipman || {};
+    const plans = (typeof planlarYukle === 'function' ? planlarYukle() : [])
+      .filter(p => String(p.makine || '').trim() === String(_sicilMakine || '').trim() && p.durum !== 'tamamlandi')
+      .sort((a,b) => String(a.tarih || '').localeCompare(String(b.tarih || '')));
+    const plan = plans[0] || {};
+    const params = new URLSearchParams({
+      cihazNo: String(eq.makine || _sicilMakine || ''),
+      cihazAdi: String(eq.marka || eq.tur || ''),
+      seriNo: String(eq.serino || ''),
+      bolum: String(eq.bolum || plan.bolum || ''),
+      envanterId: String(eq.envanterId || eq.id || ''),
+      periyot: String(eq.periyot || plan.periyot || 'A'),
+      isEmri: String(plan.id || plan.formNo || ''),
+      planTarihi: String(plan.tarih || new Date().toISOString().slice(0,10)),
+      planGorevi: String(plan.gorev || 'Periyodik bakım'),
+      sorumlu: String(plan.bakimci || eq.sorumlubakimci || '')
+    });
+    const url = baseUrl + '?' + params.toString();
+    const win = window.open(url, '_blank');
+    if (!win) {
+      // Popup engellendiyse aynı sekmede açmayı dene.
+      window.location.href = url;
+      return;
+    }
+    try { win.opener = null; } catch (_) {}
+    showToast('📋 Makineye özel dijital bakım formu açıldı: ' + (_sicilMakine || ''), 'ok');
+  } catch (e) {
+    showToast('Dijital bakım formu açılamadı: ' + (e.message || e), 'err');
+  }
+}
 function makineYedekParcaAc(){try{goTab('yedekstok',document.querySelector('.nav-tab[onclick*="yedekstok"]'));showToast('⚙️ Yedek parça stok ekranı açıldı. Makineye özel liste bağlantısını sonraki adımda bağlayacağız.','ok');}catch(e){showToast('Yedek parça ekranı açılamadı','err')}}
 function makineServisKayitAc(){try{const formTabBtn=document.querySelector('.nav-tab[onclick*="form"]');goTab('form',formTabBtn);setTimeout(()=>{const b=document.querySelector('.islem-btn[data-v="SERVİS BAKIM"]');if(b)pickIslem(b);const m=document.getElementById('makine');if(m)m.value=_sicilMakine;showToast('🛠️ Servis bakım kaydı ekranı hazırlandı.','ok')},250);}catch(e){showToast('Servis bakım kayıtları ekranı açılamadı','err')}}
 
