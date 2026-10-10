@@ -3753,15 +3753,35 @@ function beyListeCiz(id) {
 
 function beyGrupCiz(p) {
   const gruplar = _beyOzet.gruplar || [];
-  if (!gruplar.length) { p.innerHTML = '<div style="padding:20px;text-align:center;background:#f7f7f7;border-radius:10px">Tanımlı eğitim grubu bulunmuyor.</div>'; return; }
   const kutu = (emoji, etiket, deger, renk) => `<div style="padding:8px 4px;border-radius:8px;background:#fafafa;border:1px solid #eee">
     <div style="font-size:20px;font-weight:900;color:${renk}">${deger}</div><div style="font-size:10px;font-weight:700;color:#777;margin-top:2px">${emoji} ${etiket}</div></div>`;
+
   p.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div style="font-size:12px;color:#666">Bir gruba tıklayınca o grubun yetkinlik bitiş tarihleri açılır.</div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:10px;padding:15px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:900;color:#4a148c;margin-bottom:10px">➕ YENİ EĞİTİM GRUBU OLUŞTUR</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800;color:#666">GRUP KODU *
+          <input id="beyYeniGrupKodu" maxlength="30" placeholder="Örn. KALITE-01" style="padding:9px;border:1px solid #ccc;border-radius:7px;font:inherit;font-size:13px;text-transform:uppercase">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800;color:#666">GRUP ADI *
+          <input id="beyYeniGrupAdi" maxlength="100" placeholder="Örn. Kalite Kontrol Ekibi" style="padding:9px;border:1px solid #ccc;border-radius:7px;font:inherit;font-size:13px">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800;color:#666">YETKİNLİK GEÇERLİLİĞİ (GÜN) *
+          <input id="beyYeniGrupSure" type="number" min="1" max="3650" step="1" value="365" style="padding:9px;border:1px solid #ccc;border-radius:7px;font:inherit;font-size:13px">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:800;color:#666">BİTİŞ UYARISI (GÜN) *
+          <input id="beyYeniGrupUyari" type="number" min="0" max="3650" step="1" value="30" style="padding:9px;border:1px solid #ccc;border-radius:7px;font:inherit;font-size:13px">
+        </label>
+      </div>
+      <div style="font-size:11px;color:#777;margin:8px 0">Grup kodunda İngilizce harf, rakam, tire (-) ve alt çizgi (_) kullanabilirsiniz. Aynı kod veya adla ikinci aktif grup oluşturulamaz.</div>
+      <button id="beyYeniGrupKaydetBtn" onclick="beyYeniGrupKaydet()" style="padding:10px 16px;border:0;border-radius:8px;background:#6a1b9a;color:#fff;font-weight:900;cursor:pointer">💾 GRUBU OLUŞTUR</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+      <div style="font-size:12px;color:#666">${gruplar.length} eğitim grubu tanımlı. Bir gruba tıklayınca o grubun yetkinlik bitiş tarihleri açılır.</div>
       <button onclick="beyOzetYenile()" style="padding:8px 12px;border:1px solid #cfcfcf;border-radius:8px;background:#fff;font-weight:800;cursor:pointer">🔄 Yenile</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+    ${gruplar.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
       ${gruplar.map(g => `
         <div onclick="beyGrupSec('${beyEsc(g.grupId)}')" style="cursor:pointer;background:#fff;border:1px solid #ddd;border-left:5px solid #7b1fa2;border-radius:10px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
           <div style="font-weight:900;font-size:15px">${beyEsc(g.grupAdi)}</div>
@@ -3771,7 +3791,57 @@ function beyGrupCiz(p) {
             ${kutu('🎓', 'Eğitim alan', g.egitimTamam, '#6a1b9a')}${kutu('🔵', 'Eğitim planlı', g.egitimPlanli, '#1565c0')}
           </div>
         </div>`).join('')}
-    </div>`;
+    </div>` : '<div style="padding:20px;text-align:center;background:#f7f7f7;border-radius:10px;color:#666">Henüz eğitim grubu yok. Yukarıdaki formdan ilk grubu oluşturabilirsiniz.</div>'}`;
+}
+
+async function beyYeniGrupKaydet() {
+  const kodEl = document.getElementById('beyYeniGrupKodu');
+  const adEl = document.getElementById('beyYeniGrupAdi');
+  const sureEl = document.getElementById('beyYeniGrupSure');
+  const uyariEl = document.getElementById('beyYeniGrupUyari');
+  const btn = document.getElementById('beyYeniGrupKaydetBtn');
+  if (!kodEl || !adEl || !sureEl || !uyariEl || !btn) return;
+
+  const grupKodu = kodEl.value.trim().toUpperCase();
+  const grupAdi = adEl.value.trim();
+  const gecerlilikGun = Number(sureEl.value);
+  const uyariGun = Number(uyariEl.value);
+
+  if (!grupKodu || !grupAdi) {
+    showToast('❗ Grup kodu ve grup adı zorunludur.', 'err');
+    return;
+  }
+  if (!/^[A-Z0-9_-]+$/.test(grupKodu)) {
+    showToast('❗ Grup kodunda yalnızca İngilizce harf, rakam, tire ve alt çizgi kullanın.', 'err');
+    return;
+  }
+  if (!Number.isInteger(gecerlilikGun) || gecerlilikGun < 1 || gecerlilikGun > 3650 ||
+      !Number.isInteger(uyariGun) || uyariGun < 0 || uyariGun > gecerlilikGun) {
+    showToast('❗ Gün değerlerini kontrol edin. Uyarı süresi geçerlilik süresini aşamaz.', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ KAYDEDİLİYOR...';
+  try {
+    const sonuc = await gsRequest({
+      action: 'beyGrupKaydet',
+      grupKodu: grupKodu,
+      grupAdi: grupAdi,
+      gecerlilikGun: gecerlilikGun,
+      uyariGun: uyariGun
+    }, { timeoutMs: 90000 });
+
+    if (!sonuc || !sonuc.ok) throw new Error((sonuc && (sonuc.error || sonuc.message)) || 'Grup kaydedilemedi.');
+    showToast('✅ ' + (sonuc.message || 'Eğitim grubu oluşturuldu.'), 'ok');
+    _beyOzetZaman = 0;
+    await beyOzetYukle();
+    beyOzetCiz('grup');
+  } catch (e) {
+    showToast('❌ ' + (e.message || 'Grup oluşturulamadı.'), 'err');
+    btn.disabled = false;
+    btn.textContent = '💾 GRUBU OLUŞTUR';
+  }
 }
 
 function bakimEgitimCiz(alarmlar) {
