@@ -1456,6 +1456,30 @@ tr:last-child td { border-bottom: none; }
         <div id="durusAnketSonuc" class="durus-anket-sonuc" aria-live="polite">Cevaplar girildiğinde sınıflandırma otomatik hesaplanır.</div>
       </div>
 
+      <!-- KISMİ/TAM DURUŞ AKSİYONLARI: AI-FMEA eşleşmesinden bağımsız ve zorunlu -->
+      <div id="durusZorunluAksiyonPanel" style="display:none;margin-top:18px;border:2px solid #c62828;border-radius:10px;overflow:hidden">
+        <div style="background:linear-gradient(90deg,#b71c1c,#d32f2f);color:#fff;padding:12px 15px">
+          <div id="durusZorunluAksiyonBaslik" style="font-weight:900;font-size:13px;letter-spacing:.5px">🚨 ZORUNLU DURUŞ AKSİYONLARI</div>
+          <div id="durusZorunluAksiyonAciklama" style="font-size:11px;margin-top:4px;line-height:1.5">Kısmi/tam duruşta bu aksiyonlar zorunludur. FMEA eşleşmesi olmaması aksiyonu kaldırmaz.</div>
+        </div>
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+          <div class="fg">
+            <div class="field"><label>İlk müdahale / geçici önlem <span class="req">*</span></label><textarea id="durusAksiyonIlkOnlem" rows="2" placeholder="Duruşu kontrol altına almak için alınan ilk önlem..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+            <div class="field"><label>Üretim etkisi / etkilenen makine-hat <span class="req">*</span></label><textarea id="durusAksiyonUretimEtkisi" rows="2" placeholder="Etkilenen hat, iş, bekleme veya üretim kaybı..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+          </div>
+          <div class="fg">
+            <div class="field"><label>Kalıcı çözüm / tekrar önleme aksiyonu <span class="req">*</span></label><textarea id="durusAksiyonKalici" rows="2" placeholder="Tekrarı önlemek için yapılacak düzeltme..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+            <div class="field"><label>Aksiyon sorumlusu <span class="req">*</span></label><input id="durusAksiyonSorumlu" type="text" placeholder="Sorumlu kişi veya görev rolü" oninput="this.value=this.value.toUpperCase()"></div>
+          </div>
+          <div class="fg" id="durusTamDurusEkleri" style="display:none">
+            <div class="field"><label>Üretimi durdurma / yeniden başlatma kararı <span class="req">*</span></label><textarea id="durusAksiyonDurdurma" rows="2" placeholder="Durdurma ve yeniden başlatma kararını, onaylayan kişiyi yazın..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+            <div class="field"><label>Üretim / kalite / yönetim bilgilendirmesi <span class="req">*</span></label><textarea id="durusAksiyonBildirim" rows="2" placeholder="Bilgilendirilen bölüm/kişiler ve alınan karar..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+          </div>
+          <div class="field" style="max-width:360px"><label>Aksiyon termin tarihi <span class="req">*</span></label><input id="durusAksiyonTermin" type="date"></div>
+          <div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:7px;padding:9px 11px;color:#7a3b00;font-size:11px;line-height:1.5">Bu alanlar doldurulmadan kayıt kaydedilemez. AI-FMEA verisi eşleşmese ve RÖS 0 olsa bile kısmi/tam duruş aksiyonu zorunludur.</div>
+        </div>
+      </div>
+
       <!-- ── RİSK BAZLI AKSİYON PANELİ (IATF 4.4) ── -->
       <div id="riskAksiyonPanel" style="display:none;margin-top:18px">
         <div id="riskAksiyonBanner" class="risk-aksiyon-banner">
@@ -4462,7 +4486,7 @@ async function aiFmeaYenile(force){
     if(riskAlan) riskAlan.value='DÜŞÜK'; // Mevcut kayıt şeması risk seviyesini kategori olarak saklıyor.
     if(typeof riskAksiyonTemizle==='function') riskAksiyonTemizle();
     document.querySelectorAll('.risk-btn').forEach(b=>b.classList.remove('active'));
-    _aiFmeaResult={makine,kod,konu,durus,S:0,O:0,D:0,ros:0,risk,actions,stok,master,occ,eslesmeYok:true};
+    _aiFmeaResult={makine,kod,konu,durus,S:0,O:0,D:0,ros:0,risk,actions,stok,master,occ,eslesmeYok:true,eslesmeNedeni:sebep,durusEtkisi:(document.getElementById('durusEtkisi')?.value||'DURUŞ YOK')};
     document.getElementById('aiFmeaState').textContent='FMEA MASTER eşleşmesi bulunamadı. Beklemeden RÖS=0 atandı.';
     document.getElementById('aiFmeaS').textContent='—';
     document.getElementById('aiFmeaO').textContent='—';
@@ -4478,6 +4502,8 @@ async function aiFmeaYenile(force){
     document.getElementById('aiFmeaExplain').textContent=`Karar motoru: ${sebep} İstek doğrultusunda RÖS=0 atandı. Bu sonuç teknik riskin doğrulandığı anlamına gelmez. Veri eşleştiğinde yeniden analiz edilebilir.`;
     document.getElementById('aiFmeaApproveBtn').disabled=true;
     document.getElementById('aiFmeaLive').textContent='● EŞLEŞME YOK · RÖS 0';
+    durusZorunluAksiyonGuncelle_();
+    aiFmeaEslesmeYokAksiyonGuncelle_();
     return;
   }
 
@@ -4541,22 +4567,70 @@ if(runId!==_aiFmeaRunId) return;
     }catch(e){console.warn('AI-FMEA AI katmanı:',e);}
   }
 }
+function aiFmeaEslesmeYokAksiyonSablonlari_(etki) {
+  if (etki === 'TAM DURUŞ') return [
+    'ZORUNLU: İlk müdahale / geçici önlem kayda geçirilecek.',
+    'ZORUNLU: Etkilenen üretim hattı ve kayıp/bekleme etkisi belgelenecek.',
+    'ZORUNLU: Kalıcı çözüm ve tekrar önleme aksiyonu sorumlu/termin ile takip edilecek.',
+    'ZORUNLU: Üretimi durdurma ve yeniden başlatma kararı/onayı kaydedilecek.',
+    'ZORUNLU: Üretim, kalite ve gerekli yönetim bilgilendirmesi kayıt altına alınacak.'
+  ];
+  if (etki === 'KISMİ DURUŞ') return [
+    'ZORUNLU: İlk müdahale / geçici önlem kayda geçirilecek.',
+    'ZORUNLU: Etkilenen makine/hat ve üretim etkisi belgelenecek.',
+    'ZORUNLU: Kalıcı çözüm ve tekrar önleme aksiyonu sorumlu/termin ile takip edilecek.'
+  ];
+  return [];
+}
+function aiFmeaEslesmeYokAksiyonGuncelle_() {
+  const r = (typeof _aiFmeaResult !== 'undefined') ? _aiFmeaResult : null;
+  if (!r || !r.eslesmeYok) return;
+  const etki = String(document.getElementById('durusEtkisi')?.value || r.durusEtkisi || 'DURUŞ YOK').trim();
+  const zorunlu = ['KISMİ DURUŞ','TAM DURUŞ'].includes(etki);
+  r.durusEtkisi = etki;
+  r.zorunluDurusAksiyonu = zorunlu;
+  const neden = r.eslesmeNedeni || 'FMEA MASTER eşleşmesi bulunamadı.';
+  r.actions = zorunlu
+    ? [neden + ' RÖS=0 yalnızca teknik puanın hesaplanamadığını gösterir; duruş aksiyonu zorunludur.', ...aiFmeaEslesmeYokAksiyonSablonlari_(etki)]
+    : [neden + ' Eşleşme/puan verisi olmadığı için RÖS=0 atandı; bu değer doğrulanmış düşük teknik risk anlamına gelmez.'];
+  const actionsEl = document.getElementById('aiFmeaActions');
+  if (actionsEl) actionsEl.innerHTML = r.actions.map(x => `<div class="aifmea-action" style="${zorunlu?'border-left-color:#c62828':''}">${aiFmeaEsc(x)}</div>`).join('');
+  const btn = document.getElementById('aiFmeaApproveBtn');
+  if (btn) btn.disabled = !zorunlu || !!r.takvimeIslendi;
+  const live = document.getElementById('aiFmeaLive');
+  if (live) live.textContent = r.takvimeIslendi ? '● TAKVİME İŞLENDİ' : (zorunlu ? '● EŞLEŞME YOK · DURUŞ AKSİYONU ZORUNLU' : '● EŞLEŞME YOK · RÖS 0');
+  const state = document.getElementById('aiFmeaState');
+  if (state) state.textContent = zorunlu
+    ? 'FMEA eşleşmesi yok; teknik RÖS=0. Ancak ' + etki + ' nedeniyle zorunlu duruş aksiyonu devam eder.'
+    : 'FMEA eşleşmesi bulunamadı. Beklemeden RÖS=0 atandı.';
+  const explain = document.getElementById('aiFmeaExplain');
+  if (explain) explain.textContent = zorunlu
+    ? 'Karar motoru: ' + neden + ' RÖS=0, doğrulanmış düşük risk anlamına gelmez. ' + etki + ' için aksiyon planı oluşturma ve takvime işleme seçeneği açık; formdaki zorunlu aksiyon alanları doldurulmalıdır.'
+    : 'Karar motoru: ' + neden + ' RÖS=0 atandı. Bu sonuç teknik riskin doğrulandığı anlamına gelmez. Duruş etkisi ' + etki + ' olduğu için zorunlu duruş aksiyonu koşulu oluşmadı; veri eşleştiğinde yeniden analiz edilebilir.';
+}
+
 async function aiFmeaOnaylaTakvimeIsle(){
   const r=_aiFmeaResult; if(!r)return showToast('⚠️ Önce AI-FMEA analizi tamamlanmalı.','err');
   if(!currentUser || !['admin','bakim','yonetici','yönetici'].includes(String(currentUser.role||currentUser.rol||'').toLowerCase())) return showToast('🚫 Aksiyon onayı için bakım/yönetici yetkisi gerekiyor.','err');
-  const sorumlu=document.getElementById('rak-sorumlu')?.value?.trim() || (currentUser?.name||'BAKIM');
-  const d=new Date(); d.setDate(d.getDate()+(r.risk.code==='CRITICAL'?1:r.risk.code==='WARNING'?7:14));
-  const termin=d.toISOString().slice(0,10);
+  const durusAksiyonGerekli = durusZorunluAksiyonGerekliMi_();
+  if (durusAksiyonGerekli && !durusZorunluAksiyonKontrol_(true)) return;
+  const durusAksiyon = durusAksiyonGerekli ? durusZorunluAksiyonVerisi_() : null;
+  const sorumlu=(durusAksiyon?.sorumlu || document.getElementById('rak-sorumlu')?.value?.trim() || (currentUser?.name||'BAKIM'));
+  const d=new Date(); d.setDate(d.getDate()+(durusAksiyon?(durusAksiyon.durusEtkisi==='TAM DURUŞ'?0:1):(r.risk.code==='CRITICAL'?1:r.risk.code==='WARNING'?7:14)));
+  const varsayilanTermin=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const termin=durusAksiyon?.termin || document.getElementById('rak-termin')?.value || varsayilanTermin;
   const kaynakId=String(document.getElementById('formNo')?.value||Date.now());
-  const aksiyonMetni=r.actions.join(' | ')+(r.stok.some(p=>ypNum(p.mevcutStok)<=ypNum(p.minimumStok))?' | STOK RİSKİ: satın alma ihtiyacı değerlendirilecek.':'');
+  const durusAksiyonMetni = durusAksiyon ? Object.values(durusAksiyon.aksiyonlar).map(a=>a.label+': '+a.deger).join(' | ') : '';
+  const aksiyonMetni=(durusAksiyon ? ['ZORUNLU DURUŞ AKSİYONU: '+durusAksiyon.durusEtkisi,durusAksiyonMetni,'Sorumlu: '+sorumlu,'Termin: '+termin] : r.actions).join(' | ')+(r.stok.some(p=>ypNum(p.mevcutStok)<=ypNum(p.minimumStok))?' | STOK RİSKİ: satın alma ihtiyacı değerlendirilecek.':'');
   try{
     showLoading(true);
     // Kayıt henüz Sheets'e yazılmadıysa aksiyon sunucusu kaynak kaydı bulamayacağından burada taslak takvim hazırlıyoruz.
-    const plan={id:'AI-'+Date.now(),bolum:document.getElementById('bolum')?.value||'',makine:r.makine,gorev:'AI-FMEA: '+r.kod+' — '+aksiyonMetni.slice(0,180),bakimci:sorumlu,tarih:termin,periyot:'',sure:Math.max(30,r.durus||60),notlar:`AI-FMEA RÖS ${r.ros} · S${r.S}/O${r.O}/D${r.D} · ${r.risk.label}`,durum:'aktif',olusturan:currentUser?.name||'AI-FMEA',olusturmaTarih:yerelYMD(),tamamlayanKisi:'',tamamlamaTarih:''};
+    const plan={id:'AI-'+Date.now(),bolum:document.getElementById('bolum')?.value||'',makine:r.makine,gorev:(durusAksiyon?'ZORUNLU DURUŞ AKSİYONU ('+durusAksiyon.durusEtkisi+'): ':'AI-FMEA: ')+r.kod+' — '+aksiyonMetni.slice(0,180),bakimci:sorumlu,tarih:termin,periyot:'',sure:Math.max(30,r.durus||60),notlar:durusAksiyon?(`ZORUNLU ${durusAksiyon.durusEtkisi} · `+(r.eslesmeYok?'FMEA eşleşmesi yok; RÖS=0 teknik riskin düşük olduğunun doğrulanması değildir.':`AI-FMEA RÖS ${r.ros} · ${r.risk.label}`)):`AI-FMEA RÖS ${r.ros} · S${r.S}/O${r.O}/D${r.D} · ${r.risk.label}`,durum:'aktif',olusturan:currentUser?.name||'AI-FMEA',olusturmaTarih:yerelYMD(),tamamlayanKisi:'',tamamlamaTarih:''};
     await gsPlanlarKaydet(plan);
     const list=planlarYukle(); list.push(plan); planlarKaydet(list); planUyariKontrol();
     document.getElementById('rak-sorumlu').value=sorumlu; document.getElementById('rak-termin').value=termin;
     showToast('✅ AI-FMEA aksiyonu onaylandı ve bakım takvimine işlendi.','ok');
+    if (_aiFmeaResult) _aiFmeaResult.takvimeIslendi = true;
     document.getElementById('aiFmeaApproveBtn').disabled=true; document.getElementById('aiFmeaLive').textContent='● TAKVİME İŞLENDİ';
   }catch(e){showToast('⚠️ Takvim kaydı oluşturulamadı: '+(e?.message||e),'err');}
   finally{showLoading(false);}
@@ -4976,6 +5050,88 @@ function durusAnketBilgisi_() {
   };
 }
 
+const DURUS_ZORUNLU_AKSIYON_ALANLARI_ = [
+  {id:'durusAksiyonIlkOnlem', key:'ilkOnlem', label:'İlk müdahale / geçici önlem'},
+  {id:'durusAksiyonUretimEtkisi', key:'uretimEtkisi', label:'Üretim etkisi / etkilenen makine-hat'},
+  {id:'durusAksiyonKalici', key:'kaliciAksiyon', label:'Kalıcı çözüm / tekrar önleme aksiyonu'}
+];
+function durusZorunluAksiyonGerekliMi_() {
+  const etki = String(document.getElementById('durusEtkisi')?.value || '').trim();
+  return etki === 'KISMİ DURUŞ' || etki === 'TAM DURUŞ';
+}
+function durusZorunluAksiyonAlanlari_(etki) {
+  const alanlar = DURUS_ZORUNLU_AKSIYON_ALANLARI_.slice();
+  if (etki === 'TAM DURUŞ') {
+    alanlar.push(
+      {id:'durusAksiyonDurdurma', key:'durdurmaKarari', label:'Üretimi durdurma / yeniden başlatma kararı'},
+      {id:'durusAksiyonBildirim', key:'bilgilendirme', label:'Üretim / kalite / yönetim bilgilendirmesi'}
+    );
+  }
+  return alanlar;
+}
+function durusZorunluAksiyonEksikleri_() {
+  const etki = String(document.getElementById('durusEtkisi')?.value || '').trim();
+  if (!['KISMİ DURUŞ','TAM DURUŞ'].includes(etki)) return [];
+  const eksik = durusZorunluAksiyonAlanlari_(etki)
+    .filter(a => !String(document.getElementById(a.id)?.value || '').trim())
+    .map(a => a.label);
+  if (!String(document.getElementById('durusAksiyonSorumlu')?.value || '').trim()) eksik.push('Aksiyon sorumlusu');
+  if (!String(document.getElementById('durusAksiyonTermin')?.value || '').trim()) eksik.push('Aksiyon termin tarihi');
+  return eksik;
+}
+function durusZorunluAksiyonKontrol_(mesajGoster=true) {
+  const eksik = durusZorunluAksiyonEksikleri_();
+  if (!eksik.length) return true;
+  if (mesajGoster) {
+    showToast('❗ Duruş aksiyonu zorunlu alanları eksik: ' + eksik.join(', '), 'err');
+    document.getElementById('durusZorunluAksiyonPanel')?.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  return false;
+}
+function durusZorunluAksiyonVerisi_() {
+  const etki = String(document.getElementById('durusEtkisi')?.value || '').trim();
+  if (!['KISMİ DURUŞ','TAM DURUŞ'].includes(etki)) return null;
+  const aksiyonlar = {};
+  durusZorunluAksiyonAlanlari_(etki).forEach(a => {
+    aksiyonlar[a.key] = {
+      label:a.label,
+      deger:String(document.getElementById(a.id)?.value || '').trim(),
+      zorunlu:true
+    };
+  });
+  return {
+    durusEtkisi:etki,
+    aksiyonlar:aksiyonlar,
+    sorumlu:String(document.getElementById('durusAksiyonSorumlu')?.value || '').trim(),
+    termin:String(document.getElementById('durusAksiyonTermin')?.value || '').trim(),
+    fmeaEslesmeYok:!!(typeof _aiFmeaResult !== 'undefined' && _aiFmeaResult?.eslesmeYok),
+    durum:'ZORUNLU DURUŞ AKSİYONU'
+  };
+}
+function durusZorunluAksiyonGuncelle_() {
+  const panel = document.getElementById('durusZorunluAksiyonPanel');
+  if (!panel) return;
+  const etki = String(document.getElementById('durusEtkisi')?.value || '').trim();
+  const gerekli = ['KISMİ DURUŞ','TAM DURUŞ'].includes(etki);
+  panel.style.display = gerekli ? 'block' : 'none';
+  const baslik = document.getElementById('durusZorunluAksiyonBaslik');
+  const aciklama = document.getElementById('durusZorunluAksiyonAciklama');
+  const ekler = document.getElementById('durusTamDurusEkleri');
+  if (baslik) baslik.textContent = etki === 'TAM DURUŞ' ? '🚨 TAM DURUŞ — ZORUNLU ACİL AKSİYONLAR' : '⚠️ KISMİ DURUŞ — ZORUNLU AKSİYONLAR';
+  if (aciklama) aciklama.textContent = etki === 'TAM DURUŞ'
+    ? 'Tam duruşta ilk müdahale, üretim etkisi, kalıcı önlem, durdurma/yeniden başlatma kararı ve ilgili bilgilendirme zorunludur. FMEA eşleşmesi aksiyon gerekliliğini değiştirmez.'
+    : 'Kısmi duruşta ilk müdahale, üretim etkisi, kalıcı önlem, sorumlu ve termin zorunludur. FMEA eşleşmesi aksiyon gerekliliğini değiştirmez.';
+  if (ekler) ekler.style.display = etki === 'TAM DURUŞ' ? 'grid' : 'none';
+  const termin = document.getElementById('durusAksiyonTermin');
+  if (gerekli && termin && !termin.value) {
+    const d = new Date();
+    if (etki === 'KISMİ DURUŞ') d.setDate(d.getDate()+1);
+    const pad = n => String(n).padStart(2,'0');
+    termin.value = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+  if (typeof aiFmeaEslesmeYokAksiyonGuncelle_ === 'function') aiFmeaEslesmeYokAksiyonGuncelle_();
+}
+
 function durusAnketGorunumGuncelle_(bilgi) {
   const sonuc = document.getElementById('durusAnketSonuc');
   if (!sonuc) return;
@@ -5010,6 +5166,7 @@ function durusEtkisiGuncelle_() {
       sonuc.setAttribute('data-seviye','PLANLI DURUŞ');
       sonuc.textContent = '📘 PLANLI BAKIM seçildi: duruş etkisi otomatik olarak PLANLI DURUŞ.';
     }
+    durusZorunluAksiyonGuncelle_();
     return;
   }
 
@@ -5018,12 +5175,14 @@ function durusEtkisiGuncelle_() {
   if (!sorulacak) {
     el.value = 'DURUŞ YOK';
     durusAnketGorunumGuncelle_(null);
+    durusZorunluAksiyonGuncelle_();
     return;
   }
 
   const bilgi = durusAnketBilgisi_();
   el.value = bilgi?.durusEtkisi || 'DURUŞ YOK';
   durusAnketGorunumGuncelle_(bilgi);
+  durusZorunluAksiyonGuncelle_();
 }
 
 function onBolum() {
@@ -5254,6 +5413,9 @@ async function kaydet() {
     }
     genFormNo(); // Ekrandaki ön izleme; kesin numarayı sunucu verir.
   }
+
+  // Kaydetmeden hemen önce duruş sınıfını cevaplardan yeniden hesapla.
+  durusEtkisiGuncelle_();
 
   const req = [
     ['islem','İşlem Türü'], ['formNo','Form No'], ['bolum','Bölüm'],
@@ -10388,7 +10550,7 @@ function kayittaRiskAksiyonuVar_(kayit) {
   try {
     const raw = kayit?.riskAksiyon;
     const obj = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
-    return !!(obj && obj.seviye && obj.aksiyonlar);
+    return !!(obj && ((obj.seviye && obj.aksiyonlar) || obj.durusZorunluAksiyon));
   } catch (_) { return false; }
 }
 
@@ -10414,6 +10576,10 @@ function getRiskAksiyonData() {
   const durusAnket = durusAnketBilgisi_();
   if (durusAnket) rak.durusAnket = durusAnket;
 
+  // Kısmi/tam duruş aksiyonları ayrı alan olmadan mevcut riskAksiyon JSON içinde saklanır.
+  const durusAksiyon = durusZorunluAksiyonVerisi_();
+  if (durusAksiyon) rak.durusZorunluAksiyon = durusAksiyon;
+
   // Yeni sütun eklemeden FMEA sonucu mevcut riskAksiyon JSON alanında saklanır.
   const fmea = _aiFmeaResult;
   const aktifMakine = String(document.getElementById('makine')?.value || '').trim().toUpperCase();
@@ -10432,6 +10598,8 @@ function getRiskAksiyonData() {
 }
 
 function riskAksiyonZorunluKontrol() {
+  // Kısmi/tam duruş aksiyonları FMEA eşleşmesinden ve teknik risk panelinden bağımsız zorunludur.
+  if (!durusZorunluAksiyonKontrol_(true)) return false;
   const panel = document.getElementById('riskAksiyonPanel');
   if (!panel || panel.style.display==='none') return true;
   const seviye = document.getElementById('riskSeviye')?.value;
@@ -10490,6 +10658,13 @@ function renderRiskAksiyonDetay(rakStr) {
     }
   }
 
+  const za = rak.durusZorunluAksiyon;
+  if (za && za.aksiyonlar) {
+    const renk = za.durusEtkisi === 'TAM DURUŞ' ? '#b71c1c' : '#9a4b00';
+    const satirlar = Object.values(za.aksiyonlar).map(a => `<div style="margin:7px 0"><div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:${renk};text-transform:uppercase">${esc(a.label || '')} <span style="background:${renk};color:#fff;border-radius:3px;padding:1px 5px;font-size:9px">ZORUNLU</span></div><div style="font-size:13px;background:#fff;padding:7px 9px;border-radius:5px;margin-top:3px">${esc(a.deger || '')}</div></div>`).join('');
+    blocks += `<div style="background:#fffafa;border:1.5px solid ${renk}55;border-left:5px solid ${renk};border-radius:9px;padding:13px 15px;margin-bottom:12px"><div style="font-weight:900;font-size:12px;letter-spacing:.5px;margin-bottom:8px">🚨 ZORUNLU DURUŞ AKSİYONLARI — ${esc(za.durusEtkisi || '')}</div>${satirlar}<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#555;margin-top:8px;padding-top:8px;border-top:1px solid #eee"><span>👤 Sorumlu: <strong>${esc(za.sorumlu || '—')}</strong></span><span>📅 Termin: <strong>${esc(za.termin || '—')}</strong></span></div>${za.fmeaEslesmeYok?'<div style="font-size:11px;color:#9a4b00;margin-top:8px">FMEA eşleşmesi yoktu; duruş aksiyonu bağımsız olarak zorunlu tutuldu.</div>':''}</div>`;
+  }
+
   const d = rak.durusAnket;
   if (d) {
     const etkiRenk = d.durusEtkisi === 'TAM DURUŞ' ? '#b71c1c' : d.durusEtkisi === 'KISMİ DURUŞ' ? '#9a4b00' : '#1b5e20';
@@ -10519,20 +10694,24 @@ function renderRiskAksiyonOzet(veri) {
   tbody.innerHTML = aksiyonluKayitlar.map(k=>{
     let rak; try{rak=JSON.parse(k.riskAksiyon);}catch{return '';}
     if (!rak) return '';
-    const renk = renkMap[rak.seviye]||'#888';
-    const ilkAksiyon = Object.values(rak.aksiyonlar||{})[0]?.deger||'';
+    const durusZ = rak.durusZorunluAksiyon || null;
+    const renk = renkMap[rak.seviye] || (durusZ?.durusEtkisi === 'TAM DURUŞ' ? '#b71c1c' : durusZ ? '#e65100' : '#888');
+    const ilkAksiyon = Object.values(rak.aksiyonlar||{})[0]?.deger || Object.values(durusZ?.aksiyonlar||{})[0]?.deger || '';
     const kisa = ilkAksiyon.slice(0,45)+(ilkAksiyon.length>45?'…':'');
+    const terminDegeri = rak.termin || durusZ?.termin || '';
+    const sorumluDegeri = rak.sorumlu || durusZ?.sorumlu || '';
     const today = new Date().toISOString().split('T')[0];
-    const gecti = rak.termin&&rak.termin<today;
-    const terminBadge = rak.termin
-      ? `<span style="background:${gecti?'rgba(211,47,47,.1)':'rgba(0,135,90,.08)'};color:${gecti?'#d32f2f':'#00875a'};border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700">${rak.termin}${gecti?' ⚠️':''}</span>`
+    const gecti = terminDegeri && terminDegeri<today;
+    const terminBadge = terminDegeri
+      ? `<span style="background:${gecti?'rgba(211,47,47,.1)':'rgba(0,135,90,.08)'};color:${gecti?'#d32f2f':'#00875a'};border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700">${terminDegeri}${gecti?' ⚠️':''}</span>`
       : '—';
+    const seviyeEtiket = rak.seviye ? rak.seviye+' RİSK' : (durusZ?.durusEtkisi || 'DURUŞ')+' — ZORUNLU AKSİYON';
     return `<tr>
       <td style="font-family:'IBM Plex Mono',monospace;color:#b8900a;font-weight:600">${k.formNo}</td>
       <td><strong>${k.makine}</strong><br><span style="font-size:11px;color:#888">${k.bolum}</span></td>
-      <td><span style="background:${renk}18;color:${renk};border:1px solid ${renk}44;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${rak.seviye}</span></td>
+      <td><span style="background:${renk}18;color:${renk};border:1px solid ${renk}44;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${seviyeEtiket}</span></td>
       <td style="font-size:12px;color:#555">${kisa||'—'}</td>
-      <td style="font-size:12px">${rak.sorumlu||'—'}</td>
+      <td style="font-size:12px">${sorumluDegeri||'—'}</td>
       <td>${terminBadge}</td>
       <td><button onclick="detayAc(${k.id})" style="background:rgba(2,119,189,.1);border:1px solid rgba(2,119,189,.3);border-radius:4px;color:#0277bd;cursor:pointer;padding:3px 8px;font-size:11px">Detay</button></td>
     </tr>`;
