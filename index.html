@@ -1236,7 +1236,7 @@ tr:last-child td { border-bottom: none; }
           <label>BÖLÜM <span class="req">*</span></label>
           <select id="bolum" onchange="onBolum()">
             <option value="">— Bölüm Seçiniz —</option>
-            <option>TEST</option><option>KESİM</option><option>ÜRETİM HATLARI</option>
+            <option>BAKIM</option><option>TEST</option><option>KESİM</option><option>ÜRETİM HATLARI</option>
             <option>TESİS</option><option>HAZIRLIK</option><option>KALIPLAR</option>
             <option>ALT MONTAJ</option><option>DEPO &amp; SEVKİYAT</option><option>ÜRETİM BORDLARI</option>
           </select>
@@ -4972,6 +4972,7 @@ document.addEventListener('click', function(e) {
 
 // ── BÖLÜM MAKİNELERİ ─────────────────────────
 const BOLUM_MAKINELER = {
+  'BAKIM': ['KGC-01'],
   'TEST': ['TP-01','TP-02','TP-03','TP-04','TP-05','TP-06','TP-07','TP-08',
            'TP-09','TP-10','TP-11','TP-12','TP-13','TP-14','TP-15'],
   'KESİM': ['OKM-01','OKM-02','OKM-03','OKM-04','OKM-05',
