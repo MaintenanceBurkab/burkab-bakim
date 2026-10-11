@@ -2330,6 +2330,11 @@ tr:last-child td { border-bottom: none; }
       <button class="btn-gen" onclick="kalModalAc()" style="margin-left:auto;font-size:12px;padding:6px 14px;">+ Cihaz Ekle</button>
     </div>
     <div class="section-body">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button id="kal-yenile" class="btn-gen" onclick="kalSheetsYukle()">Sheets'ten yenile</button>
+        <button id="kal-aktar" class="btn-gen" onclick="kalEksikleriAktar()">Eksik / bekleyen cihazları Sheets'e aktar</button>
+      </div>
+      <div id="kal-sync" role="status" style="font-size:13px;margin-bottom:12px">Sheets bağlantısı henüz kontrol edilmedi.</div>
       <div id="kal-banner" style="display:none;background:#fde8e8;border:1.5px solid #d32f2f;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#d32f2f;font-weight:600;"></div>
       <div class="tbl-wrap">
         <table>
@@ -3174,6 +3179,7 @@ function applyRoleUI(role) {
     // Kalibrasyon tabını aktif yap
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-kalibrasyon').classList.add('active');
+    renderKalibrasyon(); kalSheetsYukle();
 
   } else if (role === 'yonetici' || role === 'uretim') {
     navTabs.innerHTML = `
@@ -4700,7 +4706,7 @@ function goTab(id, btn) {
   if (id === 'yedekstok') { ypVerileriYukle(); }
   if (id === 'kritikparca') { ypVerileriYukle(); yplGecmisYukle(); }
   if (id === 'ai') { aiInitPanel(); }
-  if (id === 'kalibrasyon') { renderKalibrasyon(); }
+  if (id === 'kalibrasyon') { renderKalibrasyon(); kalSheetsYukle(); }
   if (id === 'ekipman') {
     /* IATF 7.1.3 — önce Sheets'ten güncelle, sonra listele */
     gsEkipmanYukle().then(() => renderEkipmanListesi());
@@ -10252,15 +10258,110 @@ function islemAlOnayla(id) {
 // KALİBRASYON SİSTEMİ
 // ══════════════════════════════════════════════
 const KAL_KEY = 'burkab_kalibrasyon_v1';
-const KAL_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwRPDHyAfhz0CI4CeyT6w2VbDkwRXegB1CIK1hJld7p8oDHtQmcFHdqwRS-MJGdII-3/exec';
-
-function kalYukle() { try { return JSON.parse(localStorage.getItem(KAL_KEY) || '[]'); } catch { return []; } }
-function kalKaydet(list) { try { localStorage.setItem(KAL_KEY, JSON.stringify(list)); } catch {} }
+let _kalIslem = false;
+let _kalSyncMesaj = 'Sheets bağlantısı henüz kontrol edilmedi.';
+function kalYukle() {
+  try { const a=JSON.parse(localStorage.getItem(KAL_KEY)||'[]'); return Array.isArray(a)?a:[]; } catch { return []; }
+}
+function kalKaydet(list) { localStorage.setItem(KAL_KEY, JSON.stringify(list)); }
+function kalNo(v) { return String(v??'').trim().toLocaleUpperCase('tr-TR'); }
+function kalEscape(v) { return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function kalYetkili() { return !!currentUser && (currentUser.role==='kalite' || kullanicininYetkisiVarMi('kalibrasyon')); }
+function kalOturum() { return currentUser ? String(currentUser.username||currentUser.name)+'|'+String(currentUser.token||'') : ''; }
+function kalSyncGoster(m) {
+  if(m) _kalSyncMesaj=m;
+  const el=document.getElementById('kal-sync');
+  const bekleyen=kalYukle().filter(c=>c.syncDurum!=='SYNCED').length;
+  if(el) el.textContent=_kalSyncMesaj+(bekleyen?' • '+bekleyen+' cihaz için Sheets kaydı / fark kontrolü gerekiyor.':'');
+  ['kal-aktar','kal-yenile','kal-kaydet'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=_kalIslem;});
+  const modal=document.getElementById('kal-modal-overlay');
+  if(modal)modal.querySelectorAll('input,select,textarea,button').forEach(el=>{el.disabled=_kalIslem;});
+}
+function kalSunucuKaydi(c) {
+  return {CihazNo:c.no,CihazAdi:c.adi,Bolum:c.bolum,LabTur:c.labTur||'İç',
+    SonTarih:c.sonTarih,Periyot:String(c.periyot),SonrakiTarih:c.sonrakiOverride||c.sonraki||'',
+    SertifikaNo:c.sertifika||'',Not:c.not||'',Kullanici:currentUser?.name||'',
+    EskiCihazNo:c.sheetsNo||c.no};
+}
+function kalSatirdan(r,id) {
+  const sonTarih=bakimGun_(r.SonTarih)||'', periyot=Number(r.Periyot)||180;
+  const sonraki=kalSonrakiHesapla(sonTarih,periyot), merkezi=bakimGun_(r.SonrakiTarih)||'';
+  return {id:id||'KS-'+Array.from(kalNo(r.CihazNo)).map(c=>c.codePointAt(0).toString(16)).join('-'),no:String(r.CihazNo).trim(),
+    adi:r.CihazAdi||'',bolum:r.Bolum||'',labTur:r.LabTur||'İç',sonTarih,periyot,sonraki,
+    sonrakiOverride:merkezi && merkezi!==sonraki?merkezi:null,sertifika:r.SertifikaNo||'',not:r.Not||'',
+    sheetsNo:String(r.CihazNo).trim(),syncDurum:'SYNCED'};
+}
+function kalAyni(a,b) {
+  const x=kalSunucuKaydi(a),y=kalSunucuKaydi(b);
+  return ['CihazAdi','Bolum','LabTur','SonTarih','Periyot','SonrakiTarih','SertifikaNo','Not'].every(k=>String(x[k]||'')===String(y[k]||''));
+}
+function kalBirlestir(rows) {
+  const merkezi=new Map();
+  rows.forEach(r=>{if(!kalNo(r.CihazNo))return;const key=kalNo(r.CihazNo);
+    if(merkezi.has(key))throw new Error('Sheets içinde mükerrer cihaz numarası: '+r.CihazNo);
+    merkezi.set(key,r);});
+  const sonuc=[];
+  kalYukle().forEach(c=>{
+    const key=kalNo(c.sheetsNo||c.no),r=merkezi.get(key);
+    if(r){
+      const remote=kalSatirdan(r,c.id);
+      if(c.syncDurum==='PENDING') sonuc.push(c);
+      else if(c.syncDurum==='SYNCED'||kalAyni(c,remote))sonuc.push(remote);
+      else sonuc.push({...c,syncDurum:'CONFLICT',sheetsNo:r.CihazNo});
+      merkezi.delete(key);
+    }else if(c.syncDurum!=='SYNCED')sonuc.push({...c,syncDurum:c.syncDurum==='PENDING'?'PENDING':'MISSING'});
+  });
+  merkezi.forEach(r=>sonuc.push(kalSatirdan(r)));
+  kalKaydet(sonuc);renderKalibrasyon();
+  return sonuc;
+}
+async function kalSheetsOku() {
+  const oturum=kalOturum();
+  if(!oturum)throw new Error('Önce giriş yapın.');
+  const res=await gsRequest({action:'getKalibrasyon'});
+  if(oturum!==kalOturum())throw new Error('Oturum değişti; tekrar giriş yapın.');
+  if(res?.ok!==true||!Array.isArray(res.data))throw new Error(res?.error||'Kalibrasyon listesi alınamadı.');
+  kalBirlestir(res.data);return res.data;
+}
+async function kalSheetsYukle() {
+  if(_kalIslem)return;
+  _kalIslem=true;kalSyncGoster('Sheets kontrol ediliyor…');
+  try { await kalSheetsOku();kalSyncGoster('Sheets listesi kontrol edildi.'); }
+  catch(e){kalSyncGoster('Sheets okunamadı: '+e.message+' Yerel cihazlar korundu.');}
+  finally{_kalIslem=false;kalSyncGoster();}
+}
+async function kalSheetsYaz(c,sadeceEksik=false) {
+  if(!kalYetkili())throw new Error('Kalibrasyon kayıt yetkiniz yok.');
+  if(navigator.onLine===false)throw new Error('Çevrimdışı; bağlantı gelince tekrar aktarın.');
+  const oturum=kalOturum(),kayit={...kalSunucuKaydi(c),SadeceEksik:sadeceEksik};
+  const res=await gsRequest({action:'saveKalibrasyon',kayit});
+  if(oturum!==kalOturum())throw new Error('Oturum değişti; tekrar giriş yapın.');
+  if(res?.ok!==true||kalNo(res.CihazNo)!==kalNo(c.no))throw new Error(res?.error||'Sheets kaydı doğrulanamadı; güncel sunucu sürümünü kontrol edin.');
+  const rows=kalYukle(),idx=rows.findIndex(x=>x.id===c.id);
+  if(idx>=0)rows[idx]=res.mode==='exists'&&res.kayit?kalSatirdan(res.kayit,c.id):{...c,syncDurum:'SYNCED',sheetsNo:c.no};
+  kalKaydet(rows);return res;
+}
+async function kalEksikleriAktar() {
+  if(_kalIslem)return;
+  if(!kalYetkili()){showToast('Kalibrasyon aktarım yetkiniz yok.','err');return;}
+  _kalIslem=true;kalSyncGoster('Eksik cihazlar kontrol ediliyor…');
+  let tamam=0;
+  try {
+    await kalSheetsOku();
+    const bekleyen=kalYukle().filter(c=>['MISSING','PENDING'].includes(c.syncDurum));
+    for(const c of bekleyen){await kalSheetsYaz(c,c.syncDurum==='MISSING');tamam++;}
+    const fark=kalYukle().filter(c=>c.syncDurum==='CONFLICT').length;
+    kalSyncGoster(tamam+' cihaz Sheets kaydı doğrulandı.'+(fark?' '+fark+' cihazda yerel / Sheets farkı var; Düzenle ile kontrol edip kaydedin.':''));
+    showToast(tamam?tamam+' cihaz Sheets ile eşitlendi.':fark?'Farklı kayıtları Düzenle ile kontrol edin.':'Eksik cihaz yok.','ok');
+  } catch(e){kalSyncGoster(tamam+' cihaz doğrulandı. Aktarım durdu: '+e.message);showToast('Aktarım tamamlanamadı; bekleyen cihazlar korundu. '+e.message,'err');}
+  finally{_kalIslem=false;renderKalibrasyon();kalSyncGoster();}
+}
 
 function kalSonrakiHesapla(sonTarih, periyotGun) {
   if (!sonTarih) return '';
-  const d = new Date(sonTarih);
-  d.setDate(d.getDate() + parseInt(periyotGun || 180));
+  const d = new Date(sonTarih+'T00:00:00Z');
+  if(!Number.isFinite(d.getTime()))return '';
+  d.setUTCDate(d.getUTCDate() + parseInt(periyotGun || 180));
   return d.toISOString().split('T')[0];
 }
 
@@ -10276,6 +10377,7 @@ function kalDurum(c) {
 }
 
 function renderKalibrasyon() {
+  kalSyncGoster();
   const cihazlar = kalYukle();
   const tbody = document.getElementById('kal-tbody');
   if (!tbody) return;
@@ -10304,14 +10406,14 @@ function renderKalibrasyon() {
                                       : '<span class="kal-ok">🟢 OK</span>';
     const gosterilen = c.sonrakiOverride || c.sonraki || '—';
     return `<tr>
-      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${c.no}</td>
-      <td><strong>${c.adi}</strong></td>
-      <td>${c.bolum}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${kalEscape(c.no)}</td>
+      <td><strong>${kalEscape(c.adi)}</strong><br><small>${c.syncDurum==='SYNCED'?'☁ Sheets kaydı doğrulandı':c.syncDurum==='CONFLICT'?'⚠ Yerel / Sheets farkı var':'⚠ Sheets kaydı bekliyor'}</small></td>
+      <td>${kalEscape(c.bolum)}</td>
       <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${c.sonTarih || '—'}</td>
       <td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${gosterilen}</td>
       <td style="text-align:center">${c.periyot} gün</td>
       <td style="text-align:center"><span style="background:${c.labTur==='İç'?'#e3f2fd':'#fff3e0'};color:${c.labTur==='İç'?'#0277bd':'#e65100'};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">${c.labTur||'—'}</span></td>
-      <td style="font-size:12px;font-family:'IBM Plex Mono',monospace">${c.sertifika || '—'}</td>
+      <td style="font-size:12px;font-family:'IBM Plex Mono',monospace">${kalEscape(c.sertifika || '—')}</td>
       <td>${durLabel}</td>
       <td style="white-space:nowrap">
         <button onclick="kalDuzenle('${c.id}')" style="background:#e3f2fd;color:#0277bd;border:none;border-radius:5px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px">Düzenle</button>
@@ -10323,6 +10425,7 @@ function renderKalibrasyon() {
 
 // ── KALİBRASYON MODAL ─────────────────────────
 function kalModalAc(id) {
+  if(_kalIslem){showToast('Sheets işlemi sürüyor; tamamlanmasını bekleyin.','err');return;}
   // Modal yoksa oluştur
   let overlay = document.getElementById('kal-modal-overlay');
   if (!overlay) {
@@ -10333,7 +10436,7 @@ function kalModalAc(id) {
       <div class="kal-modal">
         <div class="kal-modal-head">
           <h3 id="kal-modal-baslik">Cihaz Ekle / Düzenle</h3>
-          <button ="kalModalKapat()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">✕</button>
+          <button onclick="kalModalKapat()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">✕</button>
         </div>
         <div class="kal-modal-body">
           <input type="hidden" id="kal-edit-id">
@@ -10377,7 +10480,7 @@ function kalModalAc(id) {
         </div>
         <div class="kal-modal-footer">
           <button onclick="kalModalKapat()" style="background:transparent;border:1.5px solid #c8d4e3;color:#666;border-radius:7px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer">İptal</button>
-          <button onclick="kalFormKaydet()" class="btn-kaydet" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0">💾 Kaydet</button>
+          <button id="kal-kaydet" onclick="kalFormKaydet()" class="btn-kaydet" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0">💾 Kaydet</button>
         </div>
       </div>`;
     overlay.addEventListener('click', e => { if (e.target === overlay) kalModalKapat(); });
@@ -10412,104 +10515,54 @@ function kalModalAc(id) {
 }
 
 function kalModalKapat() {
+  if(_kalIslem)return;
   const o = document.getElementById('kal-modal-overlay');
   if (o) o.classList.remove('open');
 }
 
-function kalFormKaydet() {
-  const no      = document.getElementById('kal-no').value.trim();
-  const adi     = document.getElementById('kal-adi').value.trim();
-  const bolum   = document.getElementById('kal-bolum').value;
-  const sonTarih= document.getElementById('kal-son').value;
-  if (!no || !adi || !bolum || !sonTarih) { showToast('❗ Zorunlu alanları doldurun!', 'err'); return; }
-
-  const periyot  = parseInt(document.getElementById('kal-periyot').value) || 180;
-  const override = document.getElementById('kal-override').value || null;
-  const sertifika= document.getElementById('kal-sert').value.trim();
-  const not      = document.getElementById('kal-not').value.trim();
-  const labTur   = document.getElementById('kal-lab').value;
-  const editId   = document.getElementById('kal-edit-id').value;
-  const sonraki  = kalSonrakiHesapla(sonTarih, periyot);
-
-  const cihazlar = kalYukle();
-  if (editId) {
-    const idx = cihazlar.findIndex(x => x.id === editId);
-    if (idx >= 0) cihazlar[idx] = { ...cihazlar[idx], no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not };
-    showToast('✅ Cihaz güncellendi!', 'ok');
-  } else {
-    cihazlar.push({ id: 'K' + Date.now(), no, adi, bolum, labTur, sonTarih, periyot, sonraki, sonrakiOverride: override, sertifika, not });
-    showToast('✅ Cihaz eklendi!', 'ok');
-    // Google Sheets'e de yaz
-    kalSheetsYaz({ no, adi, bolum, labTur, sonTarih, periyot, sonraki: override||sonraki, sertifika, not });
-  }
-  kalKaydet(cihazlar);
-  adminLogEkle(`Kalibrasyon ${editId ? 'güncellendi' : 'eklendi'}: ${adi} (${no})`);
-  kalModalKapat();
-  renderKalibrasyon();
+async function kalFormKaydet() {
+  if(_kalIslem)return;
+  if(!kalYetkili()){showToast('Kalibrasyon kayıt yetkiniz yok.','err');return;}
+  const val=id=>document.getElementById(id).value.trim();
+  const no=val('kal-no'),adi=val('kal-adi'),bolum=val('kal-bolum'),sonTarih=val('kal-son');
+  if(!no||!adi||!bolum||!sonTarih){showToast('Zorunlu alanları doldurun.','err');return;}
+  const periyot=Number(val('kal-periyot'));
+  if(!Number.isInteger(periyot)||periyot<=0||!bakimGun_(sonTarih)){showToast('Tarih / periyot geçersiz.','err');return;}
+  const cihazlar=kalYukle(),editId=val('kal-edit-id'),onceki=cihazlar.find(x=>x.id===editId);
+  if(cihazlar.some(x=>kalNo(x.no)===kalNo(no)&&x.id!==editId)){showToast('Bu cihaz numarası zaten kayıtlı.','err');return;}
+  const c={...onceki,id:onceki?.id||'K'+Date.now()+'-'+Math.floor(Math.random()*100000),no,adi,bolum,
+    sheetsNo:onceki?.sheetsNo||onceki?.no,labTur:val('kal-lab'),sonTarih,periyot,sonraki:kalSonrakiHesapla(sonTarih,periyot),
+    sonrakiOverride:val('kal-override')||null,sertifika:val('kal-sert'),not:val('kal-not'),syncDurum:'PENDING'};
+  _kalIslem=true;kalSyncGoster('Sheets kaydı gönderiliyor…');
+  let basarili=false;
+  try {
+    const idx=cihazlar.findIndex(x=>x.id===c.id);
+    if(idx>=0)cihazlar[idx]=c;else cihazlar.push(c);
+    // Önce kurtarılabilir taslak; başarı yalnızca Sheets onayından sonra.
+    kalKaydet(cihazlar);document.getElementById('kal-edit-id').value=c.id;
+    await kalSheetsYaz(c);
+    adminLogEkle('Kalibrasyon Sheets kaydı: '+adi+' ('+no+')');
+    basarili=true;kalSyncGoster('Cihaz Sheets kaydı doğrulandı.');showToast('Cihaz Google Sheets’e kaydedildi.','ok');
+  }catch(e){kalSyncGoster('Sheets kaydı tamamlanamadı: '+e.message);showToast('Sheets kaydı başarısız; formu koruduk. '+e.message,'err');}
+  finally{_kalIslem=false;if(basarili)kalModalKapat();renderKalibrasyon();kalSyncGoster();}
 }
-
 function kalDuzenle(id) { kalModalAc(id); }
-
-function kalSil(id) {
-  const cihazlar = kalYukle();
-  const c = cihazlar.find(x => x.id === id);
-  if (!c || !confirm(`${c.adi} (${c.no}) silinsin mi?`)) return;
-  kalKaydet(cihazlar.filter(x => x.id !== id));
-  adminLogEkle(`Kalibrasyon silindi: ${c.adi} (${c.no})`);
-  renderKalibrasyon();
-  showToast('🗑️ Cihaz silindi.', 'ok');
-}
-
-const KAL_COLS = ['CihazNo','CihazAdi','Bolum','LabTur','SonTarih','Periyot',
-                  'SonrakiTarih','SertifikaNo','Not','Kullanici','Zaman'];
-
-function kalSheetsYaz(veri) {
-  // Apps Script'e GET ile gönder (no-cors POST'tan daha güvenilir)
-  const row = [
-    veri.no, veri.adi, veri.bolum, veri.labTur,
-    veri.sonTarih, String(veri.periyot), veri.sonraki || '',
-    veri.sertifika || '', veri.not || '',
-    currentUser ? currentUser.name : '—',
-    new Date().toLocaleString('tr-TR')
-  ];
-
-  // Önce init (başlık satırı)
-  const initCb = 'kal_init_' + Date.now();
-  const initScript = document.createElement('script');
-  window[initCb] = () => { delete window[initCb]; initScript.remove(); };
-  initScript.onerror = () => { delete window[initCb]; initScript.remove(); };
-  const initParams = new URLSearchParams({
-    callback: initCb,
-    action: 'init',
-    sheet: 'Kalibrasyon',
-    headers: JSON.stringify(KAL_COLS)
-  });
-  initScript.src = GS_URL + '?' + initParams.toString();
-  document.head.appendChild(initScript);
-
-  // Sonra save (veri satırı)
-  setTimeout(() => {
-    const saveCb = 'kal_save_' + Date.now();
-    const saveScript = document.createElement('script');
-    window[saveCb] = (res) => {
-      delete window[saveCb]; saveScript.remove();
-      showToast('☁️ Kalibrasyon → Sheets\'e kaydedildi ✓', 'ok');
-    };
-    saveScript.onerror = () => {
-      delete window[saveCb]; saveScript.remove();
-      showToast('⚠️ Sheets bağlantısı yok — local\'de kaydedildi', 'err');
-    };
-    const saveParams = new URLSearchParams({
-      callback: saveCb,
-      action: 'save',
-      sheet: 'Kalibrasyon',
-      headers: JSON.stringify(KAL_COLS),
-      row: JSON.stringify(row)
-    });
-    saveScript.src = GS_URL + '?' + saveParams.toString();
-    document.head.appendChild(saveScript);
-    setTimeout(() => { delete window[saveCb]; saveScript.remove(); }, 10000);
-  }, 800);
+async function kalSil(id) {
+  if(_kalIslem)return;
+  if(!kalYetkili()){showToast('Kalibrasyon silme yetkiniz yok.','err');return;}
+  const c=kalYukle().find(x=>x.id===id);
+  if(!c||!confirm(c.adi+' ('+c.no+') Sheets ve cihaz listesinden silinsin mi?'))return;
+  _kalIslem=true;kalSyncGoster('Cihaz siliniyor…');
+  try {
+    const oturum=kalOturum();
+    const no=c.sheetsNo||c.no;
+    const res=await gsRequest({action:'deleteKalibrasyon',CihazNo:no});
+    if(oturum!==kalOturum())throw new Error('Oturum değişti.');
+    if(res?.ok!==true||kalNo(res.CihazNo)!==kalNo(no))throw new Error(res?.error||'Sheets silme onayı alınamadı.');
+    kalKaydet(kalYukle().filter(x=>x.id!==id));
+    adminLogEkle('Kalibrasyon silindi: '+c.adi+' ('+c.no+')');showToast('Cihaz Sheets ve listeden silindi.','ok');kalSyncGoster('Silme işlemi doğrulandı.');
+  }catch(e){showToast('Cihaz silinemedi; kayıt korundu. '+e.message,'err');kalSyncGoster('Silme tamamlanamadı: '+e.message);}
+  finally{_kalIslem=false;renderKalibrasyon();kalSyncGoster();}
 }
 
 // ══════════════════════════════════════════════
@@ -11171,7 +11224,7 @@ window.planSil = async function(id) {
 };
 const _ym_kalFormKaydet = window.kalFormKaydet;
 window.kalFormKaydet = function() {
-  if(!kullanicininYetkisiVarMi('kalibrasyon')) { showToast('🚫 Kalibrasyon işlemi için yetkiniz yok!','err'); return; }
+  if(!kalYetkili()) { showToast('🚫 Kalibrasyon işlemi için yetkiniz yok!','err'); return; }
   return _ym_kalFormKaydet?.apply(this,arguments);
 };
 const _ym_egitimKaydet = window.egitimKaydet;
