@@ -3,36 +3,35 @@
 <style>
 :root{--navy:#10263f;--blue:#1769aa;--light:#f3f6fa;--line:#d9e1eb;--text:#172b40;--muted:#65758a;--green:#18794e;--red:#b42318;--amber:#9a6700}*{box-sizing:border-box}body{margin:0;background:var(--light);font:14px/1.45 Arial,Helvetica,sans-serif;color:var(--text)}header{background:linear-gradient(120deg,#10263f,#1a4e79);color:#fff;padding:22px max(18px,calc((100% - 1180px)/2));}header .brand{font-size:12px;letter-spacing:1.5px;opacity:.8;font-weight:bold}header h1{font-size:23px;margin:6px 0}header p{margin:0;color:#d9e8f6}.wrap{max-width:1180px;margin:20px auto;padding:0 14px 60px}.notice{background:#fff8e6;border:1px solid #f0d48a;border-radius:10px;padding:12px 14px;margin-bottom:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:bold;cursor:pointer;background:var(--blue);color:white}.btn.secondary{background:#e5edf6;color:var(--navy);border:1px solid #cbd8e6}.btn.danger{background:#a72a24}.card{background:white;border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 2px 7px #142c4408}.card h2{font-size:16px;margin:0 0 14px;color:var(--navy);border-bottom:1px solid var(--line);padding-bottom:9px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.field{min-width:0}.field label{display:block;font-size:12px;font-weight:bold;color:#506176;margin-bottom:5px}.field input,.field select,.field textarea,textarea,input[type=number],input[type=date],input[type=time]{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;background:#fff;color:var(--text)}.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid #8dc5f1;border-color:#1769aa}.span2{grid-column:span 2}.span4{grid-column:1/-1}.muted{font-size:12px;color:var(--muted)}.section-title{background:#eaf1f8;padding:10px 12px;border-radius:8px;font-weight:bold;color:#183c5c;margin:18px 0 10px}.checkitem{border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}.itemhead{display:flex;gap:10px;align-items:flex-start}.num{background:#e7f1fb;color:#145a91;border-radius:7px;padding:5px 8px;font-weight:bold;white-space:nowrap}.itemtext{flex:1;font-weight:600}.period{font-size:11px;background:#f0f2f5;padding:4px 7px;border-radius:6px;white-space:nowrap}.choices{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.choice{display:flex;align-items:center;gap:6px;border:1px solid var(--line);padding:7px 10px;border-radius:7px;cursor:pointer}.choice input{width:auto}.choice:has(input:checked){border-color:var(--blue);background:#edf6ff}.itemnote{margin-top:8px}.itemnote textarea{min-height:54px}.media-title{font-size:12px;font-weight:bold;margin:12px 0 7px;color:#506176}.media-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.uploadbox{border:1px dashed #a9b8c9;border-radius:9px;padding:9px;min-height:96px;background:#fbfcfe}.uploadbox label{font-size:12px;font-weight:bold;display:block;margin-bottom:7px}.uploadbox input{font-size:11px;width:100%}.preview{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}.preview img,.preview video{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:zoom-in}.loc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.status{font-weight:bold;padding:8px 10px;border-radius:8px;background:#edf2f7}.status.ok{background:#e8f7ee;color:var(--green)}.status.bad{background:#fff0ef;color:var(--red)}.status.warn{background:#fff7df;color:var(--amber)}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:700px}th,td{border:1px solid var(--line);padding:8px;text-align:left}th{background:#edf2f7;font-size:12px}td input,td select{width:100%;min-width:75px;padding:7px;border:1px solid #cbd5e1;border-radius:5px}.calc{font-weight:bold;background:#f4f7fb}.signgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.signbox{border:1px solid var(--line);border-radius:8px;padding:12px;min-height:120px}.signbox h3{font-size:13px;margin:0 0 10px}.modal{display:none;position:fixed;inset:0;background:#06111edb;z-index:99;align-items:center;justify-content:center;padding:20px}.modal.open{display:flex}.modal-inner{max-width:95vw;max-height:92vh;position:relative}.modal img,.modal video{display:block;max-width:92vw;max-height:85vh;border-radius:8px}.close{position:absolute;right:-10px;top:-14px;border:0;border-radius:50%;width:36px;height:36px;background:white;font-size:22px;cursor:pointer}.progress{height:8px;background:#e5eaf0;border-radius:20px;overflow:hidden;margin-top:8px}.progress div{height:100%;background:#16835c;width:0}.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}.hidden{display:none!important}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.media-grid,.loc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.signgrid{grid-template-columns:1fr}.span4{grid-column:1/-1}header h1{font-size:20px}}@media(max-width:480px){.grid{grid-template-columns:1fr}.span2{grid-column:auto}.itemhead{flex-wrap:wrap}.period{margin-left:auto}.wrap{padding:0 9px 40px}.card{padding:13px}}
-@media print {
-  @page { size: A4 portrait; margin: 5mm; }
-  html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-size: 6pt !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { zoom: 0.72; }
-  .toolbar, .uploadbox input, .btn, .notice { display: none !important; }
-  .wrap { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
-  header { background: #fff !important; color: #111 !important; padding: 1mm 0 !important; margin: 0 0 1mm !important; border-bottom: 1px solid #555 !important; }
-  header .brand { font-size: 6pt !important; margin: 0 !important; }
-  header h1 { font-size: 10pt !important; margin: 1mm 0 !important; }
-  header p { color: #222 !important; font-size: 6pt !important; margin: 0 !important; }
-  #maintenanceForm { margin: 0 !important; padding: 0 !important; }
-  .card { box-shadow: none !important; border: 0.5px solid #aab4bf !important; border-radius: 2px !important; padding: 1.2mm !important; margin: 0 0 1mm !important; break-inside: auto !important; page-break-inside: auto !important; }
-  .card h2 { font-size: 7pt !important; margin: 0 0 1mm !important; padding-bottom: .5mm !important; }
-  .grid { gap: 1mm !important; }
-  .field { gap: .3mm !important; margin: 0 !important; }
-  label { font-size: 5.5pt !important; margin: 0 !important; }
-  input, select, textarea { font-size: 5.5pt !important; padding: .4mm .7mm !important; min-height: 3.5mm !important; height: auto !important; box-shadow: none !important; }
-  textarea { min-height: 5mm !important; }
-  .checkitem { box-shadow: none !important; break-inside: avoid !important; page-break-inside: avoid !important; padding: .8mm !important; margin: 0 0 .5mm !important; }
-  .media-grid, .loc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: .7mm !important; }
-  .uploadbox { min-height: 4mm !important; padding: .7mm !important; margin: .5mm 0 !important; }
-  .preview img { width: 15mm !important; height: 10mm !important; object-fit: contain !important; }
-  .muted, .help, .hint { font-size: 5pt !important; }
-  /* İki yüzlü A4 çıktı: ilk yüz A-C, ikinci yüz D-G. */
-  #maintenanceForm > .card:nth-of-type(4) { break-before: page !important; page-break-before: always !important; }
+@media print{
+  @page{size:A4 landscape;margin:7mm}
+  html,body{background:#fff!important;color:#111!important;font-size:8pt!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:0!important}
+  .toolbar,.uploadbox input,.btn,.notice{display:none!important}
+  .wrap{max-width:none!important;width:100%!important;margin:0!important;padding:0!important}
+  header{background:#fff!important;color:#111!important;padding:3mm 0 2mm!important;border-bottom:1px solid #555!important}
+  header .brand{font-size:8pt!important;letter-spacing:.5px}
+  header h1{font-size:14pt!important;margin:2mm 0!important}
+  header p{color:#333!important;font-size:8pt!important;margin:0!important}
+  .card{box-shadow:none!important;border:1px solid #9aa6b2!important;border-radius:3px!important;padding:2.5mm!important;margin:0 0 2mm!important;break-inside:avoid!important}
+  .card h2{font-size:9pt!important;margin:0 0 2mm!important;padding-bottom:1mm!important}
+  .grid{gap:2mm!important}
+  .field{margin:0!important;gap:1mm!important}
+  label{font-size:7pt!important;margin:0!important}
+  input,select,textarea{font-size:7.5pt!important;padding:1mm 1.5mm!important;min-height:6mm!important;height:auto!important;box-shadow:none!important}
+  textarea{min-height:8mm!important}
+  .checkitem{box-shadow:none!important;break-inside:avoid!important;padding:2mm!important;margin:0 0 1.5mm!important}
+  .media-grid,.loc-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm!important}
+  .uploadbox{min-height:8mm!important;padding:2mm!important}
+  .preview img{width:28mm!important;height:20mm!important;object-fit:contain!important}
+  .muted,.help,.hint{font-size:6.5pt!important}
+  /* İki yüzlü çıktı için formu iki fiziksel sayfaya böl. */
+  #maintenanceForm>.card:nth-of-type(4){break-before:page!important;page-break-before:always!important}
 }
 </style></head><body>
 <header><div class="brand">BURKAB A.Ş. · BAKIM / KALİTE</div><h1>Kesit Görüntüleme Cihazı Periyodik Bakım Formu</h1><p>IDS MS-45D · Kamera IDS UI-1640LE-C-HQ · CrimpLab3</p></header>
 <div class="wrap"><div class="notice"><b>Talimat bağlantısı:</b> Bu form, TL-XX Kesit Görüntüleme Cihazı Periyodik Bakım Talimatı'na uygun doldurulmalıdır. Talimat REF dosyasında görüntülenecektir. <span class="muted">Medya alanları bu prototipte tarayıcıda seçilir; ortak sisteme kalıcı yükleme için ayrıca sunucu/Drive bağlantısı gerekir.</span></div>
-<div class="toolbar"><button class="btn" onclick="saveDraft()">Taslağı bu tarayıcıya kaydet</button><button class="btn secondary" onclick="loadDraft()">Taslağı geri yükle</button><button class="btn secondary" onclick="window.print()">Yazdır / PDF</button><button class="btn secondary" onclick="exportJson()">Veriyi dışa aktar (JSON)</button><button class="btn danger" onclick="clearForm()">Formu temizle</button></div>
+<div class="toolbar"><button class="btn" onclick="saveDraft()">Taslağı bu tarayıcıya kaydet</button><button class="btn secondary" onclick="loadDraft()">Taslağı geri yükle</button><button class="btn secondary" onclick="window.print()">Yazdır / PDF</button><button class="btn secondary" onclick="exportJson()">Veriyi dışa aktar (JSON)</button><button class="btn" type="button" onclick="saveDigitalFormToSystem()">Bakım Formunu Sisteme Kaydet</button><button class="btn danger" onclick="clearForm()">Formu temizle</button></div>
 <form id="maintenanceForm" onsubmit="event.preventDefault();showSummary();">
 <section class="card"><h2>A. CİHAZ BİLGİLERİ</h2><div class="grid">
 <div class="field"><label>Cihaz No</label><input name="cihazNo" value="KGC-01"></div><div class="field"><label>Cihaz Adı</label><input name="cihazAdi" value="IDS / MS-45D"></div><div class="field"><label>Seri No</label><input name="seriNo" value="4103735789"></div><div class="field"><label>Kamera Marka / Model</label><input name="kamera" value="IDS UI-1640LE-C-HQ"></div>
@@ -72,6 +71,27 @@ function formData(){let f=$('maintenanceForm'),o={};new FormData(f).forEach((v,k
 function saveDraft(){try{localStorage.setItem('frxx_kesit_bakim_draft',JSON.stringify(formData()));alert('Form verileri bu tarayıcıya kaydedildi. Fotoğraf/video dosyaları taslakta saklanmaz.');}catch(e){alert('Taslak kaydedilemedi: '+e.message);}}
 function loadDraft(){try{let d=JSON.parse(localStorage.getItem('frxx_kesit_bakim_draft')||'null');if(!d){alert('Kayıtlı taslak bulunamadı.');return;}let f=$('maintenanceForm');Object.entries(d).forEach(([k,v])=>{if(typeof v!=='string')return;let el=f.elements.namedItem(k);if(el)el.value=v;});(d.kontrolMaddeleri||[]).forEach((it,i)=>{let radio=document.querySelector(`input[name="status_${i}"][value="${CSS.escape(it.sonuc)}"]`);if(radio){radio.checked=true;statusChanged(i);}let note=document.querySelector(`[name="note_${i}"]`);if(note)note.value=it.aciklama||'';});(d.olcumler||[]).forEach((m,j)=>{let i=j+1;['olcumAd','nominal','olculen','kabul'].forEach(k=>{let el=document.querySelector(`[name="${k}${i}"]`);if(el)el.value=m[k==='olcumAd'?'ad':k]||'';});calcMeasure(i);});calcParts();calcDuration();applyPeriod();showSummary();alert('Taslak yüklendi. Medya dosyalarını yeniden seçmeniz gerekir.');}catch(e){alert('Taslak yüklenemedi: '+e.message);}}
 function exportJson(){let blob=new Blob([JSON.stringify(formData(),null,2)],{type:'application/json;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='FR-XX_Kesit_Bakim_'+(document.querySelector('[name="tarih"]').value||'tarih-yok')+'.json';a.click();URL.revokeObjectURL(a.href);}
+function saveDigitalFormToSystem(){
+  const apiUrl=(window.BURKAB_GS_URL||'').trim();
+  const authToken=(window.BURKAB_AUTH_TOKEN||'').trim();
+  if(!apiUrl){alert('Google Apps Script Web App URL henüz yapılandırılmadı. Bu formda boş/uydurma adres kullanmıyoruz. Ana BURKAB modülündeki GS_URL değerini bağlantı yapılandırmasına eklemeliyiz.');return;}
+  if(!authToken){alert('Oturum yetki anahtarı bulunamadı. Form, ana BURKAB sisteminin mevcut giriş/yetki bilgisiyle bağlanmadan kayıt göndermeyecek.');return;}
+  const d=formData();
+  const idKey='frxx_digital_form_kayit_id';
+  let formKayitID=localStorage.getItem(idKey);
+  if(!formKayitID){formKayitID='DF-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));localStorage.setItem(idKey,formKayitID);}
+  const anaKayit={islem:'PLANLI BAKIM',bolum:d.bolum||'',makine:d.cihazNo||d.cihazAdi||'',bildiren:d.bakimPersoneli||'DİJİTAL FORM',tarihBas:d.tarih||'',tarihBit:d.tarih||'',arizaTuru:'DİĞER',konu:d.periyotDayanagi||d.cihazAdi||'FR-XX KESİT GÖRÜNTÜLEME',bakimci:d.bakimPersoneli||'',yapilan:'Dijital form kaydı: FR-XX_KESIT_GORUNTULEME'};
+  const payload={action:'saveDigitalForm',authToken:authToken,formKayitID:formKayitID,formTipi:'FR-XX_KESIT_GORUNTULEME',anaKayit:anaKayit,formData:d,durum:d.cihazDurumu||'TAMAMLANDI'};
+  const btn=[...document.querySelectorAll('button')].find(b=>b.getAttribute('onclick')==='saveDigitalFormToSystem()');
+  if(btn){btn.disabled=true;btn.textContent='Kaydediliyor…';}
+  fetch(apiUrl,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})
+    .then(r=>r.text()).then(t=>{let result;try{result=JSON.parse(t);}catch(e){throw new Error('Sunucudan JSON yanıtı alınamadı. Web App dağıtımı ve API bağlantısı kontrol edilmeli. Yanıt: '+t.slice(0,180));}
+      if(!result||result.ok!==true)throw new Error((result&&result.error)||'Kayıt başarısız.');
+      alert('Kayıt başarılı. Form No: '+(result.formNo||'sunucudan dönmedi')+'\nDijital_Formlar: '+(result.sheet||'yanıt doğrulandı'));
+      localStorage.removeItem(idKey);
+    }).catch(e=>alert('Dijital form kaydedilemedi: '+e.message+'\nAna BURKAB sistemiyle aynı yetkilendirme/endpoint bağlantısı doğrulanmalı.'))
+    .finally(()=>{if(btn){btn.disabled=false;btn.textContent='Bakım Formunu Sisteme Kaydet';}});
+}
 function clearForm(){if(!confirm('Form alanları temizlensin mi?'))return;$('maintenanceForm').reset();document.querySelectorAll('.checkitem input[type=radio]').forEach(x=>x.checked=false);document.querySelectorAll('[id^=noteWrap_]').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('[id^=pv_]').forEach(x=>x.innerHTML='');Object.keys(mediaStore).forEach(k=>delete mediaStore[k]);[1,2,3].forEach(calcMeasure);calcParts();calcDuration();updateProgress();showSummary();}
 function init(){
   buildChecklist();buildMeasurements();addPart();addPart();
