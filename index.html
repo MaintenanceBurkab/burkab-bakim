@@ -1072,6 +1072,27 @@ tr:last-child td { border-bottom: none; }
 @media(max-width:700px){.aifmea-scores{grid-template-columns:repeat(2,1fr)}.aifmea-two{grid-template-columns:1fr}}
 
 
+
+/* AI-FMEA tek risk kaynağı: manuel risk seçim kartlarını gizle */
+#manuelRiskBaslik, #manuelRiskSecim { display:none !important; }
+
+/* DURUŞ ETKİSİ — üç soruluk manuel teyit mikro anketi */
+.durus-anket{margin-top:12px;padding:14px;border:1.5px solid #d8dfe8;border-radius:10px;background:#fbfcfe}
+.durus-anket-baslik{font-size:12px;font-weight:900;letter-spacing:.5px;margin-bottom:4px;color:#222}
+.durus-anket-aciklama{font-size:11px;line-height:1.5;color:#666;margin-bottom:12px}
+.durus-anket-grid{display:grid;grid-template-columns:1fr;gap:11px}
+.durus-anket-soru{padding:11px 12px;border:1px solid #e0e5ec;border-radius:8px;background:#fff}
+.durus-anket-soru label{display:block;font-size:12px;font-weight:800;line-height:1.45;color:#333;margin-bottom:7px}
+.durus-anket-soru small{display:block;font-size:10px;color:#777;line-height:1.45;margin-top:5px}
+.durus-anket select{background:#fff;min-height:40px;padding:9px 11px;font-size:13px}
+.durus-anket-sonuc{margin-top:12px;padding:10px 12px;border-radius:8px;background:#f3f4f6;border:1px solid #d1d5db;color:#374151;font-size:12px;line-height:1.55}
+.durus-anket-sonuc[data-seviye="DURUŞ YOK"]{background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20}
+.durus-anket-sonuc[data-seviye="KISMİ DURUŞ"]{background:#fff3e0;border-color:#ffcc80;color:#8a3b00}
+.durus-anket-sonuc[data-seviye="TAM DURUŞ"]{background:#ffebee;border-color:#ef9a9a;color:#b71c1c}
+.durus-anket-sonuc[data-seviye="PLANLI DURUŞ"]{background:#e3f2fd;border-color:#90caf9;color:#0d47a1}
+.durus-anket-sonuc.teyit{box-shadow:inset 4px 0 0 #e65100}
+#durusEtkisi:disabled{opacity:1;color:#222;-webkit-text-fill-color:#222;background:#f0f0ec;cursor:not-allowed;font-weight:800}
+
 </style>
 </head>
 <body>
@@ -1358,11 +1379,11 @@ tr:last-child td { border-bottom: none; }
   </div>
 
   <div class="section">
-    <div class="section-head"><div class="dot"></div>⚠️ ÖNCELİK &amp; RİSK SEVİYESİ</div>
+    <div class="section-head" id="manuelRiskBaslik"><div class="dot"></div>⚠️ ÖNCELİK &amp; RİSK SEVİYESİ</div>
     <div class="section-body">
       <div class="field" style="margin-bottom:14px">
         <label>RİSK SEVİYESİ SEÇİNİZ <span class="req" id="riskReq" style="display:none">*</span> <small id="riskHint" style="font-weight:600;text-transform:none;letter-spacing:0"></small></label>
-        <div class="risk-grid">
+        <div class="risk-grid" id="manuelRiskSecim">
           <div class="risk-btn" data-v="DÜŞÜK" data-c="#00875a" data-bg="rgba(0,135,90,.08)" onclick="pickRisk(this)">
             <span class="risk-icon">🟢</span><span class="risk-label">DÜŞÜK</span>
             <span class="risk-desc">Normal çalışma devam eder</span>
@@ -1384,13 +1405,55 @@ tr:last-child td { border-bottom: none; }
       </div>
       <div class="fg g1">
         <div class="field">
-          <label>DURUŞ ETKİSİ</label>
-          <select id="durusEtkisi">
-            <option value="">— Seçiniz —</option>
-            <option>DURUŞ YOK</option><option>KISMİ DURUŞ</option>
-            <option>TAM DURUŞ</option><option>PLANLI DURUŞ</option>
+          <label>DURUŞ ETKİSİ — OTOMATİK SINIFLANDIRMA</label>
+          <select id="durusEtkisi" disabled aria-readonly="true" title="Duruş etkisi işlem türü ve mikro anket cevaplarına göre otomatik belirlenir.">
+            <option value="DURUŞ YOK">DURUŞ YOK</option>
+            <option value="KISMİ DURUŞ">KISMİ DURUŞ</option>
+            <option value="TAM DURUŞ">TAM DURUŞ</option>
+            <option value="PLANLI DURUŞ">PLANLI DURUŞ</option>
           </select>
+          <small style="display:block;font-size:10px;color:#777;margin-top:5px">Bu alan manuel seçilmez; aşağıdaki cevaplara göre hesaplanır.</small>
         </div>
+      </div>
+
+      <div id="durusAnketBlok" class="durus-anket" style="display:none">
+        <div class="durus-anket-baslik">⏱️ DURUŞ ETKİSİ TEYİT ANKETİ</div>
+        <div class="durus-anket-aciklama">Arıza, bakım ve montaj/demontaj kayıtlarında üretim etkisini manuel olarak teyit edin. Bilinmeyen veya çelişkili cevaplar kaydı engellemez; sonuç geçici sınıflandırılır ve teyit sorumlusu belirtilir.</div>
+        <div class="durus-anket-grid">
+          <div class="durus-anket-soru">
+            <label for="durusQ1">1. Bu işlem nedeniyle planlanan üretim zamanı etkilendi mi?</label>
+            <select id="durusQ1" onchange="durusEtkisiGuncelle_()">
+              <option value="">— Cevap seçiniz —</option>
+              <option value="EVET">Evet</option>
+              <option value="HAYIR">Hayır</option>
+              <option value="BILMIYORUM">Bilmiyorum</option>
+            </select>
+            <small>Puan: Evet +1, Hayır 0. Bilmiyorum veya boş bırakılırsa teyit gerekir.</small>
+          </div>
+          <div class="durus-anket-soru">
+            <label for="durusQ2">2. Makine veya üretim hattı fiilen durdu mu?</label>
+            <select id="durusQ2" onchange="durusEtkisiGuncelle_()">
+              <option value="">— Cevap seçiniz —</option>
+              <option value="YOK">Hayır, üretim devam etti</option>
+              <option value="MAKINE">Yalnızca ilgili makine durdu, hat çalışmaya devam etti</option>
+              <option value="HAT">Üretim hattı durdu</option>
+              <option value="IKISI">Makine ve üretim hattı birlikte durdu</option>
+              <option value="BILMIYORUM">Bilmiyorum</option>
+            </select>
+            <small>Puan: Durmadı 0, yalnızca makine +1, hat veya makine ve hat birlikte +3.</small>
+          </div>
+          <div class="durus-anket-soru">
+            <label for="durusQ3">3. Bu işlem nedeniyle üretim kaybı, bekleme veya gecikme oluştu mu?</label>
+            <select id="durusQ3" onchange="durusEtkisiGuncelle_()">
+              <option value="">— Cevap seçiniz —</option>
+              <option value="EVET">Evet</option>
+              <option value="HAYIR">Hayır</option>
+              <option value="BELLI_DEGIL">Henüz belli değil</option>
+            </select>
+            <small>Puan: Evet +1, Hayır 0. Henüz belli değil veya boş bırakılırsa teyit gerekir.</small>
+          </div>
+        </div>
+        <div id="durusAnketSonuc" class="durus-anket-sonuc" aria-live="polite">Cevaplar girildiğinde sınıflandırma otomatik hesaplanır.</div>
       </div>
 
       <!-- ── RİSK BAZLI AKSİYON PANELİ (IATF 4.4) ── -->
@@ -4418,9 +4481,15 @@ console.log('FMEA MERKEZ STOK SONUCU:', merkezSonuc);
   if(typeof O!=='number'){
     document.getElementById('aiFmeaS').textContent=S;document.getElementById('aiFmeaO').textContent='—';document.getElementById('aiFmeaD').textContent=D;document.getElementById('aiFmeaROS').textContent='—';
     document.getElementById('aiFmeaRisk').className='aifmea-risk WARNING';document.getElementById('aiFmeaRiskTitle').textContent='🟡 VERİ YETERSİZ';document.getElementById('aiFmeaRiskNote').textContent='Aynı makine + aynı arıza kodunda son 90 günde en az iki ayrı olay bulunamadı.';
-    document.getElementById('aiFmeaLive').textContent='● YETERSİZ VERİ';return;
+    document.getElementById('aiFmeaLive').textContent='● YETERSİZ VERİ';const ra=document.getElementById('riskSeviye');if(ra)ra.value='';return;
   }
   const risk=aiFmeaRisk(S,O,D), actions=aiFmeaLocalActions(risk,makine,kod,konu,stok);
+  // AI-FMEA sonucu kayıtların tek risk kaynağıdır; manuel seçim kullanılmaz.
+  const riskAlan = document.getElementById('riskSeviye');
+  if (riskAlan) {
+    riskAlan.value = risk.code === 'CRITICAL' ? 'KRİTİK' : risk.code === 'WARNING' ? 'ORTA' : 'DÜŞÜK';
+    if (typeof riskAksiyonGuncelle === 'function') riskAksiyonGuncelle(riskAlan.value);
+  }
   _aiFmeaResult={makine,kod,konu,durus,S,O,D,ros:risk.ros,risk,actions,stok,master,occ};
   document.getElementById('aiFmeaS').textContent=S;document.getElementById('aiFmeaO').textContent=O;document.getElementById('aiFmeaD').textContent=D;document.getElementById('aiFmeaROS').textContent=risk.ros;
   document.getElementById('aiFmeaRisk').className='aifmea-risk '+risk.code;document.getElementById('aiFmeaRiskTitle').textContent=risk.label;document.getElementById('aiFmeaRiskNote').textContent=`${makine} · ${kod} · Duruş/onarım: ${durus||0} dk · Son 90 gün: ${occ.count} olay`;
@@ -4519,6 +4588,8 @@ function riskZorunlulukGuncelle_() {
   }
 }
 function pickIslem(el) {
+  const oncekiIslem = (document.getElementById('islem')?.value || '').trim();
+  if (oncekiIslem !== (el.dataset.v || '').trim()) durusAnketFormuSifirla_();
   document.querySelectorAll('.islem-btn').forEach(b => {
     b.classList.remove('active');
     b.style.removeProperty('--sel-color');
@@ -4539,6 +4610,8 @@ function pickIslem(el) {
   const konuLabel = document.getElementById('konuLabel');
   if (konuLabel) konuLabel.textContent = (el.dataset.v || 'İŞLEM') + ' AÇIKLAMASI';
   checkMdRevBoxes();
+  projeGorunurlukGuncelle_();
+  durusEtkisiGuncelle_();
   genFormNo();
   riskZorunlulukGuncelle_();
 }
@@ -4771,10 +4844,153 @@ const BOLUM_MAKINELER = {
   'KALIPLAR': Array.from({length:120}, (_,i) => 'BK-' + String(i+1).padStart(2,'0')),
 };
 
+function projeGorunurlukGuncelle_() {
+  const islem = (document.getElementById('islem')?.value || '').trim();
+  const bolum = (document.getElementById('bolum')?.value || '').trim().toUpperCase();
+  const row = document.getElementById('projeRow');
+  const proje = document.getElementById('proje');
+  if (!row || !proje) return;
+
+  // Revizyonun mevcut PROJE / MD NO / REV NO algoritması aynen korunur.
+  if (islem === 'REVİZYON') {
+    const bolumler = ['TEST','KESİM','ALT MONTAJ','HAZIRLIK','ÜRETİM HATLARI','KALIPLAR','ÜRETİM BORDLARI'];
+    row.style.display = bolumler.includes(bolum) ? 'block' : 'none';
+    proje.required = false;
+    return;
+  }
+
+  // Arıza, bakım ve montajda proje alanı Genel Bilgiler'de kalır.
+  // TESİS bölümünde gizlenir ve zorunlu olmaz.
+  const projeZorunluIslemler = ['ARIZA KAYDI','BAKIM KAYDI','MONTAJ'];
+  if (projeZorunluIslemler.includes(islem)) {
+    const goster = bolum !== 'TESİS' && bolum !== '';
+    row.style.display = goster ? 'block' : 'none';
+    proje.required = goster;
+    if (!goster) proje.value = '';
+    return;
+  }
+
+  // Planlı bakım ve servis bakım mevcut davranışını korur.
+  const bolumler = ['TEST','KESİM','ALT MONTAJ','HAZIRLIK','ÜRETİM HATLARI','KALIPLAR','ÜRETİM BORDLARI'];
+  row.style.display = bolumler.includes(bolum) ? 'block' : 'none';
+  proje.required = false;
+}
+
+const DURUS_ANKET_ISLEMLERI_ = ['ARIZA KAYDI','BAKIM KAYDI','MONTAJ'];
+
+function durusAnketFormuSifirla_() {
+  ['durusQ1','durusQ2','durusQ3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const sonuc = document.getElementById('durusAnketSonuc');
+  if (sonuc) {
+    sonuc.classList.remove('teyit');
+    sonuc.removeAttribute('data-seviye');
+    sonuc.textContent = 'Cevaplar girildiğinde sınıflandırma otomatik hesaplanır.';
+  }
+}
+
+function durusAnketBilgisi_() {
+  const islem = (document.getElementById('islem')?.value || '').trim();
+  if (!DURUS_ANKET_ISLEMLERI_.includes(islem)) return null;
+
+  const q1 = document.getElementById('durusQ1')?.value || '';
+  const q2 = document.getElementById('durusQ2')?.value || '';
+  const q3 = document.getElementById('durusQ3')?.value || '';
+  let puan = 0;
+  if (q1 === 'EVET') puan += 1;
+  if (q2 === 'MAKINE') puan += 1;
+  if (q2 === 'HAT' || q2 === 'IKISI') puan += 3;
+  if (q3 === 'EVET') puan += 1;
+
+  let durusEtkisi = puan >= 4 ? 'TAM DURUŞ' : puan >= 1 ? 'KISMİ DURUŞ' : 'DURUŞ YOK';
+  const cevapKaybiYok = q3 === 'HAYIR';
+  const celiskiler = [];
+  if (q2 === 'YOK' && q3 === 'EVET') celiskiler.push('Makine/hat durmadı cevabına rağmen üretim kaybı bildirildi');
+  if (q1 === 'HAYIR' && q3 === 'EVET') celiskiler.push('Planlanan üretim etkilenmedi cevabına rağmen kayıp/bekleme bildirildi');
+  if ((q2 === 'HAT' || q2 === 'IKISI') && q1 === 'HAYIR' && q3 === 'HAYIR') celiskiler.push('Hat durduğu bildirildi ancak üretim etkisi ve kayıp olmadığı belirtildi');
+  if (q1 === 'EVET' && q3 === 'HAYIR') celiskiler.push('Planlanan üretim zamanı etkilendi denirken üretim kaybı/bekleme olmadığı belirtildi');
+
+  // Üretim etkisi yok kararı yalnızca fiili makine/hat duruşuyla çelişmediğinde uygulanır.
+  // Hat durduğu bildirilmişse puanı DURUŞ YOK'a indirmeyiz; geçici sınıf ve teyit gerekir.
+  if (cevapKaybiYok && q1 === 'HAYIR' && (q2 === 'YOK' || q2 === 'MAKINE')) durusEtkisi = 'DURUŞ YOK';
+
+  const teyitGerekli = belirsiz || celiskiler.length > 0;
+  const bolum = (document.getElementById('bolum')?.value || '').trim();
+  const teyitSorumlusu = teyitGerekli
+    ? ('ÜRETİM VARDİYA AMİRİ / ' + (bolum ? bolum + ' BÖLÜM SORUMLUSU' : 'İLGİLİ BÖLÜM SORUMLUSU'))
+    : '';
+  const teyitNedeni = [belirsiz ? 'Eksik veya belirsiz cevap' : '', ...celiskiler].filter(Boolean).join('; ');
+
+  return {
+    uygulanir: true,
+    soru1: q1 || 'CEVAPLANMADI',
+    soru2: q2 || 'CEVAPLANMADI',
+    soru3: q3 || 'CEVAPLANMADI',
+    puan: puan,
+    durusEtkisi: durusEtkisi,
+    teyitGerekli: teyitGerekli,
+    teyitDurumu: teyitGerekli ? 'TEYİT GEREKİYOR' : 'OTOMATİK SINIFLANDIRILDI',
+    teyitSorumlusu: teyitSorumlusu,
+    teyitNedeni: teyitNedeni
+  };
+}
+
+function durusAnketGorunumGuncelle_(bilgi) {
+  const sonuc = document.getElementById('durusAnketSonuc');
+  if (!sonuc) return;
+  sonuc.classList.toggle('teyit', !!bilgi?.teyitGerekli);
+  if (bilgi?.durusEtkisi) sonuc.setAttribute('data-seviye', bilgi.durusEtkisi);
+  else sonuc.removeAttribute('data-seviye');
+
+  if (!bilgi) {
+    sonuc.textContent = 'Bu işlem türünde anket uygulanmaz. Duruş etkisi otomatik olarak DURUŞ YOK seçilir.';
+    return;
+  }
+  if (bilgi.teyitGerekli) {
+    sonuc.innerHTML = '<strong>⚠️ GEÇİCİ SINIFLANDIRMA: ' + bilgi.durusEtkisi + ' (' + bilgi.puan + '/5 puan)</strong><br>TEYİT GÖREVİ GEREKİYOR — Sorumlu: ' + bilgi.teyitSorumlusu + '<br>' + (bilgi.teyitNedeni || 'Cevaplar teyit edilmeli.') + '. Kayıt engellenmez.';
+  } else {
+    sonuc.innerHTML = '<strong>✅ OTOMATİK SINIFLANDIRMA: ' + bilgi.durusEtkisi + ' (' + bilgi.puan + '/5 puan)</strong><br>Cevaplar birbiriyle tutarlı. Teyit görevi gerekmiyor.';
+  }
+}
+
+function durusEtkisiGuncelle_() {
+  const islem = (document.getElementById('islem')?.value || '').trim();
+  const el = document.getElementById('durusEtkisi');
+  const anket = document.getElementById('durusAnketBlok');
+  if (!el) return;
+  el.disabled = true;
+
+  if (islem === 'PLANLI BAKIM') {
+    if (anket) anket.style.display = 'none';
+    el.value = 'PLANLI DURUŞ';
+    const sonuc = document.getElementById('durusAnketSonuc');
+    if (sonuc) {
+      sonuc.classList.remove('teyit');
+      sonuc.setAttribute('data-seviye','PLANLI DURUŞ');
+      sonuc.textContent = '📘 PLANLI BAKIM seçildi: duruş etkisi otomatik olarak PLANLI DURUŞ.';
+    }
+    return;
+  }
+
+  const sorulacak = DURUS_ANKET_ISLEMLERI_.includes(islem);
+  if (anket) anket.style.display = sorulacak ? '' : 'none';
+  if (!sorulacak) {
+    el.value = 'DURUŞ YOK';
+    durusAnketGorunumGuncelle_(null);
+    return;
+  }
+
+  const bilgi = durusAnketBilgisi_();
+  el.value = bilgi?.durusEtkisi || 'DURUŞ YOK';
+  durusAnketGorunumGuncelle_(bilgi);
+}
+
 function onBolum() {
   const v = document.getElementById('bolum').value;
   const show = ['TEST','KESİM','ALT MONTAJ','HAZIRLIK','ÜRETİM HATLARI','KALIPLAR','ÜRETİM BORDLARI'];
-  document.getElementById('projeRow').style.display = show.includes(v) ? 'block' : 'none';
+  document.getElementById('projeRow').style.display = (show.includes(v) && v !== 'TESİS') ? 'block' : 'none';
   const dl = document.getElementById('makine-list');
   const makineInput = document.getElementById('makine');
   makineInput.value = '';
@@ -4787,6 +5003,8 @@ function onBolum() {
     makineInput.placeholder = 'Makine adı / no';
   }
   checkMdRevBoxes();
+  projeGorunurlukGuncelle_();
+  durusEtkisiGuncelle_();
 }
 
 // ── FORM NO ───────────────────────────────────
@@ -5004,7 +5222,12 @@ async function kaydet() {
     ['bakimci','Bakım Operatörü'], ['yapilan','Yapılan İşlemler'],
     ['tarihBas','Başlangıç Tarihi']
   ];
-  if (riskZorunluMu_()) req.push(['riskSeviye','Risk Seviyesi']);   // yalnızca ARIZA KAYDI / SERVİS BAKIM
+  const _islemProje = (document.getElementById('islem')?.value || '').trim();
+  const _bolumProje = (document.getElementById('bolum')?.value || '').trim().toUpperCase();
+  if (['ARIZA KAYDI','BAKIM KAYDI','MONTAJ'].includes(_islemProje) && _bolumProje !== 'TESİS') {
+    req.push(['proje','Proje']);
+  }
+  if (riskZorunluMu_()) req.push(['riskSeviye','AI-FMEA risk analizi']);
 
   const eksik = req
     .filter(([id]) => !document.getElementById(id)?.value?.trim())
@@ -5018,6 +5241,7 @@ async function kaydet() {
 
   if (!riskAksiyonZorunluKontrol()) return;   // risk seçildiyse aksiyon planı alanları eskisi gibi zorunlu
 
+  durusEtkisiGuncelle_();
   const g = id => document.getElementById(id)?.value?.trim() || '';
   const bildirimdenGeldi = _aktifBildirimKaynakId !== null && _aktifBildirimKaynakId !== undefined && String(_aktifBildirimKaynakId) !== '';
 
@@ -5114,7 +5338,12 @@ async function kaydet() {
   refreshAllDatalist();
   if (bildirimdenGeldi) _aktifBildirimKaynakId = null;
 
-  showToast('✅ Kayıt başarıyla eklendi! (Form No: ' + yeniKayit.formNo + ')', 'ok');
+  const durusTeyit = durusTeyitBilgisiKayittan_(yeniKayit);
+  if (durusTeyit?.teyitGerekli) {
+    showToast('✅ Kayıt eklendi (' + yeniKayit.formNo + '). Duruş teyidi gerekli: ' + (durusTeyit.teyitSorumlusu || 'İLGİLİ BÖLÜM SORUMLUSU') + '.', '');
+  } else {
+    showToast('✅ Kayıt başarıyla eklendi! (Form No: ' + yeniKayit.formNo + ')', 'ok');
+  }
 
   // Kayıt onaylandıktan sonra YENİ KAYIT ekranı tamamen nötr başlangıç durumuna döner.
   // Kullanıcının önceki kaydından hiçbir seçim / parça / risk alanı taşınmaz.
@@ -5202,6 +5431,8 @@ function temizle() {
   if (konuEl) { konuEl.readOnly = false; konuEl.style.background = ''; konuEl.style.color = ''; konuEl.title = ''; }
   riskAksiyonTemizle(); /* IATF 4.4 */
   formSifirlaTam_();
+  durusAnketFormuSifirla_();
+  durusEtkisiGuncelle_();
 }
 
 // ── KAYIT LİSTESİ ─────────────────────────────
@@ -5372,8 +5603,9 @@ function renderList() {
           '<td style="font-size:13px">' + (k.bakimci||'—') + '</td>' +
           '<td>' + (k.riskSeviye ? '<span class="badge ' + (riskBadge[k.riskSeviye]||'') + '">' + k.riskSeviye + '</span>' : '<span style="color:#bbb">—</span>') + '</td>' +
           '<td style="white-space:nowrap">' +
-          '<div style="display:flex;gap:4px;align-items:center">' +
-          (k.riskAksiyon && k.riskAksiyon !== '{}' && k.riskAksiyon !== '' ? '<span title="Risk aksiyonu" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);border-radius:4px;color:#e65100;padding:2px 5px;font-size:10px;font-weight:700">AKS</span>' : '') +
+          '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">' +
+          (kayittaRiskAksiyonuVar_(k) ? '<span title="Risk aksiyonu" style="background:rgba(230,81,0,.1);border:1px solid rgba(230,81,0,.35);border-radius:4px;color:#e65100;padding:2px 5px;font-size:10px;font-weight:700">AKS</span>' : '') +
+          (durusTeyitBilgisiKayittan_(k)?.teyitGerekli ? '<span title="Duruş etkisi teyit edilmeli; sorumlu rolü kayda işlendi" style="background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;color:#9a4b00;padding:2px 5px;font-size:10px;font-weight:800">DURUŞ TEYİT</span>' : '') +
           '<button onclick="detayAc(' + k.id + ')" style="background:#e3f2fd;border:1px solid #bbdefb;border-radius:5px;color:#0277bd;cursor:pointer;padding:4px 10px;font-size:12px;font-weight:700;font-family:\'IBM Plex Sans\',sans-serif;transition:background .12s" onmouseover="this.style.background=\'#bbdefb\'" onmouseout="this.style.background=\'#e3f2fd\'">🔍 DETAY</button>' +
           '<button onclick="kayitSil(' + k.id + ')" style="background:#fde8e8;border:1px solid #ffcdd2;border-radius:5px;color:#d32f2f;cursor:pointer;padding:4px 8px;font-size:12px;font-weight:700;font-family:\'IBM Plex Sans\',sans-serif;transition:background .12s" onmouseover="this.style.background=\'#ffcdd2\'" onmouseout="this.style.background=\'#fde8e8\'">SİL</button>' +
           '</div></td></tr>';
@@ -5399,6 +5631,7 @@ function renderList() {
                 <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:#b8900a;font-size:13px">${k.formNo||'—'}</span>
                 <span class="badge ${badgeMap[k.islem]||'b-ariza'}" style="font-size:11px">${k.islem||'—'}</span>
                 ${k.riskSeviye ? `<span style="background:${riskBg};color:${riskRenk};border:1px solid ${riskRenk}33;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${k.riskSeviye}</span>` : ''}
+                ${durusTeyitBilgisiKayittan_(k)?.teyitGerekli ? `<span style="background:#fff3e0;color:#9a4b00;border:1px solid #ffcc80;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:800">DURUŞ TEYİT</span>` : ''}
               </div>
               <div style="font-size:15px;font-weight:800;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k.makine||'—'}</div>
               <div style="font-size:12px;color:#888;margin-top:2px">${k.bolum||'—'}</div>
@@ -5418,7 +5651,7 @@ function renderList() {
           <div class="kayit-kart-footer">
             <div style="font-size:11px;color:#aaa;font-family:'IBM Plex Mono',monospace">${k.tarihBas||''}</div>
             <div style="display:flex;gap:6px">
-              ${k.riskAksiyon && k.riskAksiyon !== '{}' ? `<button onclick="aksiyonDetayAc(${k.id})"
+              ${kayittaRiskAksiyonuVar_(k) ? `<button onclick="aksiyonDetayAc(${k.id})"
 style="background:rgba(230,81,0,.1);
 border:1px solid rgba(230,81,0,.35);
 border-radius:4px;
@@ -10104,24 +10337,44 @@ function riskAksiyonGuncelle(seviye) {
   }
 }
 
+function durusTeyitBilgisiKayittan_(kayit) {
+  try {
+    const raw = kayit?.riskAksiyon;
+    const obj = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+    return obj?.durusAnket || null;
+  } catch (_) { return null; }
+}
+
+function kayittaRiskAksiyonuVar_(kayit) {
+  try {
+    const raw = kayit?.riskAksiyon;
+    const obj = typeof raw === 'string' ? JSON.parse(raw || '{}') : (raw || {});
+    return !!(obj && obj.seviye && obj.aksiyonlar);
+  } catch (_) { return false; }
+}
+
 function getRiskAksiyonData() {
   const panel = document.getElementById('riskAksiyonPanel');
-  if (!panel || panel.style.display==='none') return '';
   const seviye = document.getElementById('riskSeviye')?.value;
-  if (!seviye || !RISK_AKSIYON_MAP[seviye]) return '';
-  const cfg = RISK_AKSIYON_MAP[seviye];
-  const aksiyonlar = {};
-  cfg.aksiyonlar.forEach(a => {
-    const v = document.getElementById('rak-alan-'+a.id)?.value?.trim()||'';
-    if (v) aksiyonlar[a.id] = {label:a.label, deger:v, zorunlu:a.zorunlu};
-  });
-  return JSON.stringify({
-    seviye,
-    aksiyonlar,
-    sorumlu : document.getElementById('rak-sorumlu')?.value?.trim()||'',
-    termin  : document.getElementById('rak-termin')?.value||'',
-    not     : document.getElementById('rak-not')?.value?.trim()||''
-  });
+  const rak = {};
+  if (panel && panel.style.display !== 'none' && seviye && RISK_AKSIYON_MAP[seviye]) {
+    const cfg = RISK_AKSIYON_MAP[seviye];
+    const aksiyonlar = {};
+    cfg.aksiyonlar.forEach(a => {
+      const v = document.getElementById('rak-alan-'+a.id)?.value?.trim()||'';
+      if (v) aksiyonlar[a.id] = {label:a.label, deger:v, zorunlu:a.zorunlu};
+    });
+    rak.seviye = seviye;
+    rak.aksiyonlar = aksiyonlar;
+    rak.sorumlu = document.getElementById('rak-sorumlu')?.value?.trim()||'';
+    rak.termin = document.getElementById('rak-termin')?.value||'';
+    rak.not = document.getElementById('rak-not')?.value?.trim()||'';
+  }
+
+  // Yeni sütun eklemeden, mevcut riskAksiyon JSON alanında anket cevapları ve teyit atama bilgisini sakla.
+  const durusAnket = durusAnketBilgisi_();
+  if (durusAnket) rak.durusAnket = durusAnket;
+  return Object.keys(rak).length ? JSON.stringify(rak) : '';
 }
 
 function riskAksiyonZorunluKontrol() {
@@ -10154,34 +10407,55 @@ function riskAksiyonTemizle() {
 }
 
 function renderRiskAksiyonDetay(rakStr) {
-  if (!rakStr||rakStr==='{}'||rakStr==='') return '';
-  let rak; try{rak=JSON.parse(rakStr);}catch{return '';}
-  if (!rak||!rak.seviye||!rak.aksiyonlar) return '';
-  const cfg = RISK_AKSIYON_MAP[rak.seviye];
-  if (!cfg) return '';
-  const renk = cfg.renk;
-  let icerik = Object.entries(rak.aksiyonlar).map(([,v])=>
-    `<div style="margin-bottom:8px">
-       <div style="font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:${renk};margin-bottom:3px">${v.label}${v.zorunlu?` <span style="background:${renk};color:#fff;border-radius:3px;padding:1px 5px;font-size:9px">ZOR</span>`:''}</div>
-       <div style="font-size:13px;color:#333;background:#fafaf8;border-radius:5px;padding:7px 10px">${v.deger}</div>
-     </div>`
-  ).join('');
-  if (rak.sorumlu||rak.termin) {
-    icerik += `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#666;margin-top:8px;padding-top:8px;border-top:1px solid #eee">
-      ${rak.sorumlu?`<span>👤 Sorumlu: <strong>${rak.sorumlu}</strong></span>`:''}
-      ${rak.termin?`<span>📅 Termin: <strong>${rak.termin}</strong></span>`:''}
+  if (!rakStr || rakStr === '{}' || rakStr === '') return '';
+  let rak;
+  try { rak = typeof rakStr === 'string' ? JSON.parse(rakStr) : rakStr; } catch (_) { return ''; }
+  if (!rak) return '';
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let blocks = '';
+
+  if (rak.seviye && rak.aksiyonlar) {
+    const cfg = RISK_AKSIYON_MAP[rak.seviye];
+    if (cfg) {
+      const renk = cfg.renk;
+      let icerik = Object.entries(rak.aksiyonlar || {}).map(([,v]) =>
+        `<div style="margin-bottom:8px">
+           <div style="font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:${renk};margin-bottom:3px">${esc(v.label)}${v.zorunlu?` <span style="background:${renk};color:#fff;border-radius:3px;padding:1px 5px;font-size:9px">ZOR</span>`:''}</div>
+           <div style="font-size:13px;color:#333;background:#fafaf8;border-radius:5px;padding:7px 10px">${esc(v.deger)}</div>
+         </div>`
+      ).join('');
+      if (rak.sorumlu || rak.termin) {
+        icerik += `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#666;margin-top:8px;padding-top:8px;border-top:1px solid #eee">
+          ${rak.sorumlu?`<span>👤 Sorumlu: <strong>${esc(rak.sorumlu)}</strong></span>`:''}
+          ${rak.termin?`<span>📅 Termin: <strong>${esc(rak.termin)}</strong></span>`:''}
+        </div>`;
+      }
+      if (rak.not) icerik += `<div style="margin-top:8px;font-size:12px;color:#555;background:rgba(245,196,0,.08);border-radius:5px;padding:7px 10px;border-left:3px solid #f5c400">📝 ${esc(rak.not)}</div>`;
+      blocks += `<div class="rak-detay-blok" style="background:${renk}0d;border-color:${renk}55;margin-bottom:12px">
+        <div class="rak-detay-baslik"><span style="background:${renk};color:#fff;border-radius:4px;padding:2px 8px;font-size:10px">${esc(rak.seviye)} RİSK</span> AKSİYON PLANI — IATF 4.4</div>${icerik}</div>`;
+    }
+  }
+
+  const d = rak.durusAnket;
+  if (d) {
+    const etkiRenk = d.durusEtkisi === 'TAM DURUŞ' ? '#b71c1c' : d.durusEtkisi === 'KISMİ DURUŞ' ? '#9a4b00' : '#1b5e20';
+    const status = d.teyitGerekli
+      ? '<span style="background:#fff3e0;color:#9a4b00;border:1px solid #ffcc80;padding:3px 7px;border-radius:5px;font-weight:800">TEYİT GEREKİYOR</span>'
+      : '<span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;padding:3px 7px;border-radius:5px;font-weight:800">OTOMATİK SINIFLANDIRILDI</span>';
+    const q1 = {'EVET':'Evet','HAYIR':'Hayır','BILMIYORUM':'Bilmiyorum','CEVAPLANMADI':'Cevaplanmadı'}[d.soru1] || d.soru1;
+    const q2 = {'YOK':'Makine/hat durmadı','MAKINE':'Yalnızca makine durdu','HAT':'Üretim hattı durdu','IKISI':'Makine ve hat birlikte durdu','BILMIYORUM':'Bilmiyorum','CEVAPLANMADI':'Cevaplanmadı'}[d.soru2] || d.soru2;
+    const q3 = {'EVET':'Evet','HAYIR':'Hayır','BELLI_DEGIL':'Henüz belli değil','CEVAPLANMADI':'Cevaplanmadı'}[d.soru3] || d.soru3;
+    blocks += `<div style="background:#fbfcfe;border:1.5px solid ${d.teyitGerekli?'#ffcc80':'#d8dfe8'};border-left:5px solid ${d.teyitGerekli?'#e65100':'#0277bd'};border-radius:9px;padding:13px 15px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:9px"><strong style="font-size:12px;letter-spacing:.5px">⏱️ DURUŞ ETKİSİ TEYİT KAYDI</strong>${status}</div>
+      <div style="font-size:13px;margin-bottom:8px">Sınıflandırma: <strong style="color:${etkiRenk}">${esc(d.durusEtkisi)}</strong> · Puan: <strong>${Number(d.puan)||0}/5</strong></div>
+      <div style="font-size:12px;color:#555;line-height:1.7">1. Üretim zamanı etkilendi mi? <strong>${esc(q1)}</strong><br>2. Makine/hat durumu: <strong>${esc(q2)}</strong><br>3. Üretim kaybı/bekleme/gecikme: <strong>${esc(q3)}</strong></div>
+      ${d.teyitGerekli?`<div style="font-size:12px;background:#fff3e0;color:#7a3b00;border-radius:6px;padding:8px 10px;margin-top:9px"><strong>Atanacak sorumlu:</strong> ${esc(d.teyitSorumlusu||'İLGİLİ BÖLÜM SORUMLUSU')}<br><strong>Gerekçe:</strong> ${esc(d.teyitNedeni||'Cevaplar teyit edilmeli')}</div>`:''}
     </div>`;
   }
-  if (rak.not) icerik += `<div style="margin-top:8px;font-size:12px;color:#555;background:rgba(245,196,0,.08);border-radius:5px;padding:7px 10px;border-left:3px solid #f5c400">📝 ${rak.not}</div>`;
-  return `<div class="rak-detay-blok" style="background:${renk}0d;border-color:${renk}55">
-    <div class="rak-detay-baslik">
-      <span style="background:${renk};color:#fff;border-radius:4px;padding:2px 8px;font-size:10px">${rak.seviye} RİSK</span>
-      AKSİYON PLANI — IATF 4.4
-    </div>${icerik}</div>`;
+  return blocks;
 }
-
 function renderRiskAksiyonOzet(veri) {
-  const aksiyonluKayitlar = veri.filter(k=>k.riskAksiyon&&k.riskAksiyon!==''&&k.riskAksiyon!=='{}');
+  const aksiyonluKayitlar = veri.filter(k => kayittaRiskAksiyonuVar_(k));
   const blok  = document.getElementById('riskAksiyonOzetBlok');
   const tbody = document.getElementById('riskAksiyonOzetBody');
   if (!blok||!tbody) return;
@@ -14280,5 +14554,6 @@ async function aksiyonKaydetLocal(id) {
 .takvim-gun.aksiyon-var:hover{background:#f5eafa !important;transform:translateY(-1px);}
 </style>
     
+  <script>try{projeGorunurlukGuncelle_();durusEtkisiGuncelle_();}catch(_e){}</script>
   </body>
 </html>
