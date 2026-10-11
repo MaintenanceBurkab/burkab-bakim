@@ -72,25 +72,52 @@ function saveDraft(){try{localStorage.setItem('frxx_kesit_bakim_draft',JSON.stri
 function loadDraft(){try{let d=JSON.parse(localStorage.getItem('frxx_kesit_bakim_draft')||'null');if(!d){alert('Kayıtlı taslak bulunamadı.');return;}let f=$('maintenanceForm');Object.entries(d).forEach(([k,v])=>{if(typeof v!=='string')return;let el=f.elements.namedItem(k);if(el)el.value=v;});(d.kontrolMaddeleri||[]).forEach((it,i)=>{let radio=document.querySelector(`input[name="status_${i}"][value="${CSS.escape(it.sonuc)}"]`);if(radio){radio.checked=true;statusChanged(i);}let note=document.querySelector(`[name="note_${i}"]`);if(note)note.value=it.aciklama||'';});(d.olcumler||[]).forEach((m,j)=>{let i=j+1;['olcumAd','nominal','olculen','kabul'].forEach(k=>{let el=document.querySelector(`[name="${k}${i}"]`);if(el)el.value=m[k==='olcumAd'?'ad':k]||'';});calcMeasure(i);});calcParts();calcDuration();applyPeriod();showSummary();alert('Taslak yüklendi. Medya dosyalarını yeniden seçmeniz gerekir.');}catch(e){alert('Taslak yüklenemedi: '+e.message);}}
 function exportJson(){let blob=new Blob([JSON.stringify(formData(),null,2)],{type:'application/json;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='FR-XX_Kesit_Bakim_'+(document.querySelector('[name="tarih"]').value||'tarih-yok')+'.json';a.click();URL.revokeObjectURL(a.href);}
 function saveDigitalFormToSystem(){
-  const apiUrl=(window.BURKAB_GS_URL||'https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec').trim();
-  const authToken=(window.BURKAB_AUTH_TOKEN||'').trim();
-  if(!apiUrl){alert('Google Apps Script Web App URL yapılandırılmadı.');return;}
-  if(!authToken){alert('Oturum yetki anahtarı bulunamadı. Form, ana BURKAB sisteminin mevcut giriş/yetki bilgisiyle bağlanmadan kayıt göndermeyecek.');return;}
+  const apiUrl='https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec';
+  let sessionUser=null;
+  try { sessionUser=JSON.parse(sessionStorage.getItem('burkab_user')||'null'); } catch(e) {}
+  const authToken=String((window.BURKAB_AUTH_TOKEN||'') || (sessionUser&&sessionUser.token) || '').trim();
+  if(!authToken){
+    alert('BURKAB oturumu bulunamadı. Bu formu ana BURKAB sisteminin açıldığı aynı GitHub Pages adresinde ve giriş yaptıktan sonra açın.');
+    return;
+  }
   const d=formData();
+  if(!d.bolum || !(d.cihazNo||d.cihazAdi) || !d.tarih){
+    alert('Kaydetmeden önce Bölüm, Cihaz No/Adı ve Tarih alanlarını doldurun.');
+    return;
+  }
   const idKey='frxx_digital_form_kayit_id';
   let formKayitID=localStorage.getItem(idKey);
-  if(!formKayitID){formKayitID='DF-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));localStorage.setItem(idKey,formKayitID);}
-  const anaKayit={islem:'PLANLI BAKIM',bolum:d.bolum||'',makine:d.cihazNo||d.cihazAdi||'',bildiren:d.bakimPersoneli||'DİJİTAL FORM',tarihBas:d.tarih||'',tarihBit:d.tarih||'',arizaTuru:'DİĞER',konu:d.periyotDayanagi||d.cihazAdi||'FR-XX KESİT GÖRÜNTÜLEME',bakimci:d.bakimPersoneli||'',yapilan:'Dijital form kaydı: FR-XX_KESIT_GORUNTULEME'};
+  if(!formKayitID){
+    formKayitID='DF-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
+    localStorage.setItem(idKey,formKayitID);
+  }
+  let mainId=localStorage.getItem(idKey+'_main');
+  if(!mainId){
+    mainId='DFK-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
+    localStorage.setItem(idKey+'_main',mainId);
+  }
+  const anaKayit={id:mainId,islem:'PLANLI BAKIM',bolum:d.bolum||'',makine:d.cihazNo||d.cihazAdi||'',bildiren:d.bakimPersoneli||sessionUser?.name||sessionUser?.username||'DİJİTAL FORM',tarihBas:d.tarih||'',tarihBit:d.tarih||'',arizaTuru:'DİĞER',konu:d.periyotDayanagi||d.cihazAdi||'FR-XX KESİT GÖRÜNTÜLEME',bakimci:d.bakimPersoneli||'',yapilan:'Dijital form kaydı: FR-XX_KESIT_GORUNTULEME'};
   const payload={action:'saveDigitalForm',authToken:authToken,formKayitID:formKayitID,formTipi:'FR-XX_KESIT_GORUNTULEME',anaKayit:anaKayit,formData:d,durum:d.cihazDurumu||'TAMAMLANDI'};
   const btn=[...document.querySelectorAll('button')].find(b=>b.getAttribute('onclick')==='saveDigitalFormToSystem()');
   if(btn){btn.disabled=true;btn.textContent='Kaydediliyor…';}
-  fetch(apiUrl,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})
-    .then(r=>r.text()).then(t=>{let result;try{result=JSON.parse(t);}catch(e){throw new Error('Sunucudan JSON yanıtı alınamadı. Web App dağıtımı ve API bağlantısı kontrol edilmeli. Yanıt: '+t.slice(0,180));}
-      if(!result||result.ok!==true)throw new Error((result&&result.error)||'Kayıt başarısız.');
-      alert('Kayıt başarılı. Form No: '+(result.formNo||'sunucudan dönmedi')+'\nDijital_Formlar: '+(result.sheet||'yanıt doğrulandı'));
-      localStorage.removeItem(idKey);
-    }).catch(e=>alert('Dijital form kaydedilemedi: '+e.message+'\nAna BURKAB sistemiyle aynı yetkilendirme/endpoint bağlantısı doğrulanmalı.'))
-    .finally(()=>{if(btn){btn.disabled=false;btn.textContent='Bakım Formunu Sisteme Kaydet';}});
+  const callbackName='digitalFormCb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const script=document.createElement('script');
+  let finished=false;
+  const timer=setTimeout(()=>finish(new Error('Google Sheets yanıt zaman aşımı. URL, dağıtım ve Apps Script yönlendirmesini kontrol edin.')),60000);
+  function finish(err,result){
+    if(finished)return; finished=true; clearTimeout(timer);
+    try{script.remove();delete window[callbackName];}catch(e){}
+    if(btn){btn.disabled=false;btn.textContent='Bakım Formunu Sisteme Kaydet';}
+    if(err){alert('Dijital form kaydedilemedi: '+err.message);return;}
+    if(!result||result.ok!==true){alert('Dijital form kaydedilemedi: '+((result&&result.error)||'Sunucudan başarılı yanıt alınamadı.'));return;}
+    localStorage.removeItem(idKey);localStorage.removeItem(idKey+'_main');
+    alert('Kayıt başarılı. Form No: '+(result.formNo||'sunucudan dönmedi')+'\nKayıt sekmesi: '+(result.sheet||'Dijital_Formlar'));
+  }
+  window[callbackName]=function(result){finish(null,result);};
+  script.onerror=function(){finish(new Error('Apps Script bağlantısı açılamadı. Web App dağıtımını ve URL’yi kontrol edin.'));};
+  script.async=true;
+  script.src=apiUrl+'?callback='+encodeURIComponent(callbackName)+'&payload='+encodeURIComponent(JSON.stringify(payload))+'&_t='+Date.now();
+  document.head.appendChild(script);
 }
 function clearForm(){if(!confirm('Form alanları temizlensin mi?'))return;$('maintenanceForm').reset();document.querySelectorAll('.checkitem input[type=radio]').forEach(x=>x.checked=false);document.querySelectorAll('[id^=noteWrap_]').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('[id^=pv_]').forEach(x=>x.innerHTML='');Object.keys(mediaStore).forEach(k=>delete mediaStore[k]);[1,2,3].forEach(calcMeasure);calcParts();calcDuration();updateProgress();showSummary();}
 function init(){
