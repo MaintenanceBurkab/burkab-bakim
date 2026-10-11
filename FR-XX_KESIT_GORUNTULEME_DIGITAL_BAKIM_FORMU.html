@@ -72,9 +72,9 @@ function saveDraft(){try{localStorage.setItem('frxx_kesit_bakim_draft',JSON.stri
 function loadDraft(){try{let d=JSON.parse(localStorage.getItem('frxx_kesit_bakim_draft')||'null');if(!d){alert('Kayıtlı taslak bulunamadı.');return;}let f=$('maintenanceForm');Object.entries(d).forEach(([k,v])=>{if(typeof v!=='string')return;let el=f.elements.namedItem(k);if(el)el.value=v;});(d.kontrolMaddeleri||[]).forEach((it,i)=>{let radio=document.querySelector(`input[name="status_${i}"][value="${CSS.escape(it.sonuc)}"]`);if(radio){radio.checked=true;statusChanged(i);}let note=document.querySelector(`[name="note_${i}"]`);if(note)note.value=it.aciklama||'';});(d.olcumler||[]).forEach((m,j)=>{let i=j+1;['olcumAd','nominal','olculen','kabul'].forEach(k=>{let el=document.querySelector(`[name="${k}${i}"]`);if(el)el.value=m[k==='olcumAd'?'ad':k]||'';});calcMeasure(i);});calcParts();calcDuration();applyPeriod();showSummary();alert('Taslak yüklendi. Medya dosyalarını yeniden seçmeniz gerekir.');}catch(e){alert('Taslak yüklenemedi: '+e.message);}}
 function exportJson(){let blob=new Blob([JSON.stringify(formData(),null,2)],{type:'application/json;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='FR-XX_Kesit_Bakim_'+(document.querySelector('[name="tarih"]').value||'tarih-yok')+'.json';a.click();URL.revokeObjectURL(a.href);}
 function saveDigitalFormToSystem(){
-  const apiUrl=(window.BURKAB_GS_URL||'').trim();
+  const apiUrl=(window.BURKAB_GS_URL||'https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec').trim();
   const authToken=(window.BURKAB_AUTH_TOKEN||'').trim();
-  if(!apiUrl){alert('Google Apps Script Web App URL henüz yapılandırılmadı. Bu formda boş/uydurma adres kullanmıyoruz. Ana BURKAB modülündeki GS_URL değerini bağlantı yapılandırmasına eklemeliyiz.');return;}
+  if(!apiUrl){alert('Google Apps Script Web App URL yapılandırılmadı.');return;}
   if(!authToken){alert('Oturum yetki anahtarı bulunamadı. Form, ana BURKAB sisteminin mevcut giriş/yetki bilgisiyle bağlanmadan kayıt göndermeyecek.');return;}
   const d=formData();
   const idKey='frxx_digital_form_kayit_id';
