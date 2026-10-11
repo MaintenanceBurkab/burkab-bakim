@@ -5548,7 +5548,7 @@ async function kaydet() {
 
   // Kayıt onaylandıktan sonra YENİ KAYIT ekranı tamamen nötr başlangıç durumuna döner.
   // Kullanıcının önceki kaydından hiçbir seçim / parça / risk alanı taşınmaz.
-  temizle();
+  temizle(true);
   const yeniKayitBtn = [...document.querySelectorAll('.nav-tab')].find(b => b.textContent.includes('YENİ KAYIT'));
   goTab('form', yeniKayitBtn || null);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -5573,67 +5573,179 @@ async function tumKayitlariSil() {
   showToast('🚫 IATF kayıt bütünlüğü nedeniyle toplu silme kapalıdır.','err');
 }
 
-// ── TEMİZLE ──────────────────────────────────
-// Yeni Kayıt sekmesindeki TÜM alanları, seçili butonları, bakım operatörü seçimini ve AI sonucunu nötr hale getirir.
+// ── FORM SIFIRLAMA — TEK MERKEZİ AKIŞ ─────────────────────────
+// Hem kullanıcı "Formu Temizle" butonunu kullandığında hem de kayıt başarıyla doğrulandığında çağrılır.
+// Stok kartları korunur; yalnızca bu forma seçilmiş yedek parçalar temizlenir.
 function formSifirlaTam_() {
-  const tab = document.getElementById('tab-form'); if (!tab) return;
-  tab.querySelectorAll('input, select, textarea').forEach(el => {
-    const t = (el.type || '').toLowerCase();
-    if (t === 'button' || t === 'submit') return;
-    if (t === 'checkbox' || t === 'radio') { el.checked = false; return; }
-    if (el.tagName === 'SELECT') { const o = [...el.options].find(x => x.value === ''); el.selectedIndex = o ? o.index : 0; return; }
-    el.value = ''; el.readOnly = false;
-  });
-  tab.querySelectorAll('.active').forEach(b => b.classList.remove('active'));
-  tab.querySelectorAll('[style*="--sel-"],[style*="--r-"]').forEach(b =>
-    ['--sel-color', '--sel-bg', '--sel-shadow', '--r-color', '--r-bg', '--r-shadow'].forEach(p => b.style.removeProperty(p)));
-  document.getElementById('bakimciDropdown')?.classList.remove('open');
-  const bd = document.getElementById('bakimciDisplay'); if (bd) bd.innerHTML = '<span style="color:#999">— Seçiniz —</span>';
-  const kl = document.getElementById('konuList'); if (kl) kl.innerHTML = '';
-  const ar = document.getElementById('ai-ariza-result'); if (ar) ar.innerHTML = '';
-  const ab = document.getElementById('ai-ariza-analiz-blok'); if (ab) ab.style.display = 'none';
-  const t0 = (typeof yerelYMD === 'function') ? yerelYMD() : today;
-  ['tarihBas', 'tarihBit'].forEach(id => { const e = document.getElementById(id); if (e) e.value = t0; });
-  const sb = document.getElementById('sureBadge'); if (sb) { sb.textContent = '— dk —'; sb.dataset.dk = ''; }
-  const pl = document.getElementById('parcaListesi'); if (pl) pl.innerHTML = '';
-  parcaSayac = 0;
-  ['projeRow', 'mdNoBox', 'revNoBox'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
-  const io = document.getElementById('iscilikOnizle'); if (io) io.textContent = '';
-  riskZorunlulukGuncelle_();
-}
-function temizle() {
+  const tab = document.getElementById('tab-form');
+  if (!tab) return;
+
+  // Açık yedek parça arama listesini kapat.
   if (typeof ypFormParcaDropdownKapat === 'function') ypFormParcaDropdownKapat();
-  ['formNo','bolum','makine','bildiren','proje','arizaKodu','konu',
-   'arizaBas','onarimBas','onarimBit','arizaBit','bakimci','kalite',
-   'yapilan','riskSeviye','durusEtkisi','toplamMaliyet','teminDurumu'
-  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  document.getElementById('tarihBas').value = today;
-  document.getElementById('tarihBit').value = today;
-  document.getElementById('islem').value = '';
-  document.getElementById('arizaTuru').value = '';
-  document.getElementById('sureBadge').textContent = '— dk —';
-  document.getElementById('sureBadge').dataset.dk = '';
-  document.querySelectorAll('.islem-btn,.atur-btn,.risk-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('projeRow').style.display = 'none';
-  document.getElementById('detayBaslik').textContent = 'ARIZA / İŞLEM DETAYI';
+
+  // Eski arka plan AI-FMEA isteği yeni formun ekranına sonuç yazamasın.
+  try {
+    if (typeof _aiFmeaTimer !== 'undefined' && _aiFmeaTimer) clearTimeout(_aiFmeaTimer);
+    if (typeof _aiFmeaTimer !== 'undefined') _aiFmeaTimer = null;
+    if (typeof _aiFmeaRunId !== 'undefined') _aiFmeaRunId++;
+    if (typeof _aiFmeaLastKey !== 'undefined') _aiFmeaLastKey = '';
+    if (typeof _aiFmeaResult !== 'undefined') _aiFmeaResult = null;
+  } catch (e) { console.warn('AI-FMEA sıfırlama uyarısı:', e); }
+
+  // Genel bilgiler dahil formun içindeki bütün alanları nötr hale getir.
+  tab.querySelectorAll('input, select, textarea').forEach(el => {
+    const type = String(el.type || '').toLowerCase();
+    if (type === 'button' || type === 'submit' || type === 'reset') return;
+    if (type === 'checkbox' || type === 'radio') {
+      el.checked = false;
+      return;
+    }
+    if (el.tagName === 'SELECT') {
+      const emptyOption = [...el.options].find(o => o.value === '');
+      if (emptyOption) el.value = '';
+      else el.selectedIndex = 0;
+      return;
+    }
+    el.value = '';
+  });
+
+  // Operatör / bildiren ve bakımcı seçimleri kesin olarak temizlenir.
+  ['bildiren', 'bakimci', 'kalite'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  tab.querySelectorAll('#bakimciDropdown input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  const bakimciDisplay = document.getElementById('bakimciDisplay');
+  if (bakimciDisplay) bakimciDisplay.innerHTML = '<span style="color:#999">— Seçiniz —</span>';
+  document.getElementById('bakimciDropdown')?.classList.remove('open');
+
+  // İşlem türü ve bütün seçim kartları sıfırlanır.
+  const islem = document.getElementById('islem');
+  if (islem) islem.value = '';
+  const arizaTuru = document.getElementById('arizaTuru');
+  if (arizaTuru) arizaTuru.value = '';
+  tab.querySelectorAll('.islem-btn, .atur-btn, .risk-btn, .durus-secim-btn').forEach(btn => {
+    btn.classList.remove('active', 'secili');
+    ['--sel-color','--sel-bg','--sel-shadow','--r-color','--r-bg','--r-shadow'].forEach(p => btn.style.removeProperty(p));
+  });
+  tab.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+
+  // Yeni formda tarih güncel yerel tarihe döner; başlangıç saatleri güncel saatle başlar.
+  // Bitiş saatleri boş bırakılır; böylece eski onarım süresi tekrar hesaplanmaz.
+  const simdi = new Date();
+  const bugunYerel = typeof yerelYMD === 'function'
+    ? yerelYMD(simdi)
+    : `${simdi.getFullYear()}-${String(simdi.getMonth()+1).padStart(2,'0')}-${String(simdi.getDate()).padStart(2,'0')}`;
+  const saatSimdi = typeof suankiSaat === 'function'
+    ? suankiSaat()
+    : `${String(simdi.getHours()).padStart(2,'0')}:${String(simdi.getMinutes()).padStart(2,'0')}`;
+  ['tarihBas','tarihBit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = bugunYerel;
+  });
+  ['arizaBas','onarimBas'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = saatSimdi;
+  });
+  ['onarimBit','arizaBit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Onarım süresi ve işçilik önizlemesi sıfırlanır.
+  const sureBadge = document.getElementById('sureBadge');
+  if (sureBadge) { sureBadge.textContent = '— dk —'; sureBadge.dataset.dk = ''; }
+  const iscilik = document.getElementById('iscilikOnizle');
+  if (iscilik) iscilik.textContent = '';
+
+  // Bu kayıt için seçilmiş yedek parçalar, maliyet ve temin durumu temizlenir.
+  const parcaListesi = document.getElementById('parcaListesi');
+  if (parcaListesi) parcaListesi.innerHTML = '';
+  if (typeof parcaSayac !== 'undefined') parcaSayac = 0;
+  const toplamMaliyet = document.getElementById('toplamMaliyet');
+  if (toplamMaliyet) toplamMaliyet.value = '';
+  const teminDurumu = document.getElementById('teminDurumu');
+  if (teminDurumu) teminDurumu.value = '';
+
+  // Proje/revizyon alt alanları ve açıklama gibi bağımlı görünümler temizlenir.
+  ['projeRow','mdNoBox','revNoBox'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  ['mdNo','revNo','proje','formNo','makine','arizaKodu','konu','yapilan'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const kodEl = document.getElementById('arizaKodu');
+  if (kodEl) kodEl.readOnly = false;
+  const konuEl = document.getElementById('konu');
+  if (konuEl) {
+    konuEl.readOnly = false;
+    konuEl.style.background = '';
+    konuEl.style.color = '';
+    konuEl.title = '';
+  }
+  const konuList = document.getElementById('konuList');
+  if (konuList) konuList.innerHTML = '';
+  const eskiAiAriza = document.getElementById('ai-ariza-result');
+  if (eskiAiAriza) eskiAiAriza.innerHTML = '';
+  const eskiAiArizaBlok = document.getElementById('ai-ariza-analiz-blok');
+  if (eskiAiArizaBlok) eskiAiArizaBlok.style.display = 'none';
+  const detayBaslik = document.getElementById('detayBaslik');
+  if (detayBaslik) detayBaslik.textContent = 'ARIZA / İŞLEM DETAYI';
   const konuLabel = document.getElementById('konuLabel');
   if (konuLabel) konuLabel.textContent = 'AÇIKLAMA';
-  document.getElementById('parcaListesi').innerHTML = '';
-  parcaSayac = 0;
-  document.querySelectorAll('#bakimciDropdown input[type=checkbox]').forEach(c => c.checked = false);
-  document.getElementById('bakimciDisplay').innerHTML = '<span style="color:#999">— Seçiniz —</span>';
-  document.getElementById('mdNo').value = '';
-  document.getElementById('revNo').value = '';
-  document.getElementById('mdNoBox').style.display = 'none';
-  document.getElementById('revNoBox').style.display = 'none';
-  const kodEl = document.getElementById('arizaKodu');
-  const konuEl = document.getElementById('konu');
-  if (kodEl) { kodEl.readOnly = false; kodEl.value = ''; }
-  if (konuEl) { konuEl.readOnly = false; konuEl.style.background = ''; konuEl.style.color = ''; konuEl.title = ''; }
-  riskAksiyonTemizle(); /* IATF 4.4 */
+
+  // Önceki kaydın risk aksiyonları/AI-FMEA sonucunu yeni kayda taşımayız.
+  if (typeof riskAksiyonTemizle === 'function') riskAksiyonTemizle();
+  const aiVarsayilanlari = {
+    aiFmeaS: '—', aiFmeaO: '—', aiFmeaD: '—', aiFmeaROS: '—',
+    aiFmeaState: 'Makine, arıza kodu ve süre girildiğinde analiz otomatik başlatılır.',
+    aiFmeaRiskTitle: '🟢 Analiz bekleniyor',
+    aiFmeaRiskNote: 'Yeterli veri oluştuğunda karar motoru çalışacaktır.',
+    aiFmeaActions: '<div class="aifmea-action">Henüz öneri oluşturulmadı.</div>',
+    aiFmeaStock: '<div style="font-size:11px;color:#777">Arıza analizinden sonra stok taranacak.</div>',
+    aiFmeaStockBridgeBody: 'Henüz analiz yapılmadı.',
+    aiFmeaExplain: 'AI önerileri taslaktır. Kritik risklerde yönetici onayı olmadan FMEA veya takvim otomatik değiştirilmez.',
+    aiFmeaLive: '● HAZIR'
+  };
+  Object.entries(aiVarsayilanlari).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === 'aiFmeaActions' || id === 'aiFmeaStock') el.innerHTML = value;
+    else el.textContent = value;
+  });
+  const aiRisk = document.getElementById('aiFmeaRisk');
+  if (aiRisk) aiRisk.className = 'aifmea-risk SAFE';
+  const aiApprove = document.getElementById('aiFmeaApproveBtn');
+  if (aiApprove) aiApprove.disabled = true;
+  if (typeof aiFmeaGizle === 'function') aiFmeaGizle();
+
+  // Anket cevapları ve önceki otomatik sınıflandırma sonucu kesin olarak temizlenir.
+  if (typeof durusAnketFormuSifirla_ === 'function') durusAnketFormuSifirla_();
+  // Modülün mevcut kurallarıyla bağımlı panel/görünümleri de güncelle; seçim boşken sınıfı yeniden boşalt.
+  if (typeof durusEtkisiGuncelle_ === 'function') durusEtkisiGuncelle_();
+  const durusEtki = document.getElementById('durusEtkisi');
+  if (durusEtki && !(document.getElementById('islem')?.value || '').trim()) durusEtki.value = '';
+  const anketBlok = document.getElementById('durusAnketBlok');
+  if (anketBlok) anketBlok.style.display = 'none';
+  const anketSonuc = document.getElementById('durusAnketSonuc');
+  if (anketSonuc) {
+    anketSonuc.classList.remove('teyit');
+    anketSonuc.removeAttribute('data-seviye');
+    anketSonuc.textContent = 'Yeni işlem türü seçildiğinde duruş anketi yeniden başlayacaktır.';
+  }
+  if (typeof durusZorunluAksiyonGuncelle_ === 'function') durusZorunluAksiyonGuncelle_();
+
+  if (typeof projeGorunurlukGuncelle_ === 'function') projeGorunurlukGuncelle_();
+  if (typeof checkMdRevBoxes === 'function') checkMdRevBoxes();
+  if (typeof riskZorunlulukGuncelle_ === 'function') riskZorunlulukGuncelle_();
+  if (typeof hesaplaMaliyet === 'function') hesaplaMaliyet();
+}
+
+function temizle(sessiz = false) {
   formSifirlaTam_();
-  durusAnketFormuSifirla_();
-  durusEtkisiGuncelle_();
+  if (!sessiz) showToast('🧹 Form tamamen temizlendi. Yeni kayıt için hazır.', 'ok');
 }
 
 // ── KAYIT LİSTESİ ─────────────────────────────
@@ -13178,10 +13290,45 @@ function ypComboKur_() {
 function ypParcaModalAc(kod=''){const p=ypStoklar.find(x=>ypN(x.stokKodu)===ypN(kod))||{};const map={id:'id',kod:'stokKodu',ad:'parcaAdi',kategori:'kategori',raf:'rafKonumu',makine:'makineGrubu',birim:'birim',mevcut:'mevcutStok',rezerve:'rezerveStok',min:'minimumStok',max:'maksimumStok',fiyat:'birimFiyat',para:'paraBirimi',tedarikci:'tedarikci',termin:'terminGun',makineKritik:'makineKritikligi',alternatif:'alternatifParca',not:'not'};Object.entries(map).forEach(([id,k])=>{const el=document.getElementById('yp-'+id);if(el)el.value=p[k]??(id==='birim'?'ADET':id==='para'?'₺':id==='alternatif'?'EVET':['mevcut','rezerve','fiyat','termin'].includes(id)?0:id==='min'?1:id==='max'?5:id==='makineKritik'?3:'');});ypComboKur_();document.getElementById('ypParcaModal').classList.add('open');}
 async function ypParcaKaydet(){const g=id=>document.getElementById('yp-'+id)?.value?.trim()||'';const parca={id:g('id')||Date.now(),stokKodu:ypN(g('kod')),parcaAdi:ypN(g('ad')),kategori:ypN(g('kategori')),rafKonumu:ypN(g('raf')),makineGrubu:ypN(g('makine')),birim:g('birim'),mevcutStok:ypNum(g('mevcut')),rezerveStok:ypNum(g('rezerve')),minimumStok:ypNum(g('min')),maksimumStok:ypNum(g('max')),birimFiyat:ypNum(g('fiyat')),paraBirimi:g('para'),tedarikci:ypN(g('tedarikci')),terminGun:ypNum(g('termin')),makineKritikligi:ypNum(g('makineKritik')),alternatifParca:g('alternatif'),not:ypN(g('not')),aktif:'EVET'};if(!parca.stokKodu||!parca.parcaAdi){showToast('❗ Stok kodu ve parça adı zorunludur.','err');return;}if(parca.maksimumStok&&parca.minimumStok>parca.maksimumStok){showToast('❗ Minimum stok maksimum stoktan büyük olamaz.','err');return;}try{showLoading(true);const r=await gsRequest({action:'yedekParcaSave',parca});if(!r?.ok)throw new Error(r?.error||'Kayıt başarısız');ypModalKapat('ypParcaModal');ypYuklendi=false;await ypVerileriYukle(true);showToast('✅ Yedek parça kartı kaydedildi.','ok');}catch(e){showToast('⚠️ '+e.message,'err')}finally{showLoading(false);}}
 // ══ STOK HAREKET GEÇMİŞİ / RAPORLAMA ══
-function ypHareketDeger(h, keys){for(const k of keys){if(h && h[k]!==undefined && h[k]!==null && String(h[k]).trim()!=='') return h[k];}return '';}
-function ypHareketTarih(h){return ypHareketDeger(h,['tarihSaat','tarih','createdAt','createdDate','timestamp','date','kayitTarihi']);}
-function ypHareketTarihMetin(h){const v=ypHareketTarih(h);if(!v)return '—';const d=new Date(v);if(!isNaN(d))return d.toLocaleString('tr-TR');return String(v);}
-function ypHareketGun(v){if(!v)return '';const d=new Date(v);if(!isNaN(d))return d.toISOString().slice(0,10);const m=String(v).match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);return m?`${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`:'';}
+function ypHareketDeger(h, keys){
+  if(!h || typeof h!=='object') return '';
+  // Önce birebir alan adları, ardından büyük/küçük harften bağımsız eşleşme.
+  for(const k of keys){if(h[k]!==undefined && h[k]!==null && String(h[k]).trim()!=='') return h[k];}
+  const normalizeKey=k=>String(k||'').toLocaleLowerCase('tr-TR').replace(/[^a-z0-9ığüşöç]/g,'');
+  const wanted=new Set(keys.map(normalizeKey));
+  for(const actual of Object.keys(h)){
+    if(wanted.has(normalizeKey(actual)) && h[actual]!==undefined && h[actual]!==null && String(h[actual]).trim()!=='') return h[actual];
+  }
+  return '';
+}
+function ypHareketTarih(h){
+  return ypHareketDeger(h,[
+    'tarihSaat','TarihSaat','tarih_saat','hareketTarihi','HareketTarihi','hareketZamani','HareketZamani',
+    'islemTarihi','islemZamani','IslemTarihi','IslemZamani','zaman','Zaman','timestamp','timeStamp',
+    'tarih','Tarih','date','Date','createdAt','createdDate','kayitTarihi','KayitTarihi',
+    'kayitZamani','KayitZamani','olusturmaTarihi','olusturmaZamani','creationDate','createdOn','ts'
+  ]);
+}
+function ypHareketTarihObj(v){
+  if(v===null || v===undefined || v==='') return null;
+  if(v instanceof Date) return isNaN(v.getTime()) ? null : v;
+  if(typeof v==='number' && isFinite(v)){
+    // Unix timestamp saniye veya milisaniye olasılığı.
+    const n=v<1e11?v*1000:v; const d=new Date(n); return isNaN(d.getTime())?null:d;
+  }
+  const s=String(v).trim(); if(!s) return null;
+  // ISO / yyyy-mm-dd tarihlerini yerel gün bilgisi bozulmadan işler.
+  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m){const d=new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));return isNaN(d.getTime())?null:d;}
+  // Türkçe/GAS görünümü: dd.MM.yyyy [HH:mm[:ss]].
+  m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m){const d=new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));return isNaN(d.getTime())?null:d;}
+  // Saat dilimi içeren ISO/diğer standart tarihler.
+  const d=new Date(s); return isNaN(d.getTime())?null:d;
+}
+function ypHareketTarihMetin(h){const v=ypHareketTarih(h);if(v===''||v===null||v===undefined)return '—';const d=ypHareketTarihObj(v);return d?d.toLocaleString('tr-TR'):String(v);}
+function ypHareketGun(v){const d=ypHareketTarihObj(v);if(!d)return '';return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function ypHareketZamanMs(h){const d=ypHareketTarihObj(ypHareketTarih(h));return d?d.getTime():0;}
 function ypHareketTip(h){return ypN(ypHareketDeger(h,['tip','hareketTipi','hareket','islem']));}
 function ypHareketKod(h){return ypHareketDeger(h,['stokKodu','stok_kodu','kod']);}
 function ypHareketMiktar(h){return ypNum(ypHareketDeger(h,['miktar','adet','quantity']));}
@@ -13202,8 +13349,26 @@ function ypHareketGecmisiAc(kod=''){
   document.getElementById('ypHareketGecmisiModal').classList.add('open');renderYpHareketGecmisi();
 }
 function ypHareketGecmisiTemizle(){document.getElementById('yphg-kod').value='';document.getElementById('yphg-tip').value='';document.getElementById('yphg-bas').value='';document.getElementById('yphg-bit').value='';document.getElementById('yphg-ara').value='';renderYpHareketGecmisi();}
-function ypHareketFiltreli(){const kod=ypN(document.getElementById('yphg-kod')?.value),tip=ypN(document.getElementById('yphg-tip')?.value),bas=document.getElementById('yphg-bas')?.value||'',bit=document.getElementById('yphg-bit')?.value||'',ara=ypN(document.getElementById('yphg-ara')?.value);return ypHareketler.filter(h=>{const hk=ypN(ypHareketKod(h)),ht=ypHareketTip(h),gun=ypHareketGun(ypHareketTarih(h)),metin=ypN([ypHareketBelge(h),ypHareketAciklama(h),ypHareketKaynak(h),ypHareketMakine(h),ypHareketKullanici(h)].join(' '));return (!kod||hk===kod)&&(!tip||ht===tip)&&(!bas||!gun||gun>=bas)&&(!bit||!gun||gun<=bit)&&(!ara||metin.includes(ara));}).sort((a,b)=>{const da=new Date(ypHareketTarih(a)),db=new Date(ypHareketTarih(b));return db-da;});}
-function renderYpHareketGecmisi(){const list=ypHareketFiltreli();let giris=0,cikis=0;list.forEach(h=>{const m=ypHareketMiktar(h),t=ypHareketTip(h);if(t==='GIRIS'||t==='IADE')giris+=m;if(t==='CIKIS'||t==='HURDA')cikis+=m;});document.getElementById('yphg-summary').innerHTML=`<div class="yp-hareket-kpi"><b>${list.length}</b><span>Hareket kaydı</span></div><div class="yp-hareket-kpi"><b>${ypNum(giris)}</b><span>Toplam giriş / iade</span></div><div class="yp-hareket-kpi"><b>${ypNum(cikis)}</b><span>Toplam çıkış / hurda</span></div><div class="yp-hareket-kpi"><b>${ypNum(giris-cikis)}</b><span>Net hareket</span></div>`;document.getElementById('yphg-count').textContent=`${list.length} kayıt gösteriliyor · Toplam sistem hareket kaydı: ${ypHareketler.length}`;
+function ypHareketFiltreli(){
+  const kod=ypN(document.getElementById('yphg-kod')?.value),
+        tip=ypN(document.getElementById('yphg-tip')?.value),
+        bas=document.getElementById('yphg-bas')?.value||'',
+        bit=document.getElementById('yphg-bit')?.value||'',
+        ara=ypN(document.getElementById('yphg-ara')?.value),
+        tarihFiltresiAktif=!!(bas||bit);
+  return ypHareketler.filter(h=>{
+    const hk=ypN(ypHareketKod(h)), ht=ypHareketTip(h),
+          gun=ypHareketGun(ypHareketTarih(h)),
+          metin=ypN([ypHareketBelge(h),ypHareketAciklama(h),ypHareketKaynak(h),ypHareketMakine(h),ypHareketKullanici(h)].join(' '));
+    // Tarih aralığı seçildiyse tarihi bulunamayan kayıtlar aralıktan geçemez.
+    const tarihUygun=!tarihFiltresiAktif || (!!gun && (!bas||gun>=bas) && (!bit||gun<=bit));
+    return (!kod||hk===kod)&&(!tip||ht===tip)&&tarihUygun&&(!ara||metin.includes(ara));
+  }).sort((a,b)=>ypHareketZamanMs(b)-ypHareketZamanMs(a));
+}
+function renderYpHareketGecmisi(){const list=ypHareketFiltreli();let giris=0,cikis=0;list.forEach(h=>{const m=ypHareketMiktar(h),t=ypHareketTip(h);if(t==='GIRIS'||t==='IADE')giris+=m;if(t==='CIKIS'||t==='HURDA')cikis+=m;});document.getElementById('yphg-summary').innerHTML=`<div class="yp-hareket-kpi"><b>${list.length}</b><span>Hareket kaydı</span></div><div class="yp-hareket-kpi"><b>${ypNum(giris)}</b><span>Toplam giriş / iade</span></div><div class="yp-hareket-kpi"><b>${ypNum(cikis)}</b><span>Toplam çıkış / hurda</span></div><div class="yp-hareket-kpi"><b>${ypNum(giris-cikis)}</b><span>Net hareket</span></div>`;const tarihBas=document.getElementById('yphg-bas')?.value||'',tarihBit=document.getElementById('yphg-bit')?.value||'';
+ const tarihAraligiAktif=!!(tarihBas||tarihBit);
+ const tarihsizHaric=tarihAraligiAktif?ypHareketler.filter(h=>!ypHareketGun(ypHareketTarih(h))).length:0;
+ document.getElementById('yphg-count').textContent=`${list.length} kayıt gösteriliyor · Toplam sistem hareket kaydı: ${ypHareketler.length}`+(tarihAraligiAktif?` · Tarih filtresi aktif; tarihsiz ${tarihsizHaric} kayıt aralığa dahil edilmedi.`:'');
  if(!list.length){document.getElementById('yphg-table').innerHTML='<div class="yp-hareket-empty">Seçilen kriterlere uygun stok hareketi bulunamadı.</div>';return;}
  document.getElementById('yphg-table').innerHTML=`<table class="yp-hareket-table"><thead><tr><th>TARİH / SAAT</th><th>STOK KODU</th><th>PARÇA</th><th>HAREKET</th><th>MİKTAR</th><th>ÖNCEKİ STOK</th><th>SONRAKİ STOK</th><th>FORM / BELGE NO</th><th>AÇIKLAMA</th><th>KAYNAK</th><th>MAKİNE</th><th>KULLANICI</th></tr></thead><tbody>${list.map(h=>`<tr><td>${ypEsc(ypHareketTarihMetin(h))}</td><td><b>${ypEsc(ypHareketKod(h)||'—')}</b></td><td>${ypEsc(ypHareketParcaAdi(ypHareketKod(h)))}</td><td class="${ypHareketSinif(ypHareketTip(h))}">${ypEsc(ypHareketEtiket(ypHareketTip(h)))}</td><td><b>${ypNum(ypHareketMiktar(h))}</b></td><td>${ypEsc(ypHareketOncekiStok(h)===''?'—':ypHareketOncekiStok(h))}</td><td>${ypEsc(ypHareketSonrakiStok(h)===''?'—':ypHareketSonrakiStok(h))}</td><td><b>${ypEsc(ypHareketBelge(h)||'—')}</b></td><td>${ypEsc(ypHareketAciklama(h)||'—')}</td><td>${ypEsc(ypHareketKaynak(h)||'—')}</td><td>${ypEsc(ypHareketMakine(h)||'—')}</td><td>${ypEsc(ypHareketKullanici(h)||'—')}</td></tr>`).join('')}</tbody></table>`;}
 function ypHareketGecmisiYazdir(){ypHareketGecmisiPDF(true);}
