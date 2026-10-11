@@ -1093,6 +1093,7 @@ tr:last-child td { border-bottom: none; }
 .durus-anket-sonuc.teyit{box-shadow:inset 4px 0 0 #e65100}
 #durusEtkisi:disabled{opacity:1;color:#222;-webkit-text-fill-color:#222;background:#f0f0ec;cursor:not-allowed;font-weight:800}
 
+.aifmea-risk.UNVERIFIED{background:#fff3e0;border-color:#ffcc80;color:#8a3b00}
 </style>
 </head>
 <body>
@@ -1472,9 +1473,10 @@ tr:last-child td { border-bottom: none; }
             <div class="field"><label>Aksiyon sorumlusu <span class="req">*</span></label><input id="durusAksiyonSorumlu" type="text" placeholder="Sorumlu kişi veya görev rolü" oninput="this.value=this.value.toUpperCase()"></div>
           </div>
           <div class="fg" id="durusTamDurusEkleri" style="display:none">
-            <div class="field"><label>Üretimi durdurma / yeniden başlatma kararı <span class="req">*</span></label><textarea id="durusAksiyonDurdurma" rows="2" placeholder="Durdurma ve yeniden başlatma kararını, onaylayan kişiyi yazın..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
-            <div class="field"><label>Üretim / kalite / yönetim bilgilendirmesi <span class="req">*</span></label><textarea id="durusAksiyonBildirim" rows="2" placeholder="Bilgilendirilen bölüm/kişiler ve alınan karar..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+            <div class="field"><label>Benzer makine kontrolü / güvenli yeniden başlatma <span class="req">*</span></label><textarea id="durusAksiyonDurdurma" rows="2" placeholder="Benzer makinelerde aynı arıza kontrolünü ve güvenli yeniden başlatma koşullarını yazın..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
+            <div class="field"><label>Kalite ve ürün izolasyon kontrolü / bilgilendirme <span class="req">*</span></label><textarea id="durusAksiyonBildirim" rows="2" placeholder="Etkilenmiş ürün/lot için izolasyon ve kalite kontrol kararını, bilgilendirilen kişileri yazın..." oninput="this.value=this.value.toUpperCase()"></textarea></div>
           </div>
+          <div class="field"><label>Etkinlik doğrulama <span class="req">*</span></label><textarea id="durusAksiyonEtkinlik" rows="2" placeholder="Müdahale sonrası kararlı çalışma ve etkinlik nasıl doğrulanacak?" oninput="this.value=this.value.toUpperCase()"></textarea></div>
           <div class="field" style="max-width:360px"><label>Aksiyon termin tarihi <span class="req">*</span></label><input id="durusAksiyonTermin" type="date"></div>
           <div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:7px;padding:9px 11px;color:#7a3b00;font-size:11px;line-height:1.5">Bu alanlar doldurulmadan kayıt kaydedilemez. AI-FMEA verisi eşleşmese ve RÖS 0 olsa bile kısmi/tam duruş aksiyonu zorunludur.</div>
         </div>
@@ -1758,6 +1760,7 @@ tr:last-child td { border-bottom: none; }
           <option value="ORTA"   style="color:#e65100">🟠 ORTA</option>
           <option value="YÜKSEK" style="color:#d32f2f">🔴 YÜKSEK</option>
           <option value="KRİTİK" style="color:#6a1b9a">🟣 KRİTİK</option>
+          <option value="VERİ YETERSİZ" style="color:#8a3b00">⚠️ VERİ YETERSİZ</option>
         </select>
         <span class="df-arrow">▼</span>
       </div>
@@ -3079,7 +3082,8 @@ async function syncPending() {
   setSyncUI('syncing', list.length + ' kayıt gönderiliyor...');
   for (const rec of list) {
     try {
-      await gsRequest({ action: 'saveKayit', kayit: rec });
+      const ack=await gsKaydet(rec);
+      if(ack.formNo)rec.formNo=ack.formNo;
       await idbDelete(rec.id);
       pendingCount = Math.max(0, pendingCount - 1);
     } catch { break; }
@@ -3433,6 +3437,7 @@ async function gsBakimTamamlaKaydet(kayit) {
     parcaTeminDurumu: kayit.teminDurumu || '',
     kaliteKontrol: kayit.kalite || '',
     riskAksiyon: riskAksiyon,
+    riskSeviye:kayit.riskSeviye||'',durusEtkisi:kayit.durusEtkisi||'',
     sure: kayit.sure || 0,
     bakimciSayisi: bakimciSayisi,   // 🔽 yeni alan
     iscilikMaliyeti: kayit.iscilikMaliyeti || '',
@@ -4273,6 +4278,95 @@ function fmeaInit(){fmeaRenderOzet();fmeaRender();}
 // ══════════════════════════════════════════════
 // AI-FMEA — YENİ KAYIT RİSK MOTORU
 // ══════════════════════════════════════════════
+
+var BAKIM_FMEA_KOD_ESLESMELERI_={
+  '03-032':'06-039',
+  '03-076':'03-046',
+  '03-121':'01-025',
+  '01-017':'01-001',
+  '02-028':'02-003',
+  '02-014':'02-008',
+  '03-071':'03-035',
+  '06-018':'06-007',
+  '06-024':'06-001',
+  '06-020':'06-018',
+  '03-133':'06-037',
+  '06-010':'06-039'
+};
+function bakimArizaKod_(v){var k=bakimKodNorm_(v);return BAKIM_FMEA_KOD_ESLESMELERI_[k]||k;}
+function bakimKodNorm_(v) {
+  var s=String(v==null?'':v).trim().toLocaleUpperCase('tr-TR').replace(/[‐‑‒–—−]/g,'-').replace(/\s*-\s*/g,'-');
+  var m=s.match(/^(\d{1,2})-(\d{1,3})$/);
+  return m ? ('0'+m[1]).slice(-2)+'-'+('00'+m[2]).slice(-3) : s;
+}
+function bakimMakineNorm_(v) {
+  return String(v==null?'':v).trim().toLocaleUpperCase('tr-TR').replace(/[‐‑‒–—−]/g,'-').replace(/\s*-\s*/g,'-').replace(/\s+/g,' ');
+}
+function bakimPuan_(v) {
+  if(v===null || v===undefined || String(v).trim()==='') return null;
+  var n=Number(String(v).replace(',','.'));
+  return Number.isInteger(n) && n>=1 && n<=10 ? n : null;
+}
+function bakimTarihObj_(v) {
+  if(v===null || v===undefined || v==='') return null;
+  if(Object.prototype.toString.call(v)==='[object Date]') return isNaN(v.getTime())?null:new Date(v.getTime());
+  if(typeof v==='number' && isFinite(v)) { var n=new Date(v<1e11?v*1000:v); return isNaN(n.getTime())?null:n; }
+  var s=String(v).trim(),m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?(Z|[+-]\d{2}:?\d{2})?$/i);
+  var y,mo,day,hh,mm,ss,ms,zone;
+  if(m){y=+m[1];mo=+m[2];day=+m[3];hh=+(m[4]||0);mm=+(m[5]||0);ss=+(m[6]||0);ms=+(String(m[7]||'0').padEnd(3,'0'));zone=m[8];}
+  else {
+    m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if(!m) return null;
+    y=+m[3];mo=+m[2];day=+m[1];hh=+(m[4]||0);mm=+(m[5]||0);ss=+(m[6]||0);ms=0;
+  }
+  var check=new Date(Date.UTC(y,mo-1,day));
+  if(y<1900 || mo<1 || mo>12 || day<1 || check.getUTCFullYear()!==y || check.getUTCMonth()!==mo-1 || check.getUTCDate()!==day || hh>23 || mm>59 || ss>59) return null;
+  var offset=180; // Date-only and unzoned business timestamps are Europe/Istanbul.
+  if(zone){
+    if(zone.toUpperCase()==='Z') offset=0;
+    else { var z=zone.match(/^([+-])(\d{2}):?(\d{2})$/); if(!z || +z[2]>23 || +z[3]>59)return null; offset=(+z[2]*60 + +z[3])*(z[1]==='-'?-1:1); }
+  }
+  return new Date(Date.UTC(y,mo-1,day,hh,mm,ss,ms)-offset*60000);
+}
+function bakimGun_(v) {
+  var d=bakimTarihObj_(v); if(!d)return '';
+  d=new Date(d.getTime()+180*60000);
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+}
+function bakimOlayZamani_(k) {
+  var gun=bakimGun_(k.tarihBas||k.tarih||k.tarihBit);
+  var t=String(k.arizaBas||k.onarimBas||'00:00').trim();
+  var m=t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if(!gun || !m) return 0;
+  var d=bakimTarihObj_(gun+'T'+String(m[1]).padStart(2,'0')+':'+m[2]+':'+(m[3]||'00')+'+03:00');
+  return d?d.getTime():0;
+}
+function bakimOlasilik_(rows,makine,kod,now) {
+  now=now===undefined?Date.now():now;
+  var target=bakimMakineNorm_(makine), code=bakimArizaKod_(kod), limit=now-90*86400000;
+  var arr=(rows||[]).filter(function(k){
+    return bakimMakineNorm_(k.makine)===target && bakimArizaKod_(k.arizaKodu)===code &&
+      bakimMakineNorm_(k.islem||k.Islem)==='ARIZA KAYDI' && !['IPTAL','İPTAL'].includes(bakimMakineNorm_(k.durum));
+  }).map(function(k){return {k:k,t:bakimOlayZamani_(k)};})
+    .filter(function(x){return x.t && x.t>=limit && x.t<=now;}).sort(function(a,b){return a.t-b.t;});
+  var uniq=[];arr.forEach(function(x){var last=uniq[uniq.length-1];if(!last || x.t-last.t>30*60000)uniq.push(x);});
+  var recent30=uniq.filter(function(x){return x.t>=now-30*86400000;}).length;
+  if(uniq.length<2)return {score:'YETERSİZ VERİ',mtbf:null,count:uniq.length,recent30:recent30,events:uniq.map(function(x){return x.k;})};
+  var total=0;for(var i=1;i<uniq.length;i++)total+=(uniq[i].t-uniq[i-1].t)/3600000;
+  var mtbf=total/(uniq.length-1),score=mtbf<=48||recent30>=3?10:mtbf<=168||recent30>=2?8:mtbf<=720?5:2;
+  return {score:score,mtbf:mtbf,count:uniq.length,recent30:recent30,events:uniq.map(function(x){return x.k;})};
+}
+function bakimTeknikRisk_(S,O,D) {
+  var s=bakimPuan_(S),o=bakimPuan_(O),d=bakimPuan_(D),tam=s!==null&&o!==null&&d!==null;
+  var ros=tam?s*o*d:(s===null||d===null?0:null);
+  if(s!==null && s>=9)return {code:'CRITICAL',label:'KRİTİK',ros:ros,riskVerified:true,scoreComplete:tam};
+  if(!tam)return {code:'UNVERIFIED',label:'VERİ YETERSİZ',ros:ros,riskVerified:false,scoreComplete:false};
+  return {code:ros>=120?'CRITICAL':ros>=80?'WARNING':'SAFE',label:ros>=120?'KRİTİK':ros>=80?'ORTA':'DÜŞÜK',ros:ros,riskVerified:true,scoreComplete:true};
+}
+
+let _formBekleyenKayitId=null;
+let _kayitInFlight=false;
+let _fmeaPlanInFlight=false;
 let _aiFmeaTimer = null;
 let _aiFmeaLastKey = '';
 let _aiFmeaResult = null;
@@ -4281,41 +4375,27 @@ let _aiFmeaRunId = 0; // Yeni analiz başladığında eski/asenkron sonuçların
 function aiFmeaEsc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])); }
 function aiFmeaDebounce(){
   clearTimeout(_aiFmeaTimer);
+  _aiFmeaRunId++; _aiFmeaResult=null; _aiFmeaLastKey='';
+  const el=document.getElementById('riskSeviye');if(el)el.value='';
+  document.getElementById('aiFmeaApproveBtn').disabled=true;
+  document.getElementById('aiFmeaLive').textContent='● YENİ ANALİZ BEKLENİYOR';
   _aiFmeaTimer=setTimeout(()=>aiFmeaYenile(false),900);
 }
+
 function aiFmeaGizle(){ document.getElementById('aiFmeaPanel')?.classList.remove('show'); }
 function aiFmeaAc(){ document.getElementById('aiFmeaPanel')?.classList.add('show'); }
 function aiFmeaDurusDakika(){ return parseInt(document.getElementById('sureBadge')?.dataset?.dk||'0',10)||0; }
-function aiFmeaTarih(k){
-  const v=String(k?.tarihBas||k?.tarih||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';
-}
+function aiFmeaTarih(k){ return bakimGun_(k?.tarihBas||k?.tarih||k?.tarihBit); }
+
 function aiFmeaKeyDate(k){
   const d=aiFmeaTarih(k), t=String(k?.arizaBas||k?.onarimBas||'00:00');
   return d?(d+'T'+(t||'00:00')):'';
 }
-function aiFmea90GunO(makine,kod){
-  const now=Date.now(), limit=now-90*86400000;
-  const arr=(kayitlar||[]).filter(k=>String(k.makine||'').trim().toUpperCase()===String(makine||'').trim().toUpperCase() && String(k.arizaKodu||'').trim().toUpperCase()===String(kod||'').trim().toUpperCase())
-    .map(k=>({k,t:new Date(aiFmeaKeyDate(k)||aiFmeaTarih(k)||'').getTime()})).filter(x=>x.t && x.t>=limit && x.t<=now+86400000).sort((a,b)=>a.t-b.t);
-  // Aynı olayın yakın devam kayıtlarını tek olay kabul et.
-  const uniq=[]; arr.forEach(x=>{const last=uniq[uniq.length-1]; if(!last || x.t-last.t>30*60000) uniq.push(x);});
-  if(uniq.length<2) return {score:'YETERSİZ VERİ',mtbf:null,count:uniq.length,events:uniq.map(x=>x.k)};
-  let total=0; for(let i=1;i<uniq.length;i++) total += (uniq[i].t-uniq[i-1].t)/3600000;
-  const mtbf=total/(uniq.length-1), recent30=uniq.filter(x=>x.t>=now-30*86400000).length;
-  let score;
-  if(mtbf<=48 || recent30>=3) score=10;
-  else if(mtbf<=168 || recent30>=2) score=8;
-  else if(mtbf<=720) score=5;
-  else score=2;
-  return {score,mtbf,count:uniq.length,recent30,events:uniq.map(x=>x.k)};
-}
-function aiFmeaRisk(S,O,D){
-  const n=Number(S),o=Number(O),d=Number(D),ros=n*o*d;
-  if(n>=9 || ros>=120) return {code:'CRITICAL',label:'🔴 KRİTİK RİSK',ros};
-  if(ros>=80) return {code:'WARNING',label:'🟡 ORTA RİSK',ros};
-  return {code:'SAFE',label:'🟢 DÜŞÜK RİSK',ros};
-}
-function aiFmeaMaster(kod){ return (FMEA_MASTER_UI||[]).find(x=>String(x['ARIZA KODU']||'').toUpperCase()===String(kod||'').toUpperCase())||null; }
+function aiFmea90GunO(makine,kod){ return bakimOlasilik_(kayitlar,makine,kod); }
+
+function aiFmeaRisk(S,O,D){ return bakimTeknikRisk_(S,O,D); }
+
+function aiFmeaMaster(kod){ return (FMEA_MASTER_UI||[]).find(x=>bakimKodNorm_(x['ARIZA KODU'])===bakimArizaKod_(kod))||null; }
 
 function aiFmeaStokTara(makine, konu, kod) {
   const q = (
@@ -4456,160 +4536,114 @@ window.aiFmeaStokKoprusunuGoster = function(sonuc) {
     </div>`;
 };
 
+function aiFmeaGirdiAnahtari_(){
+  return ['makine','arizaKodu','konu'].map(id=>document.getElementById(id)?.value?.trim()||'').join('|')+'|'+aiFmeaDurusDakika();
+}
+function aiFmeaSonucUygula_(r){
+  const risk=r.risk;
+  _aiFmeaResult=r;
+  const seviye=risk.code==='CRITICAL'?'KRİTİK':risk.code==='WARNING'?'ORTA':risk.code==='SAFE'?'DÜŞÜK':'VERİ YETERSİZ';
+  const alan=document.getElementById('riskSeviye');
+  if(alan){alan.value=seviye; if(risk.code!=='UNVERIFIED')riskAksiyonGuncelle(seviye);else document.getElementById('riskAksiyonPanel').style.display='none';}
+  document.getElementById('aiFmeaS').textContent=r.S??'—';
+  document.getElementById('aiFmeaO').textContent=r.O??'YETERSİZ VERİ';
+  document.getElementById('aiFmeaO').style.fontSize=r.O===null?'12px':'';
+  document.getElementById('aiFmeaD').textContent=r.D??'—';
+  document.getElementById('aiFmeaROS').textContent=r.ros??'—';
+  document.getElementById('aiFmeaRisk').className='aifmea-risk '+risk.code;
+  document.getElementById('aiFmeaRiskTitle').textContent=(risk.code==='CRITICAL'?'🔴 ':risk.code==='UNVERIFIED'?'⚠️ ':risk.code==='WARNING'?'🟡 ':'🟢 ')+risk.label;
+  document.getElementById('aiFmeaRiskNote').textContent=`${r.makine} · ${r.kod} · ${r.eslesmeNedeni||('Son 90 gün: '+r.occ.count+' gerçek arıza')} · ${r.kaynak}`;
+  document.getElementById('aiFmeaState').textContent=r.scoreComplete?'FMEA puanları hesaplandı.':(r.sDEslesmesiYok?'Arıza kodunun S/D puanları eksik.': 'Arıza kodu eşleşti; yalnızca makine + kod tekrar geçmişi yetersiz.');
+  document.getElementById('aiFmeaExplain').textContent=r.scoreComplete
+    ? `RÖS = ${r.S} × ${r.O} × ${r.D} = ${r.ros}. Kritik eşik: S ≥ 9 veya RÖS ≥ 120. O: son 90 gündeki gerçek arızaların ortalama tekrar aralığı ve son 30 gün tekrarları.`
+    : (risk.code==='CRITICAL'?'S ≥ 9: tekrar geçmişi ve duruş anketinden bağımsız KRİTİK risk. ':'')+'O puanı uydurulmaz. Eksik S/D için RÖS 0 veri eksikliği göstergesidir; O eksikken RÖS hesaplanamaz. Duruş anketi ayrı değerlendirilir.';
+  r.teknikActions=aiFmeaLocalActions(risk,r.makine,r.kod,r.konu,r.stok||[]);
+  if(risk.code==='UNVERIFIED')r.teknikActions=['Eksik FMEA S/D veya tekrar verisini sorumlu ile doğrulayın; düşük risk onayı verilmedi.'];
+  aiFmeaEslesmeYokAksiyonGuncelle_();
+  aiFmeaRenderStock(r.stok||[]);
+}
 async function aiFmeaYenile(force){
-  const makine=(document.getElementById('makine')?.value||'').trim();
-  const kod=(document.getElementById('arizaKodu')?.value||'').trim();
-  const konu=(document.getElementById('konu')?.value||'').trim();
-  if(!makine || !kod){ if(force)showToast('⚠️ AI-FMEA için Makine ve Arıza Kodu gerekli.','err'); return; }
-  const durus=aiFmeaDurusDakika(), key=makine+'|'+kod+'|'+konu+'|'+durus;
-  aiFmeaAc();
-  if(!force && key===_aiFmeaLastKey)return;
-  _aiFmeaLastKey=key;
-  const runId=++_aiFmeaRunId;
-  document.getElementById('aiFmeaLive').textContent='● ANALİZ EDİLİYOR';
-  document.getElementById('aiFmeaState').textContent='FMEA MASTER eşleşmesi kontrol ediliyor...';
-  const master=aiFmeaMaster(kod), occ=aiFmea90GunO(makine,kod);
-  const S=Number(master?.S||0), D=Number(master?.D||0), O=Number(occ.score||0);
-
-  // Zorunlu puan verilerinden herhangi biri eşleşmiyorsa uzak sunucu, stok veya AI çağrısını bekleme.
-  // İstenen kural: veri eşleşmesi/olasılık geçmişi yoksa RÖS doğrudan 0; bu teknik güvenlik onayı değildir.
-  const sDEslesmesiYok = !master || !S || !D;
-  const olasilikVerisiYok = !Number.isFinite(O);
-  if(sDEslesmesiYok || olasilikVerisiYok){
-    const risk={code:'SAFE',label:'⚪ EŞLEŞME YOK · RÖS 0',ros:0};
-    const sebep = sDEslesmesiYok
-      ? 'FMEA MASTER içinde bu arıza koduna ait S/D eşleşmesi bulunamadı.'
-      : 'Aynı makine + arıza kodu için yeterli son 90 gün tekrar verisi bulunamadı.';
-    const actions=[sebep+' Eşleşme/puan verisi olmadığı için RÖS=0 atandı; bu değer doğrulanmış düşük teknik risk anlamına gelmez.'];
-    const stok=[];
-    const riskAlan=document.getElementById('riskSeviye');
-    if(riskAlan) riskAlan.value='DÜŞÜK'; // Mevcut kayıt şeması risk seviyesini kategori olarak saklıyor.
-    if(typeof riskAksiyonTemizle==='function') riskAksiyonTemizle();
-    document.querySelectorAll('.risk-btn').forEach(b=>b.classList.remove('active'));
-    _aiFmeaResult={makine,kod,konu,durus,S:0,O:0,D:0,ros:0,risk,actions,stok,master,occ,eslesmeYok:true,eslesmeNedeni:sebep,durusEtkisi:(document.getElementById('durusEtkisi')?.value||'DURUŞ YOK')};
-    document.getElementById('aiFmeaState').textContent='FMEA MASTER eşleşmesi bulunamadı. Beklemeden RÖS=0 atandı.';
-    document.getElementById('aiFmeaS').textContent='—';
-    document.getElementById('aiFmeaO').textContent='—';
-    document.getElementById('aiFmeaD').textContent='—';
-    document.getElementById('aiFmeaROS').textContent='0';
-    document.getElementById('aiFmeaRisk').className='aifmea-risk SAFE';
-    document.getElementById('aiFmeaRiskTitle').textContent=risk.label;
-    document.getElementById('aiFmeaRiskNote').textContent=`${makine} · ${kod} · ${sDEslesmesiYok ? 'FMEA MASTER S/D eşleşmesi yok' : 'Yeterli tekrar verisi yok'} · RÖS 0`;
-    document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('');
-    aiFmeaRenderStock([]);
-    const stokKopru=document.getElementById('aiFmeaStockBridgeBody');
-    if(stokKopru) stokKopru.textContent='Gerekli FMEA/olasılık verisi eşleşmediği için merkezi FMEA/stok ve AI önerisi beklenmeden analiz sonlandırıldı.';
-    document.getElementById('aiFmeaExplain').textContent=`Karar motoru: ${sebep} İstek doğrultusunda RÖS=0 atandı. Bu sonuç teknik riskin doğrulandığı anlamına gelmez. Veri eşleştiğinde yeniden analiz edilebilir.`;
-    document.getElementById('aiFmeaApproveBtn').disabled=true;
-    document.getElementById('aiFmeaLive').textContent='● EŞLEŞME YOK · RÖS 0';
-    durusZorunluAksiyonGuncelle_();
-    aiFmeaEslesmeYokAksiyonGuncelle_();
-    return;
+  const makine=(document.getElementById('makine')?.value||'').trim(),kod=(document.getElementById('arizaKodu')?.value||'').trim(),konu=(document.getElementById('konu')?.value||'').trim();
+  if(!makine||!kod){if(force)showToast('⚠️ AI-FMEA için Makine ve Arıza Kodu gerekli.','err');return;}
+  const key=aiFmeaGirdiAnahtari_(),durus=aiFmeaDurusDakika(),runId=++_aiFmeaRunId;
+  _aiFmeaLastKey=key;aiFmeaAc();
+  const eskiOnay=!!(_aiFmeaResult?.takvimeIslendi && _aiFmeaResult.girdiAnahtari===key);
+  const master=aiFmeaMaster(kod),occ=aiFmea90GunO(makine,kod),S=bakimPuan_(master?.S),D=bakimPuan_(master?.D),O=bakimPuan_(occ.score);
+  const risk=aiFmeaRisk(S,O,D);
+  const sonuc={makine,kod,konu,durus,S,O,D,takvimeIslendi:eskiOnay,ros:risk.ros,risk,master,occ,stok:[],girdiAnahtari:key,
+    eslesmeYok:!master,sDEslesmesiYok:S===null||D===null,olasilikVerisiYok:O===null,scoreComplete:risk.scoreComplete,
+    eslesmeNedeni:!master?'FMEA S/D eşleşmesi yok':O===null?'S/D eşleşti; O için yeterli tekrar verisi yok':'',kaynak:'Yerel kayıtlar'};
+  aiFmeaSonucUygula_(sonuc);
+  document.getElementById('aiFmeaLive').textContent='● MERKEZİ KAYNAK KONTROL EDİLİYOR';
+  // Yerel geçmiş eksik olsa bile merkezi master/gerçek kayıtlar sorgulanır.
+  try{
+    const remote=await gsRequest({action:'fmeaAnaliz',makine,arizaKodu:kod,durusDakika:durus});
+    if(runId!==_aiFmeaRunId || key!==aiFmeaGirdiAnahtari_())return;
+    if(remote?.ok && !remote.excluded){
+      const s=bakimPuan_(remote.S??remote.master?.S),d=bakimPuan_(remote.D??remote.master?.D),o=bakimPuan_(remote.O??remote.occurrence?.score);
+      // Older deployments may omit S/D on a waiting response. Keep known master values.
+      const rs=('S' in remote || remote.master)?s:S,rd=('D' in remote || remote.master)?d:D,rr=aiFmeaRisk(rs,o,rd);
+      Object.assign(sonuc,{S:rs,D:rd,O:o,ros:rr.ros,risk:rr,master:remote.master||master,occ:remote.occurrence||occ,
+        scoreComplete:rr.scoreComplete,eslesmeYok:rs===null&&rd===null,sDEslesmesiYok:rs===null||rd===null,olasilikVerisiYok:o===null,
+        eslesmeNedeni:rs===null||rd===null?'Merkezi S/D eşleşmesi eksik':o===null?'S/D eşleşti; O için yeterli tekrar verisi yok':'',kaynak:'Merkezi FMEA / Sheets'});
+      aiFmeaSonucUygula_(sonuc);
+    }else if(remote?.excluded){
+      Object.assign(sonuc,{S:null,O:null,D:null,ros:0,risk:aiFmeaRisk(null,null,null),scoreComplete:false,sDEslesmesiYok:true,eslesmeYok:true,excluded:true,kaynak:'FMEA dışı kod',eslesmeNedeni:'Bu kod merkezi FMEA kapsamı dışında'});
+      aiFmeaSonucUygula_(sonuc);
+    }
+    else throw new Error(remote?.error||'Merkezi analiz yanıtı alınamadı');
+  }catch(e){
+    if(runId!==_aiFmeaRunId || key!==aiFmeaGirdiAnahtari_())return;
+    sonuc.merkeziHata=String(e?.message||e);sonuc.kaynak='Yerel sonuç — merkezi doğrulama yapılamadı';
+    document.getElementById('aiFmeaRiskNote').textContent=`${makine} · ${kod} · ${sonuc.kaynak}`;
   }
-
-  if(typeof ypYuklendi!=='undefined' && !ypYuklendi && typeof ypVerileriYukle==='function') {
-    try { await ypVerileriYukle(); } catch(e) { console.warn('AI-FMEA stok senkronizasyonu:',e); }
-    if(runId!==_aiFmeaRunId) return;
-  }
-  const stok=aiFmeaStokTara(makine,konu,kod); aiFmeaRenderStock(stok);
-  
-  // Merkezi FMEA + stok bağlantısı (salt okuma)
-  try {
-    
-const merkezSonuc = await gsRequest({
-  action: 'fmeaAnalizStok',
-  makine: makine,
-  arizaKodu: kod,
-  durusDakika: durus,
-  parcaAdaylari: stok.map(p => ({
-  stokKodu: p.stokKodu || '',
-  parcaAdi: p.parcaAdi || '',
-  kaynak: 'AI-FMEA yerel stok adayı'
-}))
-});
-
-if(runId!==_aiFmeaRunId) return;
-    console.log('FMEA MERKEZ STOK SONUCU:', merkezSonuc);
-    window.aiFmeaStokKoprusunuGoster(merkezSonuc);
-
-} catch (e) {
-  if(runId!==_aiFmeaRunId) return;
-  console.error('Merkezi FMEA stok kontrolü:', e);
-  const alan = document.getElementById('aiFmeaStockBridgeBody');
-  if (alan) {
-    alan.textContent = 'Merkezi stok kontrolü hatası: ' + (e?.message || String(e));
-  }
-}
-
-
-  const risk=aiFmeaRisk(S,O,D), actions=aiFmeaLocalActions(risk,makine,kod,konu,stok);
-  // AI-FMEA sonucu kayıtların tek risk kaynağıdır; manuel seçim kullanılmaz.
-  const riskAlan = document.getElementById('riskSeviye');
-  if (riskAlan) {
-    riskAlan.value = risk.code === 'CRITICAL' ? 'KRİTİK' : risk.code === 'WARNING' ? 'ORTA' : 'DÜŞÜK';
-    if (typeof riskAksiyonGuncelle === 'function') riskAksiyonGuncelle(riskAlan.value);
-  }
-  _aiFmeaResult={makine,kod,konu,durus,S,O,D,ros:risk.ros,risk,actions,stok,master,occ};
-  document.getElementById('aiFmeaS').textContent=S;document.getElementById('aiFmeaO').textContent=O;document.getElementById('aiFmeaD').textContent=D;document.getElementById('aiFmeaROS').textContent=risk.ros;
-  document.getElementById('aiFmeaRisk').className='aifmea-risk '+risk.code;document.getElementById('aiFmeaRiskTitle').textContent=risk.label;document.getElementById('aiFmeaRiskNote').textContent=`${makine} · ${kod} · Duruş/onarım: ${durus||0} dk · Son 90 gün: ${occ.count} olay`;
-  document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('');
-  document.getElementById('aiFmeaExplain').textContent=`Karar motoru: RÖS = ${S} × ${O} × ${D} = ${risk.ros}. ${risk.code==='CRITICAL'?'RÖS ≥ 120 veya S ≥ 9 olduğu için kritik aksiyon eşiği geçildi.':risk.code==='WARNING'?'RÖS 80–119 aralığında olduğu için orta risk aksiyonu önerildi.':'RÖS 80 altında; rutin izleme önerildi.'} O hesabı MTBF ve son 30 gün tekrarlarıyla belirlenmiştir.`;
-  document.getElementById('aiFmeaApproveBtn').disabled=false;
-  document.getElementById('aiFmeaLive').textContent='● HAZIR';
-  // AI sadece açıklayıcı aksiyonları zenginleştirir; puanların yerine geçmez.
-  if(typeof aiCallClaude==='function'){
+  if(runId!==_aiFmeaRunId || key!==aiFmeaGirdiAnahtari_())return;
+  aiFmeaEslesmeYokAksiyonGuncelle_();
+  // Stok kontrolü puan verisi eksikliğinden bağımsızdır.
+  try{
+    if(!ypYuklendi)await ypVerileriYukle();
+    if(runId!==_aiFmeaRunId)return;
+    sonuc.stok=aiFmeaStokTara(makine,konu,kod);aiFmeaRenderStock(sonuc.stok);
+    const stokSonuc=await gsRequest({action:'fmeaAnalizStok',makine,arizaKodu:kod,durusDakika:durus,
+      parcaAdaylari:sonuc.stok.map(p=>({stokKodu:p.stokKodu||'',parcaAdi:p.parcaAdi||'',kaynak:'AI-FMEA yerel stok adayı'}))});
+    if(runId!==_aiFmeaRunId)return;
+    window.aiFmeaStokKoprusunuGoster(stokSonuc);
+  }catch(e){if(runId===_aiFmeaRunId)document.getElementById('aiFmeaStockBridgeBody').textContent='Merkezi stok doğrulaması yapılamadı: '+(e?.message||e);}
+  if(runId!==_aiFmeaRunId)return;
+  // Existing AI service enriches actions only; scores remain deterministic.
+  if(sonuc.risk.code!=='UNVERIFIED' && typeof aiCallClaude==='function'){
     try{
-      const prompt=`AI-FMEA aksiyon önerisi üret. Veriler: Makine=${makine}; Arıza Kodu=${kod}; Açıklama=${konu}; S=${S}; O=${O}; D=${D}; RÖS=${risk.ros}; Risk=${risk.label}; Stok eşleşmeleri=${JSON.stringify(stok.map(p=>({kod:p.stokKodu,parca:p.parcaAdi,mevcut:p.mevcutStok,min:p.minimumStok})))}`;
-      const ai=await aiCallClaude('Sen BURKAB A.Ş. için IATF 16949 odaklı bakım risk analistisin. Puanları değiştirme. Sadece 3-5 somut aksiyon öner; yedek parça adı uydurma; veride olmayan bilgiyi üretme.',prompt);
-      if(runId!==_aiFmeaRunId) return;
-      const clean=ai.replace(/^```[\s\S]*?```$/,'').trim();
-      if(clean) document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('')+`<div class="aifmea-action" style="border-left-color:#6a1b9a"><b>🤖 AI ek önerisi:</b><br>${aiRenderMd(clean)}</div>`;
-    }catch(e){console.warn('AI-FMEA AI katmanı:',e);}
+      const ai=await aiCallClaude('BURKAB bakım analisti. Puanları değiştirme, eksik O puanı üretme, parça adı uydurma. 3-5 somut aksiyon öner.',
+        `Makine=${makine}; Kod=${kod}; Açıklama=${konu}; S=${sonuc.S}; O=${sonuc.O??'VERİ YETERSİZ'}; D=${sonuc.D}; RÖS=${sonuc.ros??'HESAPLANAMADI'}; Risk=${sonuc.risk.label}`);
+      if(runId!==_aiFmeaRunId)return;
+      if(String(ai||'').trim())document.getElementById('aiFmeaActions').innerHTML+=`<div class="aifmea-action">🤖 ${aiRenderMd(String(ai))}</div>`;
+    }catch(e){console.warn('AI-FMEA ek öneri:',e);}
   }
 }
-function aiFmeaEslesmeYokAksiyonSablonlari_(etki) {
-  if (etki === 'TAM DURUŞ') return [
-    'ZORUNLU: İlk müdahale / geçici önlem kayda geçirilecek.',
-    'ZORUNLU: Etkilenen üretim hattı ve kayıp/bekleme etkisi belgelenecek.',
-    'ZORUNLU: Kalıcı çözüm ve tekrar önleme aksiyonu sorumlu/termin ile takip edilecek.',
-    'ZORUNLU: Üretimi durdurma ve yeniden başlatma kararı/onayı kaydedilecek.',
-    'ZORUNLU: Üretim, kalite ve gerekli yönetim bilgilendirmesi kayıt altına alınacak.'
-  ];
-  if (etki === 'KISMİ DURUŞ') return [
-    'ZORUNLU: İlk müdahale / geçici önlem kayda geçirilecek.',
-    'ZORUNLU: Etkilenen makine/hat ve üretim etkisi belgelenecek.',
-    'ZORUNLU: Kalıcı çözüm ve tekrar önleme aksiyonu sorumlu/termin ile takip edilecek.'
-  ];
-  return [];
+function aiFmeaEslesmeYokAksiyonSablonlari_(etki){
+  if(!['KISMİ DURUŞ','TAM DURUŞ'].includes(etki))return [];
+  const a=['ZORUNLU: İlk müdahale / geçici önlem.','ZORUNLU: Üretim etkisi teyidi.','ZORUNLU: Kök neden / kalıcı çözüm.','ZORUNLU: Etkinlik doğrulama.'];
+  if(etki==='TAM DURUŞ')a.push('ZORUNLU: Kalite / ürün izolasyon kontrolü.','ZORUNLU: Benzer makine kontrolü.');
+  return a;
 }
-function aiFmeaEslesmeYokAksiyonGuncelle_() {
-  const r = (typeof _aiFmeaResult !== 'undefined') ? _aiFmeaResult : null;
-  if (!r || !r.eslesmeYok) return;
-  const etki = String(document.getElementById('durusEtkisi')?.value || r.durusEtkisi || 'DURUŞ YOK').trim();
-  const zorunlu = ['KISMİ DURUŞ','TAM DURUŞ'].includes(etki);
-  r.durusEtkisi = etki;
-  r.zorunluDurusAksiyonu = zorunlu;
-  const neden = r.eslesmeNedeni || 'FMEA MASTER eşleşmesi bulunamadı.';
-  r.actions = zorunlu
-    ? [neden + ' RÖS=0 yalnızca teknik puanın hesaplanamadığını gösterir; duruş aksiyonu zorunludur.', ...aiFmeaEslesmeYokAksiyonSablonlari_(etki)]
-    : [neden + ' Eşleşme/puan verisi olmadığı için RÖS=0 atandı; bu değer doğrulanmış düşük teknik risk anlamına gelmez.'];
-  const actionsEl = document.getElementById('aiFmeaActions');
-  if (actionsEl) actionsEl.innerHTML = r.actions.map(x => `<div class="aifmea-action" style="${zorunlu?'border-left-color:#c62828':''}">${aiFmeaEsc(x)}</div>`).join('');
-  const btn = document.getElementById('aiFmeaApproveBtn');
-  if (btn) btn.disabled = !zorunlu || !!r.takvimeIslendi;
-  const live = document.getElementById('aiFmeaLive');
-  if (live) live.textContent = r.takvimeIslendi ? '● TAKVİME İŞLENDİ' : (zorunlu ? '● EŞLEŞME YOK · DURUŞ AKSİYONU ZORUNLU' : '● EŞLEŞME YOK · RÖS 0');
-  const state = document.getElementById('aiFmeaState');
-  if (state) state.textContent = zorunlu
-    ? 'FMEA eşleşmesi yok; teknik RÖS=0. Ancak ' + etki + ' nedeniyle zorunlu duruş aksiyonu devam eder.'
-    : 'FMEA eşleşmesi bulunamadı. Beklemeden RÖS=0 atandı.';
-  const explain = document.getElementById('aiFmeaExplain');
-  if (explain) explain.textContent = zorunlu
-    ? 'Karar motoru: ' + neden + ' RÖS=0, doğrulanmış düşük risk anlamına gelmez. ' + etki + ' için aksiyon planı oluşturma ve takvime işleme seçeneği açık; formdaki zorunlu aksiyon alanları doldurulmalıdır.'
-    : 'Karar motoru: ' + neden + ' RÖS=0 atandı. Bu sonuç teknik riskin doğrulandığı anlamına gelmez. Duruş etkisi ' + etki + ' olduğu için zorunlu duruş aksiyonu koşulu oluşmadı; veri eşleştiğinde yeniden analiz edilebilir.';
+
+function aiFmeaEslesmeYokAksiyonGuncelle_(){
+  const r=_aiFmeaResult;if(!r)return;
+  const etki=document.getElementById('durusEtkisi')?.value||'';
+  r.durusEtkisi=etki;r.zorunluDurusAksiyonu=['KISMİ DURUŞ','TAM DURUŞ'].includes(etki);
+  r.actions=[...(r.teknikActions||[]),...aiFmeaEslesmeYokAksiyonSablonlari_(etki)];
+  document.getElementById('aiFmeaActions').innerHTML=r.actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('');
+  document.getElementById('aiFmeaApproveBtn').disabled=(!r.zorunluDurusAksiyonu && r.risk.code==='UNVERIFIED')||!!r.takvimeIslendi;
+  document.getElementById('aiFmeaLive').textContent=r.takvimeIslendi?'● TAKVİME İŞLENDİ':r.risk.code==='CRITICAL'?'● KRİTİK'+(r.scoreComplete?'':' · O VERİSİ YETERSİZ'):r.scoreComplete?'● HAZIR':'● VERİ YETERSİZ';
 }
+
 
 async function aiFmeaOnaylaTakvimeIsle(){
+  if(_fmeaPlanInFlight||_aiFmeaResult?.takvimeIslendi)return;
+  if(!_aiFmeaResult||_aiFmeaResult.girdiAnahtari!==aiFmeaGirdiAnahtari_())return showToast('⚠️ Güncel makine/kod analizi gerekli.','err');
+  _fmeaPlanInFlight=true;try{return await aiFmeaOnaylaTek_();}finally{_fmeaPlanInFlight=false;}
+}
+async function aiFmeaOnaylaTek_(){
   const r=_aiFmeaResult; if(!r)return showToast('⚠️ Önce AI-FMEA analizi tamamlanmalı.','err');
   if(!currentUser || !['admin','bakim','yonetici','yönetici'].includes(String(currentUser.role||currentUser.rol||'').toLowerCase())) return showToast('🚫 Aksiyon onayı için bakım/yönetici yetkisi gerekiyor.','err');
   const durusAksiyonGerekli = durusZorunluAksiyonGerekliMi_();
@@ -4619,15 +4653,15 @@ async function aiFmeaOnaylaTakvimeIsle(){
   const d=new Date(); d.setDate(d.getDate()+(durusAksiyon?(durusAksiyon.durusEtkisi==='TAM DURUŞ'?0:1):(r.risk.code==='CRITICAL'?1:r.risk.code==='WARNING'?7:14)));
   const varsayilanTermin=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const termin=durusAksiyon?.termin || document.getElementById('rak-termin')?.value || varsayilanTermin;
-  const kaynakId=String(document.getElementById('formNo')?.value||Date.now());
+  const kaynakId=String(_aktifBildirimKaynakId||_formBekleyenKayitId||(_formBekleyenKayitId=Date.now()));
   const durusAksiyonMetni = durusAksiyon ? Object.values(durusAksiyon.aksiyonlar).map(a=>a.label+': '+a.deger).join(' | ') : '';
   const aksiyonMetni=(durusAksiyon ? ['ZORUNLU DURUŞ AKSİYONU: '+durusAksiyon.durusEtkisi,durusAksiyonMetni,'Sorumlu: '+sorumlu,'Termin: '+termin] : r.actions).join(' | ')+(r.stok.some(p=>ypNum(p.mevcutStok)<=ypNum(p.minimumStok))?' | STOK RİSKİ: satın alma ihtiyacı değerlendirilecek.':'');
   try{
     showLoading(true);
     // Kayıt henüz Sheets'e yazılmadıysa aksiyon sunucusu kaynak kaydı bulamayacağından burada taslak takvim hazırlıyoruz.
-    const plan={id:'AI-'+Date.now(),bolum:document.getElementById('bolum')?.value||'',makine:r.makine,gorev:(durusAksiyon?'ZORUNLU DURUŞ AKSİYONU ('+durusAksiyon.durusEtkisi+'): ':'AI-FMEA: ')+r.kod+' — '+aksiyonMetni.slice(0,180),bakimci:sorumlu,tarih:termin,periyot:'',sure:Math.max(30,r.durus||60),notlar:durusAksiyon?(`ZORUNLU ${durusAksiyon.durusEtkisi} · `+(r.eslesmeYok?'FMEA eşleşmesi yok; RÖS=0 teknik riskin düşük olduğunun doğrulanması değildir.':`AI-FMEA RÖS ${r.ros} · ${r.risk.label}`)):`AI-FMEA RÖS ${r.ros} · S${r.S}/O${r.O}/D${r.D} · ${r.risk.label}`,durum:'aktif',olusturan:currentUser?.name||'AI-FMEA',olusturmaTarih:yerelYMD(),tamamlayanKisi:'',tamamlamaTarih:''};
+    const plan={id:'AI-FMEA-'+kaynakId,bolum:document.getElementById('bolum')?.value||'',makine:r.makine,gorev:(durusAksiyon?'ZORUNLU DURUŞ AKSİYONU ('+durusAksiyon.durusEtkisi+'): ':'AI-FMEA: ')+r.kod+' — '+aksiyonMetni.slice(0,180),bakimci:sorumlu,tarih:termin,periyot:'',sure:Math.max(30,r.durus||60),notlar:durusAksiyon?(`ZORUNLU ${durusAksiyon.durusEtkisi} · `+(r.eslesmeYok?'FMEA eşleşmesi yok; RÖS=0 teknik riskin düşük olduğunun doğrulanması değildir.':`AI-FMEA RÖS ${r.ros??'HESAPLANAMADI'} · ${r.risk.label}`)):`AI-FMEA RÖS ${r.ros??'HESAPLANAMADI'} · S${r.S}/O${r.O}/D${r.D} · ${r.risk.label}`,durum:'aktif',olusturan:currentUser?.name||'AI-FMEA',olusturmaTarih:yerelYMD(),tamamlayanKisi:'',tamamlamaTarih:''};
     await gsPlanlarKaydet(plan);
-    const list=planlarYukle(); list.push(plan); planlarKaydet(list); planUyariKontrol();
+    const list=planlarYukle(); const planIndex=list.findIndex(p=>String(p.id)===String(plan.id));if(planIndex>=0)list[planIndex]=plan;else list.push(plan); planlarKaydet(list); planUyariKontrol();
     document.getElementById('rak-sorumlu').value=sorumlu; document.getElementById('rak-termin').value=termin;
     showToast('✅ AI-FMEA aksiyonu onaylandı ve bakım takvimine işlendi.','ok');
     if (_aiFmeaResult) _aiFmeaResult.takvimeIslendi = true;
@@ -5027,7 +5061,7 @@ function durusAnketBilgisi_() {
 
   // Üretim etkisi yok kararı yalnızca fiili makine/hat duruşuyla çelişmediğinde uygulanır.
   // Hat durduğu bildirilmişse puanı DURUŞ YOK'a indirmeyiz; geçici sınıf ve teyit gerekir.
-  if (cevapKaybiYok && q1 === 'HAYIR' && (q2 === 'YOK' || q2 === 'MAKINE')) durusEtkisi = 'DURUŞ YOK';
+  if (cevapKaybiYok && (q2 === 'YOK' || q1 === 'HAYIR')) durusEtkisi = 'DURUŞ YOK';
 
   const teyitGerekli = belirsiz || celiskiler.length > 0;
   const bolum = (document.getElementById('bolum')?.value || '').trim();
@@ -5053,7 +5087,8 @@ function durusAnketBilgisi_() {
 const DURUS_ZORUNLU_AKSIYON_ALANLARI_ = [
   {id:'durusAksiyonIlkOnlem', key:'ilkOnlem', label:'İlk müdahale / geçici önlem'},
   {id:'durusAksiyonUretimEtkisi', key:'uretimEtkisi', label:'Üretim etkisi / etkilenen makine-hat'},
-  {id:'durusAksiyonKalici', key:'kaliciAksiyon', label:'Kalıcı çözüm / tekrar önleme aksiyonu'}
+  {id:'durusAksiyonKalici', key:'kaliciAksiyon', label:'Kalıcı çözüm / tekrar önleme aksiyonu'},
+  {id:'durusAksiyonEtkinlik', key:'etkinlikDogrulama', label:'Etkinlik doğrulama'}
 ];
 function durusZorunluAksiyonGerekliMi_() {
   const etki = String(document.getElementById('durusEtkisi')?.value || '').trim();
@@ -5063,8 +5098,8 @@ function durusZorunluAksiyonAlanlari_(etki) {
   const alanlar = DURUS_ZORUNLU_AKSIYON_ALANLARI_.slice();
   if (etki === 'TAM DURUŞ') {
     alanlar.push(
-      {id:'durusAksiyonDurdurma', key:'durdurmaKarari', label:'Üretimi durdurma / yeniden başlatma kararı'},
-      {id:'durusAksiyonBildirim', key:'bilgilendirme', label:'Üretim / kalite / yönetim bilgilendirmesi'}
+      {id:'durusAksiyonDurdurma', key:'durdurmaKarari', label:'Benzer makine kontrolü / güvenli yeniden başlatma'},
+      {id:'durusAksiyonBildirim', key:'bilgilendirme', label:'Kalite ve ürün izolasyon kontrolü / bilgilendirme'}
     );
   }
   return alanlar;
@@ -5353,7 +5388,11 @@ function dashboardMTBF(arizalar) {
 function calcSure() {
   const basSaat = document.getElementById('onarimBas')?.value;
   const bitSaat = document.getElementById('onarimBit')?.value;
-  if (!basSaat || !bitSaat) return;
+  if (!basSaat || !bitSaat) {
+    const b=document.getElementById('sureBadge');if(b){b.textContent='— dk —';b.dataset.dk='';}
+    const p=document.getElementById('iscilikOnizle');if(p)p.textContent='';
+    clearTimeout(_iscTimer);_iscRunId++;return;
+  }
   const tarih = document.getElementById('tarihBas')?.value || document.getElementById('tarih')?.value || new Date().toISOString().slice(0,10);
   const tarihBit = document.getElementById('tarihBit')?.value || tarih;
   let bas=tarihSaatOlustur(tarih,basSaat), bit=tarihSaatOlustur(tarihBit,bitSaat);
@@ -5367,13 +5406,16 @@ function calcSure() {
 
 // İşçilik önizleme: fiili müdahale süresi + mesai tipi (normal / fazla mesai / cumartesi / pazar-tatil). Hesabı sunucu yapar.
 let _iscTimer = null;
+let _iscRunId=0;
 function iscilikOnizleGoster_(tarihBas, tarihBit, basSaat, bitSaat) {
   const el = document.getElementById('iscilikOnizle'); if (!el) return;
   clearTimeout(_iscTimer);
+  const runId=++_iscRunId;
   if (!tarihBas || !basSaat || !bitSaat) { el.textContent = ''; return; }
   _iscTimer = setTimeout(async () => {
     try {
       const r = await gsRequest({ action: 'iscilikOnizle', tarihBas, tarihBit, onarimBas: basSaat, onarimBit: bitSaat, kisi: 1 });
+      if(runId!==_iscRunId)return;
       if (!r || !r.ok || r.kaynak !== 'fiili') { el.textContent = ''; return; }
       const p = [];
       if (r.normalDk) p.push('normal ' + r.normalDk + ' dk');
@@ -5381,7 +5423,7 @@ function iscilikOnizleGoster_(tarihBas, tarihBit, basSaat, bitSaat) {
       if (r.cumartesiDk) p.push('cumartesi ' + r.cumartesiDk + ' dk (×' + r.katsayi.cumartesi + ')');
       if (r.tatilDk) p.push('pazar/tatil ' + r.tatilDk + ' dk (×' + r.katsayi.tatil + ')');
       el.innerHTML = '🕒 Fiili müdahale: <b>' + r.dakika + ' dk</b> — ' + p.join(' · ') + '<br>💰 Tahmini işçilik (kişi başı): <b>₺' + r.tutar.toLocaleString('tr-TR') + '</b>';
-    } catch (e) { el.textContent = ''; }
+    } catch (e) { if(runId===_iscRunId)el.textContent = ''; }
   }, 450);
 }
 
@@ -5405,7 +5447,11 @@ function refreshAllDatalist() {
 }
 
 // ── KAYDET ────────────────────────────────────
-async function kaydet() {
+async function kaydet(){
+  if(_kayitInFlight)return;_kayitInFlight=true;
+  try{return await kaydetTek_();}finally{_kayitInFlight=false;}
+}
+async function kaydetTek_() {
   if (!document.getElementById('formNo').value.trim()) {
     if (!document.getElementById('islem').value) {
       showToast('❗ Önce işlem türünü seçin!', 'err');
@@ -5428,7 +5474,12 @@ async function kaydet() {
   if (['ARIZA KAYDI','BAKIM KAYDI','MONTAJ'].includes(_islemProje) && _bolumProje !== 'TESİS') {
     req.push(['proje','Proje']);
   }
-  if (riskZorunluMu_()) req.push(['riskSeviye','AI-FMEA risk analizi']);
+  if (riskZorunluMu_()) {
+    if(!_aiFmeaResult || _aiFmeaResult.girdiAnahtari!==aiFmeaGirdiAnahtari_()){
+      aiFmeaDebounce();showToast('⚠️ Güncel makine ve kod için analiz tamamlandıktan sonra kaydedin.','err');return;
+    }
+    req.push(['riskSeviye','AI-FMEA risk analizi']);
+  }
 
   const eksik = req
     .filter(([id]) => !document.getElementById(id)?.value?.trim())
@@ -5447,7 +5498,7 @@ async function kaydet() {
   const bildirimdenGeldi = _aktifBildirimKaynakId !== null && _aktifBildirimKaynakId !== undefined && String(_aktifBildirimKaynakId) !== '';
 
   const yeniKayit = {
-    id: bildirimdenGeldi ? _aktifBildirimKaynakId : Date.now(),
+    id: bildirimdenGeldi ? _aktifBildirimKaynakId : (_formBekleyenKayitId||(_formBekleyenKayitId=Date.now())),
     formNo: g('formNo'),
     islem: g('islem'),
     bolum: g('bolum'),
@@ -5498,7 +5549,8 @@ async function kaydet() {
       setSyncUI('offline', 'İnternet yok — ' + pendingCount + ' kayıt bekliyor');
     }
     await saveData();
-    showToast('📴 Çevrimdışı — kayıt cihazda saklandı, internet gelince gönderilecek.', '');
+    showToast('📴 Çevrimdışı — kayıt cihazda saklandı, internet gelince gönderilecek. Form sunucu teyidine kadar korunuyor.', '');
+    return;
   } else {
     try {
       showLoading(true);
@@ -5579,6 +5631,9 @@ async function tumKayitlariSil() {
 function formSifirlaTam_() {
   const tab = document.getElementById('tab-form');
   if (!tab) return;
+  _aktifBildirimKaynakId=null;_formBekleyenKayitId=null;
+  if(typeof _iscTimer!=='undefined')clearTimeout(_iscTimer);
+  if(typeof _iscRunId!=='undefined')_iscRunId++;
 
   // Açık yedek parça arama listesini kapat.
   if (typeof ypFormParcaDropdownKapat === 'function') ypFormParcaDropdownKapat();
@@ -5633,8 +5688,8 @@ function formSifirlaTam_() {
   // Yeni formda tarih güncel yerel tarihe döner; başlangıç saatleri güncel saatle başlar.
   // Bitiş saatleri boş bırakılır; böylece eski onarım süresi tekrar hesaplanmaz.
   const simdi = new Date();
-  const bugunYerel = typeof yerelYMD === 'function'
-    ? yerelYMD(simdi)
+  const bugunYerel = typeof bakimGun_ === 'function'
+    ? bakimGun_(simdi)
     : `${simdi.getFullYear()}-${String(simdi.getMonth()+1).padStart(2,'0')}-${String(simdi.getDate()).padStart(2,'0')}`;
   const saatSimdi = typeof suankiSaat === 'function'
     ? suankiSaat()
@@ -5753,7 +5808,7 @@ const badgeMap = {
   'ARIZA KAYDI':'b-ariza','BAKIM KAYDI':'b-bakim','MONTAJ':'b-montaj',
   'REVİZYON':'b-revizyon','PLANLI BAKIM':'b-planli','SERVİS BAKIM':'b-servis'
 };
-const riskBadge = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon'};
+const riskBadge = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon','VERİ YETERSİZ':'b-montaj'};
 
 function detayAc(id) {
   const k = kayitlar.find(x => String(x.id) === String(id));
@@ -5892,8 +5947,8 @@ function renderList() {
     'ARIZA KAYDI':'#d32f2f','BAKIM KAYDI':'#00875a','REVİZYON':'#6a1b9a',
     'MONTAJ':'#e65100','PLANLI BAKIM':'#0277bd','SERVİS BAKIM':'#546e7a'
   };
-  const riskRenkMap = {'DÜŞÜK':'#00875a','ORTA':'#e65100','YÜKSEK':'#d32f2f','KRİTİK':'#b71c1c'};
-  const riskBgMap   = {'DÜŞÜK':'#e3f7ee','ORTA':'#fff3e0','YÜKSEK':'#fde8e8','KRİTİK':'#fce4e4'};
+  const riskRenkMap = {'DÜŞÜK':'#00875a','ORTA':'#e65100','YÜKSEK':'#d32f2f','KRİTİK':'#b71c1c','VERİ YETERSİZ':'#8a3b00'};
+  const riskBgMap   = {'DÜŞÜK':'#e3f7ee','ORTA':'#fff3e0','YÜKSEK':'#fde8e8','KRİTİK':'#fce4e4','VERİ YETERSİZ':'#fff3e0'};
 
   // ── TABLO GÖRÜNÜMÜ ──────────────────────────
   const tb = document.getElementById('listBody');
@@ -6453,13 +6508,13 @@ function buildDash(veriArg) {
 
   // Risk dağılımı
   destroyChart('risk');
-  const riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
+  const riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0,'VERİ YETERSİZ':0};
   veri.forEach(k => { if (k.riskSeviye && riskC.hasOwnProperty(k.riskSeviye)) riskC[k.riskSeviye]++; });
   const ctx5 = document.getElementById('chartRisk')?.getContext('2d');
   if (ctx5) {
     charts['risk'] = new Chart(ctx5, {
       type: 'doughnut',
-      data: { labels:Object.keys(riskC), datasets:[{data:Object.values(riskC), backgroundColor:['#00875a','#e65100','#d32f2f','#6a1b9a'], borderWidth:2, borderColor:'#fff'}]},
+      data: { labels:Object.keys(riskC), datasets:[{data:Object.values(riskC), backgroundColor:['#00875a','#e65100','#d32f2f','#6a1b9a','#9e9e9e'], borderWidth:2, borderColor:'#fff'}]},
       options: {responsive:true, plugins:{legend:{position:'right'}}, cutout:'55%'}
     });
   }
@@ -6614,7 +6669,7 @@ function _renderUretim() {
   const duran      = bugunKayit.filter(k => k.durusEtkisi === 'TAM DURUŞ');
   const toplamSure = bugunKayit.reduce((a,k)=>a+(parseInt(k.sure)||0),0);
   const bolumler   = ['TEST','KESİM','ÜRETİM HATLARI','TESİS','HAZIRLIK','KALIPLAR','ALT MONTAJ','DEPO & SEVKİYAT','ÜRETİM BORDLARI'];
-  const rBadge     = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon'};
+  const rBadge     = {'DÜŞÜK':'b-bakim','ORTA':'b-montaj','YÜKSEK':'b-ariza','KRİTİK':'b-revizyon','VERİ YETERSİZ':'b-montaj'};
 
   // yardımcı: dakika → "Xsa Ydk"
   function fmtDk(d) { return d<60 ? d+'dk' : Math.floor(d/60)+'sa '+(d%60)+'dk'; }
@@ -10578,6 +10633,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // Risk seviyesine göre zorunlu aksiyon alanları
 // ══════════════════════════════════════════════
 
+let _riskAksiyonTaslak_={};
 const RISK_AKSIYON_MAP = {
   'DÜŞÜK': {
     renk:'#00875a', bannerClass:'rak-banner-dusuk', itemClass:'rak-item-dusuk',
@@ -10609,7 +10665,7 @@ const RISK_AKSIYON_MAP = {
   'KRİTİK': {
     renk:'#7b1fa2', bannerClass:'rak-banner-kritik', itemClass:'rak-item-kritik',
     bannerIkon:'🚨', baslik:'KRİTİK Risk — Tüm Aksiyonlar Zorunlu',
-    aciklama:'Üretim durdu / Güvenlik riski. Tüm aksiyonlar doldurulmalı, yönetim onayı alınmalıdır.',
+    aciklama:'Şiddet veya RÖS kritik eşiği geçti. Teknik aksiyonlar doldurulmalı; üretim duruşu ayrıca anketten değerlendirilir.',
     aksiyonlar:[
       {id:'ani_onlem',    ikon:'⚡', label:'Uygulanan Acil Önlem',         zorunlu:true,  ph:'Alınan acil güvenlik/üretim önlemi...'},
       {id:'uretim_dur',   ikon:'🏭', label:'Üretim Durdurma Kararı',       zorunlu:true,  ph:'Kim karar verdi, hangi hatlar durdu...'},
@@ -10631,6 +10687,7 @@ function riskAksiyonGuncelle(seviye) {
   document.getElementById('rakBannerIkon').textContent     = cfg.bannerIkon;
   document.getElementById('rakBannerBaslik').textContent   = cfg.baslik;
   document.getElementById('rakBannerAciklama').textContent = cfg.aciklama;
+  const onceki=_riskAksiyonTaslak_;grid.querySelectorAll('textarea[id]').forEach(el=>{onceki[el.id]=el.value;});
   grid.innerHTML = cfg.aksiyonlar.map(a =>
     `<div class="rak-zorunlu-item ${cfg.itemClass}">
        <span class="rak-item-ikon">${a.ikon}</span>
@@ -10641,12 +10698,13 @@ function riskAksiyonGuncelle(seviye) {
        </div>
      </div>`
   ).join('');
+  grid.querySelectorAll('textarea[id]').forEach(el=>{if(onceki[el.id]!==undefined)el.value=onceki[el.id];});
   panel.style.display = 'block';
   const terminEl = document.getElementById('rak-termin');
   if (terminEl && !terminEl.value) {
-    const gun = {'DÜŞÜK':30,'ORTA':7,'YÜKSEK':2,'KRİTİK':0}[seviye] || 7;
+    const gun = {'DÜŞÜK':30,'ORTA':7,'YÜKSEK':2,'KRİTİK':0,'VERİ YETERSİZ':0}[seviye] ?? 7;
     const d = new Date(); d.setDate(d.getDate()+gun);
-    terminEl.value = d.toISOString().split('T')[0];
+    terminEl.value = bakimGun_(d);
   }
 }
 
@@ -10698,12 +10756,11 @@ function getRiskAksiyonData() {
   const aktifKod = String(document.getElementById('arizaKodu')?.value || '').trim().toUpperCase();
   if (fmea && String(fmea.makine || '').trim().toUpperCase() === aktifMakine && String(fmea.kod || '').trim().toUpperCase() === aktifKod) {
     rak.aiFmea = {
-      S: Number(fmea.S) || 0,
-      O: Number(fmea.O) || 0,
-      D: Number(fmea.D) || 0,
-      ros: Number(fmea.ros) || 0,
+      S: fmea.S, O: fmea.O, D: fmea.D, ros: fmea.ros,
+      riskCode:fmea.risk.code, riskVerified:fmea.risk.riskVerified,
+      scoreComplete:fmea.scoreComplete, olasilikVerisiYok:fmea.olasilikVerisiYok,
       eslesmeYok: !!fmea.eslesmeYok,
-      durum: fmea.eslesmeYok ? 'FMEA_ESLESMESI_YOK_R0' : 'ANALIZ_TAMAM'
+      durum: fmea.scoreComplete?'ANALIZ_TAMAM':fmea.risk.code==='CRITICAL'?'KRITIK_SIDDET_O_YETERSIZ':fmea.sDEslesmesiYok?'FMEA_ESLESMESI_YOK_R0':'OLASILIK_VERISI_YETERSIZ'
     };
   }
   return Object.keys(rak).length ? JSON.stringify(rak) : '';
@@ -10731,6 +10788,7 @@ function riskAksiyonZorunluKontrol() {
 }
 
 function riskAksiyonTemizle() {
+  _riskAksiyonTaslak_={};
   const panel = document.getElementById('riskAksiyonPanel');
   if (panel) panel.style.display='none';
   const grid = document.getElementById('rakZorunluGrid');
@@ -12998,7 +13056,7 @@ function aiRaporVeriOzetle() {
   var topMakine = Object.entries(makineMap).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
   var toplamMaliyet = 0;
   veri.forEach(function(k){ var m = (typeof kayitToplamMaliyet==='function') ? kayitToplamMaliyet(k) : 0; if(m) toplamMaliyet+=m; });
-  var riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0};
+  var riskC = {'DÜŞÜK':0,'ORTA':0,'YÜKSEK':0,'KRİTİK':0,'VERİ YETERSİZ':0};
   veri.forEach(function(k){ if(k.riskSeviye && riskC[k.riskSeviye]!==undefined) riskC[k.riskSeviye]++; });
   var bugun = yerelYMD(new Date());
   var bugunK = veri.filter(function(k){ return k.tarihBas===bugun; });
@@ -13309,25 +13367,10 @@ function ypHareketTarih(h){
     'kayitZamani','KayitZamani','olusturmaTarihi','olusturmaZamani','creationDate','createdOn','ts'
   ]);
 }
-function ypHareketTarihObj(v){
-  if(v===null || v===undefined || v==='') return null;
-  if(v instanceof Date) return isNaN(v.getTime()) ? null : v;
-  if(typeof v==='number' && isFinite(v)){
-    // Unix timestamp saniye veya milisaniye olasılığı.
-    const n=v<1e11?v*1000:v; const d=new Date(n); return isNaN(d.getTime())?null:d;
-  }
-  const s=String(v).trim(); if(!s) return null;
-  // ISO / yyyy-mm-dd tarihlerini yerel gün bilgisi bozulmadan işler.
-  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){const d=new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));return isNaN(d.getTime())?null:d;}
-  // Türkçe/GAS görünümü: dd.MM.yyyy [HH:mm[:ss]].
-  m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){const d=new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));return isNaN(d.getTime())?null:d;}
-  // Saat dilimi içeren ISO/diğer standart tarihler.
-  const d=new Date(s); return isNaN(d.getTime())?null:d;
-}
-function ypHareketTarihMetin(h){const v=ypHareketTarih(h);if(v===''||v===null||v===undefined)return '—';const d=ypHareketTarihObj(v);return d?d.toLocaleString('tr-TR'):String(v);}
-function ypHareketGun(v){const d=ypHareketTarihObj(v);if(!d)return '';return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function ypHareketTarihObj(v){ return bakimTarihObj_(v); }
+
+function ypHareketTarihMetin(h){const v=ypHareketTarih(h);if(v===''||v===null||v===undefined)return '—';const d=ypHareketTarihObj(v);return d?d.toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'}):String(v);}
+function ypHareketGun(v){return bakimGun_(v);}
 function ypHareketZamanMs(h){const d=ypHareketTarihObj(ypHareketTarih(h));return d?d.getTime():0;}
 function ypHareketTip(h){return ypN(ypHareketDeger(h,['tip','hareketTipi','hareket','islem']));}
 function ypHareketKod(h){return ypHareketDeger(h,['stokKodu','stok_kodu','kod']);}
@@ -13356,12 +13399,15 @@ function ypHareketFiltreli(){
         bit=document.getElementById('yphg-bit')?.value||'',
         ara=ypN(document.getElementById('yphg-ara')?.value),
         tarihFiltresiAktif=!!(bas||bit);
+  const basMs=bas?bakimTarihObj_(bas)?.getTime():null,bitMs=bit?bakimTarihObj_(bit)?.getTime():null;
+  if(basMs!==null && bitMs!==null && basMs>bitMs){showToast('⚠️ Başlangıç tarihi bitiş tarihinden sonra olamaz.','err');return [];}
   return ypHareketler.filter(h=>{
     const hk=ypN(ypHareketKod(h)), ht=ypHareketTip(h),
           gun=ypHareketGun(ypHareketTarih(h)),
           metin=ypN([ypHareketBelge(h),ypHareketAciklama(h),ypHareketKaynak(h),ypHareketMakine(h),ypHareketKullanici(h)].join(' '));
     // Tarih aralığı seçildiyse tarihi bulunamayan kayıtlar aralıktan geçemez.
-    const tarihUygun=!tarihFiltresiAktif || (!!gun && (!bas||gun>=bas) && (!bit||gun<=bit));
+    const gunMs=gun?bakimTarihObj_(gun)?.getTime():null;
+    const tarihUygun=!tarihFiltresiAktif || (gunMs!==null && (!bas||gunMs>=basMs) && (!bit||gunMs<=bitMs));
     return (!kod||hk===kod)&&(!tip||ht===tip)&&tarihUygun&&(!ara||metin.includes(ara));
   }).sort((a,b)=>ypHareketZamanMs(b)-ypHareketZamanMs(a));
 }
