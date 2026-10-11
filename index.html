@@ -4252,6 +4252,7 @@ function fmeaInit(){fmeaRenderOzet();fmeaRender();}
 let _aiFmeaTimer = null;
 let _aiFmeaLastKey = '';
 let _aiFmeaResult = null;
+let _aiFmeaRunId = 0; // Yeni analiz başladığında eski/asenkron sonuçların ekranı ezmesini önler.
 
 function aiFmeaEsc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])); }
 function aiFmeaDebounce(){
@@ -4438,12 +4439,52 @@ async function aiFmeaYenile(force){
   if(!makine || !kod){ if(force)showToast('⚠️ AI-FMEA için Makine ve Arıza Kodu gerekli.','err'); return; }
   const durus=aiFmeaDurusDakika(), key=makine+'|'+kod+'|'+konu+'|'+durus;
   aiFmeaAc();
-  if(!force && key===_aiFmeaLastKey)return; _aiFmeaLastKey=key;
+  if(!force && key===_aiFmeaLastKey)return;
+  _aiFmeaLastKey=key;
+  const runId=++_aiFmeaRunId;
   document.getElementById('aiFmeaLive').textContent='● ANALİZ EDİLİYOR';
-  document.getElementById('aiFmeaState').textContent='FMEA + son 90 gün + stok verisi taranıyor...';
+  document.getElementById('aiFmeaState').textContent='FMEA MASTER eşleşmesi kontrol ediliyor...';
   const master=aiFmeaMaster(kod), occ=aiFmea90GunO(makine,kod);
   const S=Number(master?.S||0), D=Number(master?.D||0), O=Number(occ.score||0);
-  if(typeof ypYuklendi!=='undefined' && !ypYuklendi && typeof ypVerileriYukle==='function') { try { await ypVerileriYukle(); } catch(e) { console.warn('AI-FMEA stok senkronizasyonu:',e); } }
+
+  // Zorunlu puan verilerinden herhangi biri eşleşmiyorsa uzak sunucu, stok veya AI çağrısını bekleme.
+  // İstenen kural: veri eşleşmesi/olasılık geçmişi yoksa RÖS doğrudan 0; bu teknik güvenlik onayı değildir.
+  const sDEslesmesiYok = !master || !S || !D;
+  const olasilikVerisiYok = !Number.isFinite(O);
+  if(sDEslesmesiYok || olasilikVerisiYok){
+    const risk={code:'SAFE',label:'⚪ EŞLEŞME YOK · RÖS 0',ros:0};
+    const sebep = sDEslesmesiYok
+      ? 'FMEA MASTER içinde bu arıza koduna ait S/D eşleşmesi bulunamadı.'
+      : 'Aynı makine + arıza kodu için yeterli son 90 gün tekrar verisi bulunamadı.';
+    const actions=[sebep+' Eşleşme/puan verisi olmadığı için RÖS=0 atandı; bu değer doğrulanmış düşük teknik risk anlamına gelmez.'];
+    const stok=[];
+    const riskAlan=document.getElementById('riskSeviye');
+    if(riskAlan) riskAlan.value='DÜŞÜK'; // Mevcut kayıt şeması risk seviyesini kategori olarak saklıyor.
+    if(typeof riskAksiyonTemizle==='function') riskAksiyonTemizle();
+    document.querySelectorAll('.risk-btn').forEach(b=>b.classList.remove('active'));
+    _aiFmeaResult={makine,kod,konu,durus,S:0,O:0,D:0,ros:0,risk,actions,stok,master,occ,eslesmeYok:true};
+    document.getElementById('aiFmeaState').textContent='FMEA MASTER eşleşmesi bulunamadı. Beklemeden RÖS=0 atandı.';
+    document.getElementById('aiFmeaS').textContent='—';
+    document.getElementById('aiFmeaO').textContent='—';
+    document.getElementById('aiFmeaD').textContent='—';
+    document.getElementById('aiFmeaROS').textContent='0';
+    document.getElementById('aiFmeaRisk').className='aifmea-risk SAFE';
+    document.getElementById('aiFmeaRiskTitle').textContent=risk.label;
+    document.getElementById('aiFmeaRiskNote').textContent=`${makine} · ${kod} · ${sDEslesmesiYok ? 'FMEA MASTER S/D eşleşmesi yok' : 'Yeterli tekrar verisi yok'} · RÖS 0`;
+    document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('');
+    aiFmeaRenderStock([]);
+    const stokKopru=document.getElementById('aiFmeaStockBridgeBody');
+    if(stokKopru) stokKopru.textContent='Gerekli FMEA/olasılık verisi eşleşmediği için merkezi FMEA/stok ve AI önerisi beklenmeden analiz sonlandırıldı.';
+    document.getElementById('aiFmeaExplain').textContent=`Karar motoru: ${sebep} İstek doğrultusunda RÖS=0 atandı. Bu sonuç teknik riskin doğrulandığı anlamına gelmez. Veri eşleştiğinde yeniden analiz edilebilir.`;
+    document.getElementById('aiFmeaApproveBtn').disabled=true;
+    document.getElementById('aiFmeaLive').textContent='● EŞLEŞME YOK · RÖS 0';
+    return;
+  }
+
+  if(typeof ypYuklendi!=='undefined' && !ypYuklendi && typeof ypVerileriYukle==='function') {
+    try { await ypVerileriYukle(); } catch(e) { console.warn('AI-FMEA stok senkronizasyonu:',e); }
+    if(runId!==_aiFmeaRunId) return;
+  }
   const stok=aiFmeaStokTara(makine,konu,kod); aiFmeaRenderStock(stok);
   
   // Merkezi FMEA + stok bağlantısı (salt okuma)
@@ -4461,10 +4502,12 @@ const merkezSonuc = await gsRequest({
 }))
 });
 
-console.log('FMEA MERKEZ STOK SONUCU:', merkezSonuc);
+if(runId!==_aiFmeaRunId) return;
+    console.log('FMEA MERKEZ STOK SONUCU:', merkezSonuc);
     window.aiFmeaStokKoprusunuGoster(merkezSonuc);
 
 } catch (e) {
+  if(runId!==_aiFmeaRunId) return;
   console.error('Merkezi FMEA stok kontrolü:', e);
   const alan = document.getElementById('aiFmeaStockBridgeBody');
   if (alan) {
@@ -4473,16 +4516,6 @@ console.log('FMEA MERKEZ STOK SONUCU:', merkezSonuc);
 }
 
 
-  if(!S||!D){
-    document.getElementById('aiFmeaState').textContent='Bu arıza kodu için FMEA MASTER S/D değeri bulunamadı.';
-    document.getElementById('aiFmeaExplain').textContent='AI yeni S/D önerisi üretebilir; yönetici onayı olmadan ana FMEA değiştirilmez.';
-    document.getElementById('aiFmeaLive').textContent='● VERİ BEKLİYOR'; return;
-  }
-  if(typeof O!=='number'){
-    document.getElementById('aiFmeaS').textContent=S;document.getElementById('aiFmeaO').textContent='—';document.getElementById('aiFmeaD').textContent=D;document.getElementById('aiFmeaROS').textContent='—';
-    document.getElementById('aiFmeaRisk').className='aifmea-risk WARNING';document.getElementById('aiFmeaRiskTitle').textContent='🟡 VERİ YETERSİZ';document.getElementById('aiFmeaRiskNote').textContent='Aynı makine + aynı arıza kodunda son 90 günde en az iki ayrı olay bulunamadı.';
-    document.getElementById('aiFmeaLive').textContent='● YETERSİZ VERİ';const ra=document.getElementById('riskSeviye');if(ra)ra.value='';return;
-  }
   const risk=aiFmeaRisk(S,O,D), actions=aiFmeaLocalActions(risk,makine,kod,konu,stok);
   // AI-FMEA sonucu kayıtların tek risk kaynağıdır; manuel seçim kullanılmaz.
   const riskAlan = document.getElementById('riskSeviye');
@@ -4502,6 +4535,7 @@ console.log('FMEA MERKEZ STOK SONUCU:', merkezSonuc);
     try{
       const prompt=`AI-FMEA aksiyon önerisi üret. Veriler: Makine=${makine}; Arıza Kodu=${kod}; Açıklama=${konu}; S=${S}; O=${O}; D=${D}; RÖS=${risk.ros}; Risk=${risk.label}; Stok eşleşmeleri=${JSON.stringify(stok.map(p=>({kod:p.stokKodu,parca:p.parcaAdi,mevcut:p.mevcutStok,min:p.minimumStok})))}`;
       const ai=await aiCallClaude('Sen BURKAB A.Ş. için IATF 16949 odaklı bakım risk analistisin. Puanları değiştirme. Sadece 3-5 somut aksiyon öner; yedek parça adı uydurma; veride olmayan bilgiyi üretme.',prompt);
+      if(runId!==_aiFmeaRunId) return;
       const clean=ai.replace(/^```[\s\S]*?```$/,'').trim();
       if(clean) document.getElementById('aiFmeaActions').innerHTML=actions.map(x=>`<div class="aifmea-action">${aiFmeaEsc(x)}</div>`).join('')+`<div class="aifmea-action" style="border-left-color:#6a1b9a"><b>🤖 AI ek önerisi:</b><br>${aiRenderMd(clean)}</div>`;
     }catch(e){console.warn('AI-FMEA AI katmanı:',e);}
@@ -10379,6 +10413,21 @@ function getRiskAksiyonData() {
   // Yeni sütun eklemeden, mevcut riskAksiyon JSON alanında anket cevapları ve teyit atama bilgisini sakla.
   const durusAnket = durusAnketBilgisi_();
   if (durusAnket) rak.durusAnket = durusAnket;
+
+  // Yeni sütun eklemeden FMEA sonucu mevcut riskAksiyon JSON alanında saklanır.
+  const fmea = _aiFmeaResult;
+  const aktifMakine = String(document.getElementById('makine')?.value || '').trim().toUpperCase();
+  const aktifKod = String(document.getElementById('arizaKodu')?.value || '').trim().toUpperCase();
+  if (fmea && String(fmea.makine || '').trim().toUpperCase() === aktifMakine && String(fmea.kod || '').trim().toUpperCase() === aktifKod) {
+    rak.aiFmea = {
+      S: Number(fmea.S) || 0,
+      O: Number(fmea.O) || 0,
+      D: Number(fmea.D) || 0,
+      ros: Number(fmea.ros) || 0,
+      eslesmeYok: !!fmea.eslesmeYok,
+      durum: fmea.eslesmeYok ? 'FMEA_ESLESMESI_YOK_R0' : 'ANALIZ_TAMAM'
+    };
+  }
   return Object.keys(rak).length ? JSON.stringify(rak) : '';
 }
 
