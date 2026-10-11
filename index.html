@@ -4906,6 +4906,11 @@ function durusAnketBilgisi_() {
 
   let durusEtkisi = puan >= 4 ? 'TAM DURUŞ' : puan >= 1 ? 'KISMİ DURUŞ' : 'DURUŞ YOK';
   const cevapKaybiYok = q3 === 'HAYIR';
+  // Eksik veya belirsiz cevaplar kaydı engellemez; geçici sınıflandırma ve teyit görevi üretir.
+  // Bu değişken aşağıdaki teyit kontrolünde kullanılır; tanımlı olmazsa anket sonucu ve kaydetme akışı çöker.
+  const belirsiz = !q1 || q1 === 'BILMIYORUM' ||
+                   !q2 || q2 === 'BILMIYORUM' ||
+                   !q3 || q3 === 'BELLI_DEGIL';
   const celiskiler = [];
   if (q2 === 'YOK' && q3 === 'EVET') celiskiler.push('Makine/hat durmadı cevabına rağmen üretim kaybı bildirildi');
   if (q1 === 'HAYIR' && q3 === 'EVET') celiskiler.push('Planlanan üretim etkilenmedi cevabına rağmen kayıp/bekleme bildirildi');
