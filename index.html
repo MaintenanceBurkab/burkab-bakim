@@ -5262,12 +5262,22 @@ function listFiltreIslem(tip, btn) {
   renderList();
 }
 
+
 function listFiltreRisk(risk, btn) {
-  _listRiskFiltre = risk;
-  document.querySelectorAll('.list-filtre-btn[data-risk]').forEach(b => b.classList.remove('list-filtre-aktif'));
-  if (btn) btn.classList.add('list-filtre-aktif');
+  _listRiskFiltre = String(risk || '').trim();
+
+  document.querySelectorAll('.list-filtre-btn[data-risk]')
+    .forEach(b => b.classList.remove('list-filtre-aktif'));
+
+  const aktifBtn = btn || document.querySelector(
+    '.list-filtre-btn[data-risk="' + _listRiskFiltre + '"]'
+  );
+
+  if (aktifBtn) aktifBtn.classList.add('list-filtre-aktif');
+
   renderList();
 }
+
 
 function listFiltreTemizle() {
   _listIslemFiltre = '';
