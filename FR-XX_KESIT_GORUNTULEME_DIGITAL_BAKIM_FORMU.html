@@ -3,42 +3,55 @@
 <style>
 :root{--navy:#10263f;--blue:#1769aa;--light:#f3f6fa;--line:#d9e1eb;--text:#172b40;--muted:#65758a;--green:#18794e;--red:#b42318;--amber:#9a6700}*{box-sizing:border-box}body{margin:0;background:var(--light);font:14px/1.45 Arial,Helvetica,sans-serif;color:var(--text)}header{background:linear-gradient(120deg,#10263f,#1a4e79);color:#fff;padding:22px max(18px,calc((100% - 1180px)/2));}header .brand{font-size:12px;letter-spacing:1.5px;opacity:.8;font-weight:bold}header h1{font-size:23px;margin:6px 0}header p{margin:0;color:#d9e8f6}.wrap{max-width:1180px;margin:20px auto;padding:0 14px 60px}.notice{background:#fff8e6;border:1px solid #f0d48a;border-radius:10px;padding:12px 14px;margin-bottom:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:bold;cursor:pointer;background:var(--blue);color:white}.btn.secondary{background:#e5edf6;color:var(--navy);border:1px solid #cbd8e6}.btn.danger{background:#a72a24}.card{background:white;border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0;box-shadow:0 2px 7px #142c4408}.card h2{font-size:16px;margin:0 0 14px;color:var(--navy);border-bottom:1px solid var(--line);padding-bottom:9px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.field{min-width:0}.field label{display:block;font-size:12px;font-weight:bold;color:#506176;margin-bottom:5px}.field input,.field select,.field textarea,textarea,input[type=number],input[type=date],input[type=time]{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;background:#fff;color:var(--text)}.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid #8dc5f1;border-color:#1769aa}.span2{grid-column:span 2}.span4{grid-column:1/-1}.muted{font-size:12px;color:var(--muted)}.section-title{background:#eaf1f8;padding:10px 12px;border-radius:8px;font-weight:bold;color:#183c5c;margin:18px 0 10px}.checkitem{border:1px solid var(--line);border-radius:10px;padding:14px;margin:10px 0}.itemhead{display:flex;gap:10px;align-items:flex-start}.num{background:#e7f1fb;color:#145a91;border-radius:7px;padding:5px 8px;font-weight:bold;white-space:nowrap}.itemtext{flex:1;font-weight:600}.period{font-size:11px;background:#f0f2f5;padding:4px 7px;border-radius:6px;white-space:nowrap}.choices{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.choice{display:flex;align-items:center;gap:6px;border:1px solid var(--line);padding:7px 10px;border-radius:7px;cursor:pointer}.choice input{width:auto}.choice:has(input:checked){border-color:var(--blue);background:#edf6ff}.itemnote{margin-top:8px}.itemnote textarea{min-height:54px}.media-title{font-size:12px;font-weight:bold;margin:12px 0 7px;color:#506176}.media-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.uploadbox{border:1px dashed #a9b8c9;border-radius:9px;padding:9px;min-height:96px;background:#fbfcfe}.uploadbox label{font-size:12px;font-weight:bold;display:block;margin-bottom:7px}.uploadbox input{font-size:11px;width:100%}.preview{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}.preview img,.preview video{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:zoom-in}.loc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.status{font-weight:bold;padding:8px 10px;border-radius:8px;background:#edf2f7}.status.ok{background:#e8f7ee;color:var(--green)}.status.bad{background:#fff0ef;color:var(--red)}.status.warn{background:#fff7df;color:var(--amber)}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:700px}th,td{border:1px solid var(--line);padding:8px;text-align:left}th{background:#edf2f7;font-size:12px}td input,td select{width:100%;min-width:75px;padding:7px;border:1px solid #cbd5e1;border-radius:5px}.calc{font-weight:bold;background:#f4f7fb}.signgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.signbox{border:1px solid var(--line);border-radius:8px;padding:12px;min-height:120px}.signbox h3{font-size:13px;margin:0 0 10px}.modal{display:none;position:fixed;inset:0;background:#06111edb;z-index:99;align-items:center;justify-content:center;padding:20px}.modal.open{display:flex}.modal-inner{max-width:95vw;max-height:92vh;position:relative}.modal img,.modal video{display:block;max-width:92vw;max-height:85vh;border-radius:8px}.close{position:absolute;right:-10px;top:-14px;border:0;border-radius:50%;width:36px;height:36px;background:white;font-size:22px;cursor:pointer}.progress{height:8px;background:#e5eaf0;border-radius:20px;overflow:hidden;margin-top:8px}.progress div{height:100%;background:#16835c;width:0}.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}.hidden{display:none!important}
 @media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.media-grid,.loc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.signgrid{grid-template-columns:1fr}.span4{grid-column:1/-1}header h1{font-size:20px}}@media(max-width:480px){.grid{grid-template-columns:1fr}.span2{grid-column:auto}.itemhead{flex-wrap:wrap}.period{margin-left:auto}.wrap{padding:0 9px 40px}.card{padding:13px}}
+#printRoot{display:none;font:8pt/1.18 Arial,Helvetica,sans-serif;color:#111;background:#fff}
+#printRoot.print-measure{display:block!important;position:absolute!important;left:-10000px!important;top:0;width:194mm}
+#printRoot .print-sheet{width:194mm;height:280mm;position:relative;overflow:hidden;box-sizing:border-box;break-after:page;page-break-after:always}
+#printRoot .print-sheet:last-child{break-after:auto;page-break-after:auto}
+#printRoot .print-body{display:flow-root;width:194mm}
+#printRoot .p-head{display:flex;justify-content:space-between;gap:4mm;align-items:center;border-bottom:1.2px solid #142b43;padding-bottom:2mm;margin-bottom:2mm}
+#printRoot .p-head h1{font-size:12pt;margin:1mm 0;line-height:1.15}
+#printRoot .p-head small{font-size:7.5pt}
+#printRoot h2{font-size:9pt;line-height:1.15;background:#eaf0f6;margin:2mm 0 1mm;padding:1.3mm 1.5mm;border-bottom:1px solid #748392}
+#printRoot .p-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1mm 2mm;border:1px solid #b5bfca;padding:1.5mm}
+#printRoot .p-grid div{min-width:0;overflow-wrap:anywhere}
+#printRoot .p-grid b{display:block;font-size:7pt;color:#334455}
+#printRoot .p-grid span{display:block;font-size:8pt;white-space:pre-wrap}
+#printRoot .p-table{width:100%;min-width:0;border-collapse:collapse;table-layout:fixed;margin:1mm 0}
+#printRoot .p-table th,#printRoot .p-table td{border:1px solid #aab4bf;padding:1mm 1.2mm;font-size:7.5pt;line-height:1.15;vertical-align:top;overflow-wrap:anywhere;white-space:pre-wrap}
+#printRoot .p-table th{background:#edf1f5;font-size:7pt}
+#printRoot .p-note{font-size:7pt;margin:1.5mm 0;line-height:1.2;white-space:pre-wrap}
+#printRoot .p-box{border:1px solid #b5bfca;padding:1.5mm;margin:1.5mm 0}
+#printRoot .p-box p{margin:1mm 0;white-space:pre-wrap}
+#printRoot .p-sign{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #aab4bf}
+#printRoot .p-sign>div{padding:2mm;border-right:1px solid #aab4bf;min-height:20mm}
+#printRoot .p-sign>div:last-child{border-right:0}
+#printRoot .p-sign p{margin:2mm 0}
+#printRoot .p-sign span{font-size:7pt}
+#printRoot .p-foot{position:absolute;bottom:0;left:0;right:0;border-top:1px solid #888;padding-top:1mm;font-size:7pt;text-align:center;background:#fff}
 @media print{
-  @page{size:A4 landscape;margin:7mm}
-  html,body{background:#fff!important;color:#111!important;font-size:8pt!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  body{margin:0!important}
-  .toolbar,.uploadbox input,.btn,.notice{display:none!important}
-  .wrap{max-width:none!important;width:100%!important;margin:0!important;padding:0!important}
-  header{background:#fff!important;color:#111!important;padding:3mm 0 2mm!important;border-bottom:1px solid #555!important}
-  header .brand{font-size:8pt!important;letter-spacing:.5px}
-  header h1{font-size:14pt!important;margin:2mm 0!important}
-  header p{color:#333!important;font-size:8pt!important;margin:0!important}
-  .card{box-shadow:none!important;border:1px solid #9aa6b2!important;border-radius:3px!important;padding:2.5mm!important;margin:0 0 2mm!important;break-inside:avoid!important}
-  .card h2{font-size:9pt!important;margin:0 0 2mm!important;padding-bottom:1mm!important}
-  .grid{gap:2mm!important}
-  .field{margin:0!important;gap:1mm!important}
-  label{font-size:7pt!important;margin:0!important}
-  input,select,textarea{font-size:7.5pt!important;padding:1mm 1.5mm!important;min-height:6mm!important;height:auto!important;box-shadow:none!important}
-  textarea{min-height:8mm!important}
-  .checkitem{box-shadow:none!important;break-inside:avoid!important;padding:2mm!important;margin:0 0 1.5mm!important}
-  .media-grid,.loc-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:2mm!important}
-  .uploadbox{min-height:8mm!important;padding:2mm!important}
-  .preview img{width:28mm!important;height:20mm!important;object-fit:contain!important}
-  .muted,.help,.hint{font-size:6.5pt!important}
-  /* İki yüzlü çıktı için formu iki fiziksel sayfaya böl. */
-  #maintenanceForm>.card:nth-of-type(4){break-before:page!important;page-break-before:always!important}
+ @page{size:A4 portrait;margin:8mm}
+ html,body{margin:0!important;padding:0!important;background:white!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body>*:not(#printRoot){display:none!important}
+ #printRoot{display:block!important;position:static!important;width:194mm!important;margin:0!important;padding:0!important}
 }
+
 </style></head><body>
 <header><div class="brand">BURKAB A.Ş. · BAKIM / KALİTE</div><h1>Kesit Görüntüleme Cihazı Periyodik Bakım Formu</h1><p>IDS MS-45D · Kamera IDS UI-1640LE-C-HQ · CrimpLab3</p></header>
 <div class="wrap"><div class="notice"><b>Talimat bağlantısı:</b> Bu form, TL-XX Kesit Görüntüleme Cihazı Periyodik Bakım Talimatı'na uygun doldurulmalıdır. Talimat REF dosyasında görüntülenecektir. <span class="muted">Fotoğraf ve videolar kayıt sırasında Drive arşivine yüklenir. Dosya bağlantıları bakım kaydında saklanır. Tek dosya sınırı: 8 MB.</span></div>
-<div class="toolbar"><button class="btn" onclick="saveDraft()">Taslağı bu tarayıcıya kaydet</button><button class="btn secondary" onclick="loadDraft()">Taslağı geri yükle</button><button class="btn secondary" onclick="window.print()">Yazdır / PDF</button><button class="btn secondary" onclick="exportJson()">Veriyi dışa aktar (JSON)</button><button class="btn" type="button" onclick="saveDigitalFormToSystem()">Bakım Formunu Sisteme Kaydet</button><button class="btn danger" onclick="clearForm()">Formu temizle</button></div>
+<div class="toolbar"><button class="btn" onclick="saveDraft()">Taslağı bu tarayıcıya kaydet</button><button class="btn secondary" onclick="loadDraft()">Taslağı geri yükle</button><button class="btn secondary" onclick="printForm()">Yazdır / PDF</button><button class="btn secondary" onclick="exportJson()">Veriyi dışa aktar (JSON)</button><button class="btn" type="button" onclick="saveDigitalFormToSystem()">Bakım Formunu Sisteme Kaydet</button><button class="btn danger" onclick="clearForm()">Formu temizle</button></div>
 <div id="digitalSaveStatus" role="status" class="notice">Sheets kaydı henüz gönderilmedi.</div>
+<section id="digitalAuthPanel" class="card hidden">
+ <h2>BURKAB OTURUMU</h2><p id="digitalAuthStatus" role="status">Mevcut BURKAB hesabınızla giriş yapın. Doldurduğunuz form korunur.</p>
+ <div class="grid"><div class="field"><label for="digitalAuthUser">Kullanıcı Adı</label><input id="digitalAuthUser" autocomplete="username"></div>
+ <div class="field"><label for="digitalAuthPass">Şifre</label><input id="digitalAuthPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();digitalLogin();}"></div></div>
+ <p><button id="digitalAuthLogin" class="btn" type="button" onclick="digitalLogin()">Oturumu Yenile</button> <button class="btn secondary" type="button" onclick="digitalOpenMain()">Ana BURKAB Girişini Aç</button></p>
+</section>
 <form id="maintenanceForm" onsubmit="event.preventDefault();showSummary();">
 <section class="card"><h2>A. CİHAZ BİLGİLERİ</h2><div class="grid">
 <div class="field"><label>Cihaz No</label><input name="cihazNo" value="KGC-01"></div><div class="field"><label>Cihaz Adı</label><input name="cihazAdi" value="IDS / MS-45D"></div><div class="field"><label>Seri No</label><input name="seriNo" value="4103735789"></div><div class="field"><label>Kamera Marka / Model</label><input name="kamera" value="IDS UI-1640LE-C-HQ"></div>
 <div class="field"><label>Envanter / Kalibrasyon ID</label><input name="envanterId"></div><div class="field"><label>Kullanılan Yazılım</label><input name="yazilim" value="CrimpLab3"></div><div class="field"><label>Yazılım Sürümü</label><input name="yazilimSurum"></div><div class="field"><label>Bulunduğu Yer / Bölüm</label><input name="bolum" value="TERMİNAL KALIP BAKIMHANESİ"></div><div class="field"><label>Bilgisayar Adı / ID</label><input name="bilgisayarId"></div></div></section>
 <section class="card"><h2>B. BAKIM BİLGİLERİ</h2><div class="grid">
-<div class="field"><label>Gerçekleşen Bakım Tarihi</label><input name="tarih" type="date" required></div><div class="field"><label>Planlanan Bakım Tarihi</label><input name="planTarihi" type="date" readonly></div><div class="field"><label>Saat</label><input name="saat" type="time"></div><div class="field"><label>Bakım Personeli</label><input name="bakimPersoneli" required></div><div class="field"><label>Plan / İş Emri No</label><input name="isEmri"></div>
+<div class="field"><label>Gerçekleşen Bakım Tarihi</label><input name="tarih" type="date" required></div><div class="field"><label>Planlanan Bakım Tarihi</label><input name="planTarihi" type="date" readonly></div><div class="field"><label>Saat (Sistem Saati)</label><input name="saat" type="time" readonly></div><div class="field"><label>Bakım Personeli</label><input name="bakimPersoneli" required></div><div class="field"><label>Plan / İş Emri No</label><input name="isEmri"></div>
 <div class="field"><label>Bakım Periyodu</label><select name="periyot" id="periyot" onchange="applyPeriod()"><option value="A">Aylık (A)</option><option value="3A">3 Aylık (3A)</option><option value="6A">6 Aylık (6A)</option><option value="Y">Yıllık (Y)</option></select></div><div class="field"><label>Bakım Türü</label><select name="bakimTuru"><option>Planlı Bakım</option><option>Bakım / Onarım Sonrası Doğrulama</option></select></div><div class="field span2"><label>Periyot Dayanağı (Kılavuz / Plan Referansı)</label><input name="periyotDayanagi"></div></div><p class="muted">Periyot kodları: A = Aylık, 3A = 3 Aylık, 6A = 6 Aylık, Y = Yıllık. Kapsam kümülatiftir. Yapılmayan madde için “—” seçiniz.</p></section>
 <section class="card"><h2>C. KONTROL VE İŞLEMLER</h2><div class="muted">Her bakım noktasında uygunluk seçin. Uygun değil seçildiğinde açıklama alanı açılır. Fotoğraf ve video ekleri ilgili bakım maddesiyle ilişkilendirilir.</div><div id="checklist"></div><div style="margin-top:12px"><b id="progressLabel">0 / 23 madde değerlendirildi</b><div class="progress"><div id="progressBar"></div></div></div></section>
 <section class="card"><h2>D. ÖLÇÜM DOĞRULAMA KAYDI</h2><div class="grid"><div class="field span2"><label>Referans standart adı / No</label><input name="referansStandart"></div><div class="field span2"><label>Sertifika No / Geçerlilik</label><input name="sertifika"></div><div class="field"><label>Birim</label><select name="birim"><option>µm</option><option>mm</option></select></div><div class="field"><label>Büyütme / Ölçek</label><input name="buyutme"></div></div><div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Ölçülen büyüklük</th><th>Nominal</th><th>Ölçülen</th><th>Sapma (otomatik)</th><th>Kabul kriteri (±)</th><th>Sonuç (otomatik)</th></tr></thead><tbody id="measurementRows"></tbody></table></div><p class="muted">Nominal ve kabul kriteri kalibrasyon sertifikası/talimatından alınır. Ölçüm sonucu uygun değilse cihaz kullanıma alınmaz.</p></section>
@@ -94,7 +107,7 @@ async function digitalPost(payload,confirm){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
   let response;try{response=await fetch(digitalApiUrl(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:controller.signal});}finally{clearTimeout(timer);}
   const result=JSON.parse(await response.text());
-  if(result?.ok!==true){const e=new Error(result?.error||'Sheets kayıt işlemi reddedildi.');e.serverRejected=true;throw e;}
+  if(result?.ok!==true){const e=new Error(result?.error||'Sheets kayıt işlemi reddedildi.');e.serverRejected=true;e.code=result?.code||'';throw e;}
   return result;
  }catch(e){if(e.serverRejected)throw e;originalError=e;}
  // CORS nedeniyle yanıt okunmasa bile yazma gerçekleşmiş olabilir.
@@ -189,9 +202,9 @@ async function saveDigitalFormToSystem(){
  if(digitalFormBusy)return;
  const error=digitalValidate();if(error){digitalSaveMessage(error);alert(error);return;}
  const user=digitalUser(),token=String(window.BURKAB_AUTH_TOKEN||user?.token||'').trim();
- if(!token){digitalSaveMessage('Kayıt gönderilmedi. Ana BURKAB sisteminde yetkili hesabınızla giriş yapın.');return;}
+ if(!token){digitalSaveMessage('Kayıt gönderilmedi. Oturumunuzu yenileyin; form korunuyor.');digitalAuthPanel('Oturum bulunamadı. Mevcut BURKAB hesabınızla giriş yapın.');return;}
  if(navigator.onLine===false){digitalSaveMessage('Çevrimdışı. Form korunuyor; bağlantı gelince tekrar deneyin.');return;}
- const d=formData();d.kontrolMaddeleri.forEach((it,i)=>{it.kapsamaDahil=activeItem(ITEMS[i]);if(!it.kapsamaDahil){it.sonuc='KAPSAM DIŞI';it.aciklama='Seçilen bakım periyodunda değil.';}});
+ fillSystemTime();const d=formData();d.kontrolMaddeleri.forEach((it,i)=>{it.kapsamaDahil=activeItem(ITEMS[i]);if(!it.kapsamaDahil){it.sonuc='KAPSAM DIŞI';it.aciklama='Seçilen bakım periyodunda değil.';}});
  const key=digitalIdentityKey(),draftKey=digitalDraftKey();let identity;
  try{
   identity=JSON.parse(localStorage.getItem(key)||'null');
@@ -206,6 +219,7 @@ async function saveDigitalFormToSystem(){
  digitalFormBusy=true;digitalSaveMessage('Sheets kaydı gönderiliyor…');
  const controls=[...document.querySelectorAll('input,select,textarea,button')],before=controls.map(e=>e.disabled);controls.forEach(e=>e.disabled=true);
  try{
+  await digitalValidateSession(token);
   const ready=await digitalRequest({action:'getDigitalForm',formKayitID:identity.formKayitID,checkSchema:true});
   if(ready?.ok!==true)throw new Error(ready?.error||'Sheets bağlantısı doğrulanamadı.');
   if(ready.version!=='KESIT-2026-10-12-V3')throw new Error('Dijital_Formlar.gs güncel sürümü dağıtılmamış. Apps Script dağıtımını güncelleyin.');
@@ -224,12 +238,83 @@ async function saveDigitalFormToSystem(){
   // Kimlik başarıdan sonra da korunur; yeniden Kaydet aynı işin kaydını günceller.
   identity.formNo=response.formNo;localStorage.setItem(key,JSON.stringify(identity));
   digitalRenderMedia();digitalSaveMessage('Sheets kaydı doğrulandı. Form No: '+response.formNo+' • Form alanları korundu.');
- }catch(e){digitalSaveMessage('Kayıt tamamlanamadı: '+e.message+' Form ve tekrar deneme kimliği korundu.');}
+ }catch(e){digitalSaveMessage('Kayıt tamamlanamadı: '+e.message+' Form ve tekrar deneme kimliği korundu.');if(['AUTH_REQUIRED','USER_DISABLED','FORBIDDEN'].includes(e.code)||/yetkisiz|oturum|yeniden giriş/i.test(e.message))digitalAuthPanel(e.message+' Formu kapatmadan oturumunuzu yenileyin.');}
  finally{digitalFormBusy=false;controls.forEach((e,i)=>e.disabled=before[i]);}
 }
+function localSystemTime(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function fillSystemTime(){const e=$('maintenanceForm').elements.namedItem('saat');if(e)e.value=localSystemTime();}
+function digitalAuthPanel(message){
+ const panel=$('digitalAuthPanel'),status=$('digitalAuthStatus');
+ if(panel)panel.classList.remove('hidden');if(status)status.textContent=message;
+ const field=$('digitalAuthUser');if(field&&!field.value)field.value=digitalUser()?.username||'';
+}
+async function digitalValidateSession(token){
+ const result=await digitalRequest({action:'authValidate',authToken:token});
+ if(result?.ok!==true){const e=new Error(result?.error||'Oturum geçersiz veya süresi dolmuş.');e.code=result?.code||'AUTH_REQUIRED';throw e;}
+ return result;
+}
+async function digitalLogin(){
+ const username=$('digitalAuthUser').value.trim(),password=$('digitalAuthPass').value;
+ if(!username||!password){digitalAuthPanel('BURKAB kullanıcı adı ve şifrenizi girin.');return;}
+ const button=$('digitalAuthLogin');button.disabled=true;digitalAuthPanel('Oturum açılıyor…');
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
+ try{
+  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(password));
+  const passwordHash=Array.from(new Uint8Array(hash)).map(x=>x.toString(16).padStart(2,'0')).join('');
+  // Giriş bilgileri yalnız POST gövdesindedir; JSONP / URL ile gönderilmez.
+  const response=await fetch(digitalApiUrl(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'authLogin',username,password,passwordHash}),signal:controller.signal});
+  const result=JSON.parse(await response.text());
+  if(result?.ok!==true||!result.token||!result.user)throw new Error(result?.error||'Giriş yanıtı doğrulanamadı.');
+  await digitalValidateSession(result.token);
+  const user={...result.user,token:result.token};sessionStorage.setItem('burkab_user',JSON.stringify(user));window.BURKAB_AUTH_TOKEN=result.token;
+  $('digitalAuthPass').value='';digitalAuthPanel('Oturum açıldı: '+(user.name||user.username)+'. Form korunuyor; Kaydet düğmesiyle tekrar deneyin.');
+  digitalSaveMessage('Oturum yenilendi. Doldurduğunuz form ve kayıt kimliği korundu.');
+ }catch(e){digitalAuthPanel('Giriş tamamlanamadı: '+e.message+'. Ana sistemde giriş yaptıktan sonra formu oradan yeniden açıp Taslağı geri yükle düğmesini kullanabilirsiniz.');}
+ finally{clearTimeout(timer);button.disabled=false;}
+}
+function digitalOpenMain(){
+ try{localStorage.setItem(digitalDraftKey(),JSON.stringify(formData()));}catch(e){digitalSaveMessage('Taslak saklanamadı; bu sekmeyi kapatmayın.');}
+ window.open('https://maintenanceburkab.github.io/burkab-bakim/','_blank','noopener');
+}
+
+function printTable(headers,rows,widths){return '<table class="p-table">'+(widths?'<colgroup>'+widths.map(w=>'<col style="width:'+w+'%">').join('')+'</colgroup>':'')+'<thead><tr>'+headers.map(h=>'<th>'+safe(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+safe(c??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+function printPairs(pairs){return '<div class="p-grid">'+pairs.map(([name,value])=>'<div><b>'+safe(name)+'</b><span>'+safe(value||'—')+'</span></div>').join('')+'</div>';}
+function digitalPrintMarkup(d){
+ const periods={A:'Aylık','3A':'3 Aylık','6A':'6 Aylık',Y:'Yıllık'},rank=periodRank(),scope=rank[normalizePeriod(d.periyot)||'A'];
+ const controls=ITEMS.map((it,i)=>{const x=d.kontrolMaddeleri?.find(c=>c.no===it.no)||{};return [it.no,it.text,it.period,rank[it.period]>scope?'Kapsam dışı':x.sonuc||'—'];});
+ const notes=ITEMS.map(it=>{const x=d.kontrolMaddeleri?.find(c=>c.no===it.no);return x?.aciklama?[it.no,x.aciklama]:null;}).filter(Boolean);
+ const measures=(d.olcumler||[]).map(x=>[x.ad||'—',x.nominal||'—',x.olculen||'—',x.sapma||'—',x.kabul||'—',x.sonuc||'—']);
+ const parts=(d.yedekParcalar||[]).filter(x=>x.ad||x.id||x.adet||x.birimFiyat).map(x=>[x.ad,x.id,x.adet,x.birimFiyat,x.tutar]);
+ let identity={};try{identity=JSON.parse(localStorage.getItem(digitalIdentityKey())||'{}');}catch{}
+ const head=page=>'<div class="p-head"><div><b>BURKAB A.Ş.</b><h1>Kesit Görüntüleme Cihazı Periyodik Bakım Formu</h1><small>FR-XX · '+safe(d.cihazNo||'KGC-01')+' · '+safe(d.isEmri||'İş emri yok')+'</small></div><strong>'+page+' / 2</strong></div>';
+ const foot=page=>'<div class="p-foot">Form No: '+safe(identity.formNo||'Henüz kayıt teyidi yok')+' · Cihaz: '+safe(d.cihazNo)+' · '+page+' / 2</div>';
+ const sheet=(page,body)=>'<section class="print-sheet"><div class="print-body">'+head(page)+body+'</div>'+foot(page)+'</section>';
+ const first='<h2>A. CİHAZ BİLGİLERİ</h2>'+printPairs([['Cihaz No',d.cihazNo],['Cihaz Adı',d.cihazAdi],['Seri No',d.seriNo],['Bölüm',d.bolum],['Envanter / Kalibrasyon ID',d.envanterId],['Kamera',d.kamera],['Yazılım / Sürüm',[d.yazilim,d.yazilimSurum].filter(Boolean).join(' / ')],['Bilgisayar',d.bilgisayarId]])+
+ '<h2>B. BAKIM BİLGİLERİ</h2>'+printPairs([['Gerçekleşen Tarih / Saat',[d.tarih,d.saat].filter(Boolean).join(' / ')],['Planlanan Tarih',d.planTarihi],['Bakım Personeli',d.bakimPersoneli],['İş Emri',d.isEmri],['Periyot',periods[normalizePeriod(d.periyot)]||d.periyot],['Bakım Türü',d.bakimTuru]])+'<p class="p-note"><b>Plan / Talimat:</b> '+safe(d.periyotDayanagi||'—')+'</p>'+
+ '<h2>C. KONTROL VE İŞLEMLER</h2>'+printTable(['No','Bakım / kontrol noktası','Periyot','Sonuç'],controls,[7,69,8,16]);
+ const second='<h2>D. ÖLÇÜM DOĞRULAMA KAYDI</h2>'+printPairs([['Referans Standart',d.referansStandart],['Sertifika / Geçerlilik',d.sertifika],['Birim',d.birim],['Büyütme / Ölçek',d.buyutme]])+printTable(['Büyüklük','Nominal','Ölçülen','Sapma','Kabul (±)','Sonuç'],measures)+
+ '<h2>E. YEDEK PARÇA / SARF</h2>'+printTable(['Malzeme','ID','Adet','Birim Fiyat ₺','Tutar ₺'],parts.length?parts:[['—','—','—','—','—']])+
+ '<h2>F. SÜRE</h2>'+printPairs([['Başlangıç',d.baslangic],['Bitiş',d.bitis],['Duruş Süresi',d.durus]])+
+ '<h2>G. SONUÇ VE DEĞERLENDİRME</h2>'+printPairs([['Cihaz Durumu',d.cihazDurumu],['Kullanıma Alındı',d.kullanimaAlindi],['Sonraki Bakım',d.sonrakiBakim],['Önceki Ölçümlerin Geçerliliği',d.oncekiOlcum],['DÖF / Değerlendirme No',d.dofNo]])+
+ '<div class="p-box"><b>Uygunsuzluk / Yapılan Düzeltici İşlem</b><p>'+safe(d.duzelticiIslem||'—')+'</p></div>'+
+ '<h2>KONTROL MADDELERİNE AİT AÇIKLAMALAR</h2>'+printTable(['Madde','Açıklama / Uygulanmama nedeni'],notes.length?notes:[['—','Açıklama yok.']],[10,90])+
+ '<h2>AD / TARİH / İMZA</h2><div class="p-sign">'+[['Bakım Elemanı','Bakim'],['Kalite Birimi','Kalite'],['Bakım Sorumlusu','Onay']].map(([title,key])=>'<div><b>'+safe(title)+'</b><p>'+safe(d['imza'+key+'Ad']||'—')+'<br>'+safe(d['imza'+key+'Tarih']||'—')+'</p><span>İmza: __________________</span></div>').join('')+'</div>'+
+ '<p class="p-note">Fotoğraf / video ekleri dijital kayıtta saklanır. Arşivlenmiş ek sayısı: '+(d.medya||[]).length+'. Bu çıktı kontrol, ölçüm ve sonuç kaydıdır. FR-101 bakım planında ilgili bakım işaretlenir.</p>';
+ return sheet(1,first)+sheet(2,second);
+}
+function prepareTwoPagePrint(){
+ const root=$('printRoot');root.innerHTML=digitalPrintMarkup(formData());
+ // Uzun açıklamalar da iki fiziksel sayfaya sığar; veri kesilmez.
+ root.classList.add('print-measure');
+ root.querySelectorAll('.print-sheet').forEach(page=>{const body=page.querySelector('.print-body');const available=page.clientHeight-26,ratio=Math.min(1,available/Math.max(body.scrollHeight,1));body.style.transform='scale('+ratio+')';body.style.transformOrigin='top left';});
+ root.classList.remove('print-measure');
+}
+function printForm(){prepareTwoPagePrint();window.print();}
+window.addEventListener('beforeprint',prepareTwoPagePrint);
+
 function localDate(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
 
-function clearForm(){if(digitalFormBusy)return;if(!confirm('Form alanları temizlensin mi?'))return;digitalMediaArchive=[];$('maintenanceForm').reset();document.querySelectorAll('.checkitem input[type=radio]').forEach(x=>x.checked=false);document.querySelectorAll('[id^=noteWrap_]').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('[id^=pv_]').forEach(x=>x.innerHTML='');Object.keys(mediaStore).forEach(k=>delete mediaStore[k]);[1,2,3].forEach(calcMeasure);calcParts();calcDuration();applyPeriod();$('maintenanceForm').elements.namedItem('tarih').value=localDate();showSummary();}
+function clearForm(){if(digitalFormBusy)return;if(!confirm('Form alanları temizlensin mi?'))return;digitalMediaArchive=[];$('maintenanceForm').reset();document.querySelectorAll('.checkitem input[type=radio]').forEach(x=>x.checked=false);document.querySelectorAll('[id^=noteWrap_]').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('[id^=pv_]').forEach(x=>x.innerHTML='');Object.keys(mediaStore).forEach(k=>delete mediaStore[k]);[1,2,3].forEach(calcMeasure);calcParts();calcDuration();applyPeriod();$('maintenanceForm').elements.namedItem('tarih').value=localDate();fillSystemTime();showSummary();}
 function init(){
   buildChecklist();buildMeasurements();addPart();addPart();
   const params=new URLSearchParams(window.location.search);
@@ -238,7 +323,8 @@ function init(){
   const t=$('maintenanceForm').elements.namedItem('tarih');t.value=localDate();$('maintenanceForm').elements.namedItem('planTarihi').value=params.get('planTarihi')||'';
   const gorev=params.get('planGorevi');if(gorev){const n=$('maintenanceForm').elements.namedItem('periyotDayanagi');if(n)n.value='Planlı bakım: '+gorev;}
   const sorumlu=params.get('sorumlu');if(sorumlu){const n=$('maintenanceForm').elements.namedItem('bakimPersoneli');if(n)n.value=sorumlu;}
-  applyPeriod();
+  fillSystemTime();applyPeriod();
+  if(!digitalUser()?.token&&!window.BURKAB_AUTH_TOKEN)digitalAuthPanel('BURKAB oturumu bulunamadı; kayıt için giriş yapın.');
 }
 init();
-</script></body></html>
+</script><div id="printRoot" aria-hidden="true"></div></body></html>
