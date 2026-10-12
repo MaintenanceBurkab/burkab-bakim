@@ -12762,7 +12762,7 @@ async function gsIyilestirmeYukle() {
 
 let _sicilMakine='';let _sicilData=null;let _sicilSekme='gecmis';
 async function makineSicilAc(makine){
-  _sicilMakine=String(makine||'').trim();if(!_sicilMakine)return;
+  _sicilMakine=String(makine||'').trim();if(!_sicilMakine)return;_sicilParcaIstek++;_sicilSekme='gecmis';document.querySelectorAll('#makineSicilModal .sicil-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
   const m=document.getElementById('makineSicilModal');if(!m)return;m.style.display='flex';
   document.getElementById('sicilBaslik').textContent='MAKİNE SİCİL KARTI — '+_sicilMakine;
   document.getElementById('sicilKpiGrid').innerHTML='<div style="grid-column:1/-1;padding:25px;text-align:center;color:#888">⏳ Makine geçmişi ve KPI hesaplanıyor...</div>';
@@ -12897,7 +12897,55 @@ function planliBakimFormAc(){
     showToast('Dijital bakım formu açılamadı: ' + (e.message || e), 'err');
   }
 }
-function makineYedekParcaAc(){try{goTab('yedekstok',document.querySelector('.nav-tab[onclick*="yedekstok"]'));showToast('⚙️ Yedek parça stok ekranı açıldı. Makineye özel liste bağlantısını sonraki adımda bağlayacağız.','ok');}catch(e){showToast('Yedek parça ekranı açılamadı','err')}}
+// Makine sicili: stok kartının İlgili Makine / Grup alanından canlı liste.
+function sicilParcaAnahtar(v){return String(v??'').trim().toLocaleUpperCase('tr-TR').replace(/İ/g,'I').replace(/Ş/g,'S').replace(/Ğ/g,'G').replace(/Ü/g,'U').replace(/Ö/g,'O').replace(/Ç/g,'C').replace(/[–—−]/g,'-').replace(/\s+/g,' ');}
+function sicilParcaEslesir(p,makine,e={}){
+  const grup=sicilParcaAnahtar(p.makineGrubu);
+  if(!grup)return false;
+  const ad=sicilParcaAnahtar(makine), kimlik=[ad,sicilParcaAnahtar(e.makine)].filter(Boolean);
+  const kod=v=>v.replace(/\s*-\s*/g,'-');
+  const aralik=token=>{
+    const r=kod(token).match(/^([A-Z]+)-(\d+)\s*(?:\.{2,3}|…|\s+-\s+|\s+ILE\s+)\s*([A-Z]+)-(\d+)$/);
+    if(!r||r[1]!==r[3])return false;
+    return kimlik.some(x=>{const k=kod(x).match(/^([A-Z]+)-(\d+)$/);return k&&k[1]===r[1]&&Number(k[2])>=Number(r[2])&&Number(k[2])<=Number(r[4]);});
+  };
+  const tek=token=>{
+    token=kod(token.trim());
+    if(!token)return false;
+    if(kimlik.some(x=>kod(x)===token)||aralik(token))return true;
+    return false;
+  };
+  return tek(grup)||grup.split(/[,;\/|\n]+/).some(tek);
+}
+let _sicilParcaIstek=0;
+async function makineYedekParcaAc(force=false){
+  if(!_sicilMakine)return;
+  const btn=document.querySelector('#makineSicilModal .sicil-tab.parts');
+  _sicilSekme='parca';
+  document.querySelectorAll('#makineSicilModal .sicil-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const el=document.getElementById('sicilIcerik'), makine=_sicilMakine, istek=++_sicilParcaIstek;
+  el.innerHTML='<div class="sicil-empty">⏳ Makineye ait yedek parçalar yükleniyor...</div>';
+  try{
+    // Her açılışta güncel stok miktarları; boş liste ile yükleme hatası ayrılır.
+    const r=await gsRequest({action:'yedekParcaGetAll'});
+    if(!r?.ok||!Array.isArray(r.stoklar))throw new Error(r?.error||'Yedek parça verisi alınamadı');
+    if(istek!==_sicilParcaIstek||makine!==_sicilMakine||_sicilSekme!=='parca')return;
+    ypStoklar=r.stoklar;ypHareketler=Array.isArray(r.hareketler)?r.hareketler:[];ypSiparisler=Array.isArray(r.siparisler)?r.siparisler:[];ypYuklendi=true;
+    sicilParcaRender();
+  }catch(e){
+    if(istek!==_sicilParcaIstek||makine!==_sicilMakine||_sicilSekme!=='parca')return;
+    el.innerHTML='<div class="sicil-empty">❌ '+sicilEsc(e.message||e)+'<br><button class="yp-btn outline" onclick="makineYedekParcaAc(true)">TEKRAR DENE</button></div>';
+  }
+}
+function sicilParcaRender(){
+  const el=document.getElementById('sicilIcerik');if(!el)return;
+  const eq=_sicilData?.ekipman||{};
+  const list=ypStoklar.filter(p=>sicilParcaEslesir(p,_sicilMakine,eq)).sort((a,b)=>String(a.parcaAdi||'').localeCompare(String(b.parcaAdi||''),'tr'));
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;flex-wrap:wrap"><b>'+sicilEsc(_sicilMakine)+' — '+list.length+' yedek parça</b><button class="yp-btn outline" onclick="makineYedekParcaAc(true)">↻ YENİLE</button></div>'+
+    (list.length?sicilTablo(list,[['Stok Kodu','stokKodu'],['Parça Adı','parcaAdi'],['İlgili Makine / Grup','makineGrubu'],['Mevcut',p=>ypNum(p.mevcutStok)],['Rezerve',p=>ypNum(p.rezerveStok)],['Kullanılabilir',p=>ypKullanilabilir(p)],['Birim',p=>p.birim||'ADET'],['Min.',p=>ypNum(p.minimumStok)],['Max.',p=>ypNum(p.maksimumStok)],['Stok Durumu',p=>ypEtiket(ypDurum(p))],['Kart Durumu',p=>ypN(p.aktif)==='HAYIR'?'PASİF':'AKTİF'],['Raf','rafKonumu']],'blue'):'<div class="sicil-empty">Bu makineyle eşleşen yedek parça kartı bulunamadı. Stok kartındaki İlgili Makine / Grup alanını kontrol edin.</div>');
+}
+
 function makineServisKayitAc(){try{const formTabBtn=document.querySelector('.nav-tab[onclick*="form"]');goTab('form',formTabBtn);setTimeout(()=>{const b=document.querySelector('.islem-btn[data-v="SERVİS BAKIM"]');if(b)pickIslem(b);const m=document.getElementById('makine');if(m)m.value=_sicilMakine;showToast('🛠️ Servis bakım kaydı ekranı hazırlandı.','ok')},250);}catch(e){showToast('Servis bakım kayıtları ekranı açılamadı','err')}}
 
 function sicilRender(){
@@ -12952,7 +13000,7 @@ function sicilTablo(rows,cols,theme){
     }).join('')+'</tr>').join('')
   }</tbody></table></div>`;
 }
-function sicilRenderIcerik(){const d=_sicilData||{},el=document.getElementById('sicilIcerik');if(!el)return;if(_sicilSekme==='ariza')el.innerHTML=sicilTablo(d.gercekArizalar,[['Tarih','tarih'],['Form','formNo'],['Tür',r=>r.arizaTuru||r.arizaKodu||'—'],['Etkisi','durusEtkisi'],['Süre',r=>r.sureDk+' dk'],['Risk','riskSeviye'],['Yapılan','yapilan']],'red');else if(_sicilSekme==='durus')el.innerHTML=sicilTablo(d.duruslar,[['Tarih','tarih'],['Saat','saat'],['Bölüm','bolum'],['Neden','neden'],['Süre',r=>(r.sureDk||r.hesaplananDk||0)+' dk'],['Durum','durum']],'orange');else if(_sicilSekme==='revizyon'){const e=d.ekipman||{};el.innerHTML=sicilTablo(e.revizyonlar||[],[['Tarih','tarih'],['Açıklama','aciklama'],['Yapan','yapan']],'purple');}else el.innerHTML=sicilTablo(d.gecmis,[['Tarih','tarih'],['Form','formNo'],['İşlem','islem'],['Arıza Türü','arizaTuru'],['Duruş','durusEtkisi'],['Süre',r=>(r.sureDk||0)+' dk'],['Durum','durum'],['Yapılan','yapilan']],'blue');}
+function sicilRenderIcerik(){const d=_sicilData||{},el=document.getElementById('sicilIcerik');if(!el)return;if(_sicilSekme==='parca'){sicilParcaRender();return;}if(_sicilSekme==='ariza')el.innerHTML=sicilTablo(d.gercekArizalar,[['Tarih','tarih'],['Form','formNo'],['Tür',r=>r.arizaTuru||r.arizaKodu||'—'],['Etkisi','durusEtkisi'],['Süre',r=>r.sureDk+' dk'],['Risk','riskSeviye'],['Yapılan','yapilan']],'red');else if(_sicilSekme==='durus')el.innerHTML=sicilTablo(d.duruslar,[['Tarih','tarih'],['Saat','saat'],['Bölüm','bolum'],['Neden','neden'],['Süre',r=>(r.sureDk||r.hesaplananDk||0)+' dk'],['Durum','durum']],'orange');else if(_sicilSekme==='revizyon'){const e=d.ekipman||{};el.innerHTML=sicilTablo(e.revizyonlar||[],[['Tarih','tarih'],['Açıklama','aciklama'],['Yapan','yapan']],'purple');}else el.innerHTML=sicilTablo(d.gecmis,[['Tarih','tarih'],['Form','formNo'],['İşlem','islem'],['Arıza Türü','arizaTuru'],['Duruş','durusEtkisi'],['Süre',r=>(r.sureDk||0)+' dk'],['Durum','durum'],['Yapılan','yapilan']],'blue');}
 async function makineSicilAI(){if(!_sicilMakine)return;const box=document.getElementById('sicilAIResult');if(!box)return;box.style.display='block';box.textContent='⏳ AI makine analizi hazırlanıyor...';const bas=(new Date(Date.now()-365*86400000)).toISOString().slice(0,10),bit=new Date().toISOString().slice(0,10);try{const r=await gsRequest({action:'aiRaporOlustur',baslangic:bas,bitis:bit,makine:_sicilMakine,tip:'ariza_analiz'});box.textContent=r?.ok?(r.yanit||'AI yanıtı boş.'):'❌ '+(r?.error||'AI analizi alınamadı.');}catch(e){box.textContent='❌ '+(e.message||e);}}
 
 function ekipmanSil(makine) {
