@@ -30,14 +30,15 @@
 }
 </style></head><body>
 <header><div class="brand">BURKAB A.Ş. · BAKIM / KALİTE</div><h1>Kesit Görüntüleme Cihazı Periyodik Bakım Formu</h1><p>IDS MS-45D · Kamera IDS UI-1640LE-C-HQ · CrimpLab3</p></header>
-<div class="wrap"><div class="notice"><b>Talimat bağlantısı:</b> Bu form, TL-XX Kesit Görüntüleme Cihazı Periyodik Bakım Talimatı'na uygun doldurulmalıdır. Talimat REF dosyasında görüntülenecektir. <span class="muted">Medya alanları bu prototipte tarayıcıda seçilir; ortak sisteme kalıcı yükleme için ayrıca sunucu/Drive bağlantısı gerekir.</span></div>
+<div class="wrap"><div class="notice"><b>Talimat bağlantısı:</b> Bu form, TL-XX Kesit Görüntüleme Cihazı Periyodik Bakım Talimatı'na uygun doldurulmalıdır. Talimat REF dosyasında görüntülenecektir. <span class="muted">Fotoğraf ve videolar kayıt sırasında Drive arşivine yüklenir. Dosya bağlantıları bakım kaydında saklanır. Tek dosya sınırı: 8 MB.</span></div>
 <div class="toolbar"><button class="btn" onclick="saveDraft()">Taslağı bu tarayıcıya kaydet</button><button class="btn secondary" onclick="loadDraft()">Taslağı geri yükle</button><button class="btn secondary" onclick="window.print()">Yazdır / PDF</button><button class="btn secondary" onclick="exportJson()">Veriyi dışa aktar (JSON)</button><button class="btn" type="button" onclick="saveDigitalFormToSystem()">Bakım Formunu Sisteme Kaydet</button><button class="btn danger" onclick="clearForm()">Formu temizle</button></div>
+<div id="digitalSaveStatus" role="status" class="notice">Sheets kaydı henüz gönderilmedi.</div>
 <form id="maintenanceForm" onsubmit="event.preventDefault();showSummary();">
 <section class="card"><h2>A. CİHAZ BİLGİLERİ</h2><div class="grid">
 <div class="field"><label>Cihaz No</label><input name="cihazNo" value="KGC-01"></div><div class="field"><label>Cihaz Adı</label><input name="cihazAdi" value="IDS / MS-45D"></div><div class="field"><label>Seri No</label><input name="seriNo" value="4103735789"></div><div class="field"><label>Kamera Marka / Model</label><input name="kamera" value="IDS UI-1640LE-C-HQ"></div>
 <div class="field"><label>Envanter / Kalibrasyon ID</label><input name="envanterId"></div><div class="field"><label>Kullanılan Yazılım</label><input name="yazilim" value="CrimpLab3"></div><div class="field"><label>Yazılım Sürümü</label><input name="yazilimSurum"></div><div class="field"><label>Bulunduğu Yer / Bölüm</label><input name="bolum" value="TERMİNAL KALIP BAKIMHANESİ"></div><div class="field"><label>Bilgisayar Adı / ID</label><input name="bilgisayarId"></div></div></section>
 <section class="card"><h2>B. BAKIM BİLGİLERİ</h2><div class="grid">
-<div class="field"><label>Tarih</label><input name="tarih" type="date" required></div><div class="field"><label>Saat</label><input name="saat" type="time"></div><div class="field"><label>Bakım Personeli</label><input name="bakimPersoneli" required></div><div class="field"><label>Plan / İş Emri No</label><input name="isEmri"></div>
+<div class="field"><label>Gerçekleşen Bakım Tarihi</label><input name="tarih" type="date" required></div><div class="field"><label>Planlanan Bakım Tarihi</label><input name="planTarihi" type="date" readonly></div><div class="field"><label>Saat</label><input name="saat" type="time"></div><div class="field"><label>Bakım Personeli</label><input name="bakimPersoneli" required></div><div class="field"><label>Plan / İş Emri No</label><input name="isEmri"></div>
 <div class="field"><label>Bakım Periyodu</label><select name="periyot" id="periyot" onchange="applyPeriod()"><option value="A">Aylık (A)</option><option value="3A">3 Aylık (3A)</option><option value="6A">6 Aylık (6A)</option><option value="Y">Yıllık (Y)</option></select></div><div class="field"><label>Bakım Türü</label><select name="bakimTuru"><option>Planlı Bakım</option><option>Bakım / Onarım Sonrası Doğrulama</option></select></div><div class="field span2"><label>Periyot Dayanağı (Kılavuz / Plan Referansı)</label><input name="periyotDayanagi"></div></div><p class="muted">Periyot kodları: A = Aylık, 3A = 3 Aylık, 6A = 6 Aylık, Y = Yıllık. Kapsam kümülatiftir. Yapılmayan madde için “—” seçiniz.</p></section>
 <section class="card"><h2>C. KONTROL VE İŞLEMLER</h2><div class="muted">Her bakım noktasında uygunluk seçin. Uygun değil seçildiğinde açıklama alanı açılır. Fotoğraf ve video ekleri ilgili bakım maddesiyle ilişkilendirilir.</div><div id="checklist"></div><div style="margin-top:12px"><b id="progressLabel">0 / 23 madde değerlendirildi</b><div class="progress"><div id="progressBar"></div></div></div></section>
 <section class="card"><h2>D. ÖLÇÜM DOĞRULAMA KAYDI</h2><div class="grid"><div class="field span2"><label>Referans standart adı / No</label><input name="referansStandart"></div><div class="field span2"><label>Sertifika No / Geçerlilik</label><input name="sertifika"></div><div class="field"><label>Birim</label><select name="birim"><option>µm</option><option>mm</option></select></div><div class="field"><label>Büyütme / Ölçek</label><input name="buyutme"></div></div><div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Ölçülen büyüklük</th><th>Nominal</th><th>Ölçülen</th><th>Sapma (otomatik)</th><th>Kabul kriteri (±)</th><th>Sonuç (otomatik)</th></tr></thead><tbody id="measurementRows"></tbody></table></div><p class="muted">Nominal ve kabul kriteri kalibrasyon sertifikası/talimatından alınır. Ölçüm sonucu uygun değilse cihaz kullanıma alınmaz.</p></section>
@@ -45,7 +46,7 @@
 <section class="card"><h2>F. SÜRE</h2><div class="grid"><div class="field"><label>Müdahale Edildiği Saat</label><input name="baslangic" id="baslangic" type="time" oninput="calcDuration()"></div><div class="field"><label>Bitiş Saat</label><input name="bitis" id="bitis" type="time" oninput="calcDuration()"></div><div class="field"><label>Duruş Süresi</label><input name="durus" id="durus" readonly placeholder="Otomatik hesaplanır"></div></div></section>
 <section class="card"><h2>G. SONUÇ VE DEĞERLENDİRME</h2><div class="grid"><div class="field span2"><label>Cihaz Durumu</label><select name="cihazDurumu" id="cihazDurumu" onchange="showSummary()"><option value="">Seçiniz</option><option>Kullanıma uygun</option><option>Şartlı uygun (açıklama zorunlu)</option><option>Kullanıma uygun değil (etiketlendi, kullanımdan alındı)</option></select></div><div class="field"><label>Bir Sonraki Bakım Tarihi</label><input name="sonrakiBakim" type="date"></div><div class="field"><label>Kullanıma Alındı</label><select name="kullanimaAlindi"><option value="">Seçiniz</option><option>Evet</option><option>Hayır</option></select></div><div class="field span4"><label>Uygunsuzluk / Yapılan Düzeltici İşlem</label><textarea name="duzelticiIslem" rows="3"></textarea></div><div class="field span4"><label>Önceki Ölçümlerin Geçerliliği</label><select name="oncekiOlcum"><option value="">Seçiniz</option><option>Gerekmedi</option><option>Evet — kalite birimi değerlendirdi</option><option>Hayır — değerlendirme gerekli</option></select></div><div class="field span4"><label>Değerlendirme / DÖF No</label><input name="dofNo"></div></div><div id="summary" class="status" style="margin-top:12px">Kontrol sonuçları ve ölçüm doğrulaması tamamlandığında genel değerlendirme burada gösterilir.</div>
 <div class="signgrid" style="margin-top:14px"><div class="signbox"><h3>BAKIM ELEMANI</h3><div class="field"><label>Ad Soyad</label><input name="imzaBakimAd"></div><div class="field"><label>Tarih</label><input name="imzaBakimTarih" type="date"></div></div><div class="signbox"><h3>KALİTE BİRİMİ (DOĞRULAMA)</h3><div class="field"><label>Ad Soyad</label><input name="imzaKaliteAd"></div><div class="field"><label>Tarih</label><input name="imzaKaliteTarih" type="date"></div></div><div class="signbox"><h3>ONAY (BAKIM SORUMLUSU)</h3><div class="field"><label>Ad Soyad</label><input name="imzaOnayAd"></div><div class="field"><label>Tarih</label><input name="imzaOnayTarih" type="date"></div></div></div></section>
-</form><div class="footer">Form doldurulduktan sonra FR-101 Makine Periyodik Yıllık Bakım Planında ilgili yere işaret koyulur. · Prototip: kayıtlar bu tarayıcıda tutulur.</div></div>
+</form><div class="footer">Form doldurulduktan sonra FR-101 Makine Periyodik Yıllık Bakım Planında ilgili yere işaret koyulur. · Sheets kayıt teyidi formun üst bölümünde gösterilir.</div></div>
 <div class="modal" id="viewer" onclick="closeViewer(event)"><div class="modal-inner" id="viewerInner"><button class="close" onclick="closeViewer(event)">×</button><div id="viewerContent"></div></div></div>
 <script>
 const ITEMS=[{"no": "1.1", "text": "Dremel cihazının gövdesi, kablosu ve çalıştırma/durdurma işlevi kontrol edildi; hasar, anormal ses, titreşim veya aşırı ısınma yok.", "period": "A", "section": "1. GÜVENLİK VE YAN DONANIMLAR"}, {"no": "1.2", "text": "Dremel kesme bıçağında çatlak, kırık veya deformasyon yok; bıçak uygun şekilde sabitlenmiş. Değişim/ayar öncesi enerji kesiliyor.", "period": "A", "section": "1. GÜVENLİK VE YAN DONANIMLAR"}, {"no": "1.3", "text": "Dremel zımpara aparatı aşınma, yırtılma, çatlak/deformasyon ve sabitleme açısından kontrol edildi.", "period": "A", "section": "1. GÜVENLİK VE YAN DONANIMLAR"}, {"no": "1.4", "text": "Kesme/zımparalama güvenlik kapağı mevcut, sağlam ve koruyucu işlevini yerine getiriyor; devre dışı bırakılmamış.", "period": "A", "section": "1. GÜVENLİK VE YAN DONANIMLAR"}, {"no": "1.5", "text": "Acil stop butonu erişilebilir ve fiziksel olarak sağlam; güvenli/onaylı yöntemle fonksiyon testi yapıldı.", "period": "A", "section": "1. GÜVENLİK VE YAN DONANIMLAR"}, {"no": "1.6", "text": "Koruyucu gözlük ve işe uygun iş eldiveni mevcut/kullanıma uygun. Döner ekipman çalışırken kapılma riski oluşturan eldiven kullanılmıyor.", "period": "A", "section": "1. GÜVENLİK VE YAN DONANIMLAR"}, {"no": "2.1", "text": "Cihaz gövdesi, güç ve veri (USB/Ethernet) kabloları ve bağlantıları hasarsız; gevşek veya yıpranmış kablo yok.", "period": "A", "section": "2. GENEL DURUM VE ORTAM"}, {"no": "2.2", "text": "Cihazın yeri temiz ve titreşimsiz, ortam ışığı ölçüme uygun; kullanılmadığında toz örtüsü/kapağı takılı.", "period": "A", "section": "2. GENEL DURUM VE ORTAM"}, {"no": "2.3", "text": "Cihaz üzerindeki tanıtım ve kalibrasyon etiketi okunaklı ve yerinde.", "period": "3A", "section": "2. GENEL DURUM VE ORTAM"}, {"no": "3.1", "text": "Objektif ve ışık yolu, üreticinin onayladığı yöntem ve malzemeyle temizlendi; yüzeyde toz, leke, parmak izi yok.", "period": "A", "section": "3. OPTİK VE AYDINLATMA"}, {"no": "3.2", "text": "Aydınlatma çalışıyor; görüntüde homojen aydınlanma var, titreme veya parlama yok.", "period": "A", "section": "3. OPTİK VE AYDINLATMA"}, {"no": "3.3", "text": "Numunesiz (boş alan) görüntüsünde leke, gölge veya çizik yok.", "period": "3A", "section": "3. OPTİK VE AYDINLATMA"}, {"no": "4.1", "text": "Numune tutucu/tabla temiz; numune sabit tutuluyor, boşluk veya oynama yok.", "period": "A", "section": "4. MEKANİK"}, {"no": "4.2", "text": "Odak ve büyütme (zoom) ayarı akıcı çalışıyor; kayma, sıkışma veya boşluk yok.", "period": "3A", "section": "4. MEKANİK"}, {"no": "4.3", "text": "Cihaz ve kolon sabitleme vidaları/bağlantıları sıkı, kayma yok.", "period": "3A", "section": "4. MEKANİK"}, {"no": "5.1", "text": "CrimpLab3 hatasız açılıyor; kamera tanınıyor ve canlı görüntü akıcı (donma, gecikme yok).", "period": "A", "section": "5. KAMERA / CRIMPLAB3 YAZILIMI / VERİ"}, {"no": "5.2", "text": "Analiz kayıtları ve görüntülerin yedeği alındı; yedekten bir kaydın açılabildiği doğrulandı.   Disk doluluk: % ........", "period": "A", "section": "5. KAMERA / CRIMPLAB3 YAZILIMI / VERİ"}, {"no": "5.3", "text": "Yazılım sürümü ve lisans (varsa anahtar/dongle) durumu kayıtlı ve geçerli.   Sürüm: ...........", "period": "3A", "section": "5. KAMERA / CRIMPLAB3 YAZILIMI / VERİ"}, {"no": "5.4", "text": "Ölçek/kalibrasyon ayarı (piksel – ölçü karşılığı) kayıtlı değerle aynı; izinsiz değişiklik yok.", "period": "6A", "section": "5. KAMERA / CRIMPLAB3 YAZILIMI / VERİ"}, {"no": "5.5", "text": "Bilgisayara erişim (kullanıcı/parola) yetkili kişilerle sınırlı; güncelleme ve virüs koruması bilgi işlem kurallarına uygun.", "period": "3A", "section": "5. KAMERA / CRIMPLAB3 YAZILIMI / VERİ"}, {"no": "6.1", "text": "Kalibre referans ölçek/standart ile ölçüm doğrulaması yapıldı; sonuçlar D bölümüne yazıldı ve kabul kriteri içinde.", "period": "6A", "section": "6. ÖLÇÜM DOĞRULAMASI VE KALİBRASYON DURUMU"}, {"no": "6.2", "text": "Kalibrasyon sertifikası geçerli.   Son kalibrasyon:  09/10/2026   Sonraki:    09/10/2027", "period": "Y", "section": "6. ÖLÇÜM DOĞRULAMASI VE KALİBRASYON DURUMU"}, {"no": "6.3", "text": "Bilinen bir referans numune ile ölçüm tekrarı yapıldı; sonuçlar önceki kayıtlarla uyumlu.", "period": "Y", "section": "6. ÖLÇÜM DOĞRULAMASI VE KALİBRASYON DURUMU"}];
@@ -58,74 +59,183 @@ const mediaStore={};function previewFiles(input,id,type){let files=[...input.fil
 }if(!target)return;target.innerHTML='';files.forEach(f=>{let url=URL.createObjectURL(f);let el=document.createElement(type==='video'?'video':'img');el.src=url;if(type==='video'){el.controls=true;el.muted=true;}el.title=f.name;el.onclick=()=>openViewer(url,type);target.appendChild(el);});}
 function openViewer(url,type){$('viewerContent').innerHTML='';let el=document.createElement(type==='video'?'video':'img');el.src=url;if(type==='video'){el.controls=true;el.autoplay=true;} $('viewerContent').appendChild(el);$('viewer').classList.add('open');}function closeViewer(e){if(e.target===$('viewer')||e.target.classList.contains('close')){$('viewer').classList.remove('open');$('viewerContent').innerHTML='';}e.stopPropagation?.();}
 function statusChanged(i){let card=document.querySelector(`.checkitem[data-no="${CSS.escape(ITEMS[i].no)}"]`),val=card.querySelector(`input[name="status_${i}"]:checked`)?.value,wrap=$('noteWrap_'+i);wrap.classList.toggle('hidden',val!=='UYGUN DEĞİL'&&val!=='—');if(val==='UYGUN DEĞİL'||val==='—')wrap.querySelector('textarea').required=val==='UYGUN DEĞİL';else wrap.querySelector('textarea').required=false;updateProgress();showSummary();}
-function updateProgress(){let done=0;ITEMS.forEach((it,i)=>{if(document.querySelector(`input[name="status_${i}"]:checked`))done++;});$('progressLabel').textContent=`${done} / ${ITEMS.length} madde değerlendirildi`; $('progressBar').style.width=(done/ITEMS.length*100)+'%';}
-function applyPeriod(){let chosen=$('periyot').value;const rank={'A':1,'3A':2,'6A':3,'Y':4};document.querySelectorAll('.checkitem').forEach((card,i)=>{let p=ITEMS[i].period;let needed=rank[p]<=rank[chosen];card.classList.toggle('hidden',!needed);});}
+function periodRank(){return {'A':1,'3A':2,'6A':3,'Y':4};}
+function activeItem(it){const rank=periodRank();return rank[it.period]<=rank[$('periyot').value];}
+function normalizePeriod(v){
+ const key=String(v||'A').toLocaleUpperCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s_-]/g,'');
+ return ({A:'A',AYLIK:'A','1AYLIK':'A','3A':'3A','3AYLIK':'3A','6A':'6A','6AYLIK':'6A',Y:'Y',YILLIK:'Y','12AYLIK':'Y'})[key]||'';
+}
+function updateProgress(){let done=0,total=0;ITEMS.forEach((it,i)=>{if(!activeItem(it))return;total++;if(document.querySelector(`input[name="status_${i}"]:checked`))done++;});$('progressLabel').textContent=`${done} / ${total} madde değerlendirildi`;$('progressBar').style.width=(total?done/total*100:0)+'%';}
+function applyPeriod(){
+ const chosen=normalizePeriod($('periyot').value)||'A';$('periyot').value=chosen;
+ document.querySelectorAll('.checkitem').forEach((card,i)=>card.classList.toggle('hidden',!activeItem(ITEMS[i])));
+ // Seçili periyotta madde içermeyen başlıkları da gizle.
+ const children=[...$('checklist').children];
+ children.forEach((el,i)=>{if(!el.classList.contains('section-title'))return;let visible=false;
+   for(let j=i+1;j<children.length&&!children[j].classList.contains('section-title');j++)if(children[j].classList.contains('checkitem')&&!children[j].classList.contains('hidden'))visible=true;
+   el.classList.toggle('hidden',!visible);
+ });updateProgress();showSummary();
+}
 function buildMeasurements(){let b=$('measurementRows');b.innerHTML='';for(let i=1;i<=3;i++){let tr=document.createElement('tr');tr.innerHTML=`<td><input name="olcumAd${i}" placeholder="Ölçülen büyüklük"></td><td><input type="number" step="any" name="nominal${i}" oninput="calcMeasure(${i})"></td><td><input type="number" step="any" name="olculen${i}" oninput="calcMeasure(${i})"></td><td class="calc" id="sapma${i}">—</td><td><input type="number" min="0" step="any" name="kabul${i}" oninput="calcMeasure(${i})"></td><td class="calc" id="sonuc${i}">—</td>`;b.appendChild(tr);}}
 function calcMeasure(i){let n=num(document.querySelector(`[name="nominal${i}"]`).value),m=num(document.querySelector(`[name="olculen${i}"]`).value),k=num(document.querySelector(`[name="kabul${i}"]`).value);let dev=(n===null||m===null)?null:m-n;$('sapma'+i).textContent=dev===null?'—':dev.toLocaleString('tr-TR',{maximumFractionDigits:6});let result=(dev===null||k===null)?'—':Math.abs(dev)<=k?'UYGUN':'UYGUN DEĞİL';$('sonuc'+i).textContent=result;$('sonuc'+i).style.color=result==='UYGUN DEĞİL'?'#b42318':result==='UYGUN'?'#18794e':'';showSummary();}
 function num(v){if(v===null||v===undefined||String(v).trim()==='')return null;let n=Number(String(v).replace(',','.'));return Number.isFinite(n)?n:null;}
 function addPart(){let b=$('partsRows'),tr=document.createElement('tr');let idx=b.children.length;tr.innerHTML=`<td><input name="parcaAd${idx}" placeholder="Parça / sarf adı"></td><td><input name="parcaId${idx}"></td><td><input type="number" min="0" step="any" value="" name="parcaAdet${idx}" oninput="calcParts()"></td><td><input type="number" min="0" step="any" value="" name="parcaFiyat${idx}" oninput="calcParts()"></td><td class="calc" id="parcaTutar${idx}">0,00</td>`;b.appendChild(tr);calcParts();}
 function calcParts(){let total=0;[...$('partsRows').rows].forEach((r,i)=>{let q=num(r.querySelector(`[name="parcaAdet${i}"]`)?.value)||0,p=num(r.querySelector(`[name="parcaFiyat${i}"]`)?.value)||0,t=q*p;total+=t;let cell=$('parcaTutar'+i);if(cell)cell.textContent=t.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});});$('partsTotal').textContent=total.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺';}
 function calcDuration(){let a=$('baslangic').value,b=$('bitis').value;if(!a||!b){$('durus').value='';return;}let [ah,am]=a.split(':').map(Number),[bh,bm]=b.split(':').map(Number);let x=ah*60+am,y=bh*60+bm;if(y<x)y+=1440;let d=y-x;$('durus').value=String(Math.floor(d/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0');}
-function showSummary(){let bad=ITEMS.some((it,i)=>document.querySelector(`input[name="status_${i}"]:checked`)?.value==='UYGUN DEĞİL');let measureBad=[1,2,3].some(i=>$('sonuc'+i)?.textContent==='UYGUN DEĞİL');let status=$('cihazDurumu').value;let el=$('summary');if(bad||measureBad||status.includes('uygun değil')){el.className='status bad';el.textContent='DİKKAT: Uygunsuzluk veya ölçüm doğrulama başarısızlığı var. Cihazı kullanıma vermeyin; açıklama, düzeltici işlem ve yetkili değerlendirmeyi tamamlayın.';}else if(status.includes('Şartlı')){el.className='status warn';el.textContent='ŞARTLI UYGUN: Açıklama ve gerekli onaylar tamamlanmalıdır.';}else if(status==='Kullanıma uygun'&&!bad&&!measureBad){el.className='status ok';el.textContent='Kullanıma uygun seçildi. Kontrol maddeleri, ölçüm sonuçları ve gerekli onayları tamamladığınızdan emin olun.';}else{el.className='status';el.textContent='Kontrol sonuçları ve ölçüm doğrulaması tamamlandığında genel değerlendirme burada gösterilir.';}}
-function formData(){let f=$('maintenanceForm'),o={};new FormData(f).forEach((v,k)=>o[k]=v);o.kontrolMaddeleri=ITEMS.map((it,i)=>({no:it.no,bolum:it.section,madde:it.text,periyot:it.period,sonuc:document.querySelector(`input[name="status_${i}"]:checked`)?.value||'',aciklama:document.querySelector(`[name="note_${i}"]`)?.value||''}));o.olcumler=[1,2,3].map(i=>({ad:document.querySelector(`[name="olcumAd${i}"]`).value,nominal:document.querySelector(`[name="nominal${i}"]`).value,olculen:document.querySelector(`[name="olculen${i}"]`).value,sapma:$('sapma'+i).textContent,kabul:document.querySelector(`[name="kabul${i}"]`).value,sonuc:$('sonuc'+i).textContent}));o.yedekParcalar=[...$('partsRows').rows].map((r,i)=>({ad:r.querySelector(`[name="parcaAd${i}"]`)?.value,id:r.querySelector(`[name="parcaId${i}"]`)?.value,adet:r.querySelector(`[name="parcaAdet${i}"]`)?.value,birimFiyat:r.querySelector(`[name="parcaFiyat${i}"]`)?.value,tutar:$('parcaTutar'+i)?.textContent}));o.medyaNotu='Seçilen fotoğraf ve videolar tarayıcıda önizlenir; bu JSON dışa aktarımına dosya içerikleri dahil değildir.';return o;}
-function saveDraft(){try{localStorage.setItem('frxx_kesit_bakim_draft',JSON.stringify(formData()));alert('Form verileri bu tarayıcıya kaydedildi. Fotoğraf/video dosyaları taslakta saklanmaz.');}catch(e){alert('Taslak kaydedilemedi: '+e.message);}}
-function loadDraft(){try{let d=JSON.parse(localStorage.getItem('frxx_kesit_bakim_draft')||'null');if(!d){alert('Kayıtlı taslak bulunamadı.');return;}let f=$('maintenanceForm');Object.entries(d).forEach(([k,v])=>{if(typeof v!=='string')return;let el=f.elements.namedItem(k);if(el)el.value=v;});(d.kontrolMaddeleri||[]).forEach((it,i)=>{let radio=document.querySelector(`input[name="status_${i}"][value="${CSS.escape(it.sonuc)}"]`);if(radio){radio.checked=true;statusChanged(i);}let note=document.querySelector(`[name="note_${i}"]`);if(note)note.value=it.aciklama||'';});(d.olcumler||[]).forEach((m,j)=>{let i=j+1;['olcumAd','nominal','olculen','kabul'].forEach(k=>{let el=document.querySelector(`[name="${k}${i}"]`);if(el)el.value=m[k==='olcumAd'?'ad':k]||'';});calcMeasure(i);});calcParts();calcDuration();applyPeriod();showSummary();alert('Taslak yüklendi. Medya dosyalarını yeniden seçmeniz gerekir.');}catch(e){alert('Taslak yüklenemedi: '+e.message);}}
+function showSummary(){let bad=ITEMS.some((it,i)=>activeItem(it)&&document.querySelector(`input[name="status_${i}"]:checked`)?.value==='UYGUN DEĞİL');let measureBad=[1,2,3].some(i=>$('sonuc'+i)?.textContent==='UYGUN DEĞİL');let status=$('cihazDurumu').value;let el=$('summary');if(bad||measureBad||status.includes('uygun değil')){el.className='status bad';el.textContent='DİKKAT: Uygunsuzluk veya ölçüm doğrulama başarısızlığı var. Cihazı kullanıma vermeyin; açıklama, düzeltici işlem ve yetkili değerlendirmeyi tamamlayın.';}else if(status.includes('Şartlı')){el.className='status warn';el.textContent='ŞARTLI UYGUN: Açıklama ve gerekli onaylar tamamlanmalıdır.';}else if(status==='Kullanıma uygun'&&!bad&&!measureBad){el.className='status ok';el.textContent='Kullanıma uygun seçildi. Kontrol maddeleri, ölçüm sonuçları ve gerekli onayları tamamladığınızdan emin olun.';}else{el.className='status';el.textContent='Kontrol sonuçları ve ölçüm doğrulaması tamamlandığında genel değerlendirme burada gösterilir.';}}
+function formData(){let f=$('maintenanceForm'),o={};new FormData(f).forEach((v,k)=>o[k]=v);o.kontrolMaddeleri=ITEMS.map((it,i)=>({no:it.no,bolum:it.section,madde:it.text,periyot:it.period,sonuc:document.querySelector(`input[name="status_${i}"]:checked`)?.value||'',aciklama:document.querySelector(`[name="note_${i}"]`)?.value||''}));o.olcumler=[1,2,3].map(i=>({ad:document.querySelector(`[name="olcumAd${i}"]`).value,nominal:document.querySelector(`[name="nominal${i}"]`).value,olculen:document.querySelector(`[name="olculen${i}"]`).value,sapma:$('sapma'+i).textContent,kabul:document.querySelector(`[name="kabul${i}"]`).value,sonuc:$('sonuc'+i).textContent}));o.yedekParcalar=[...$('partsRows').rows].map((r,i)=>({ad:r.querySelector(`[name="parcaAd${i}"]`)?.value,id:r.querySelector(`[name="parcaId${i}"]`)?.value,adet:r.querySelector(`[name="parcaAdet${i}"]`)?.value,birimFiyat:r.querySelector(`[name="parcaFiyat${i}"]`)?.value,tutar:$('parcaTutar'+i)?.textContent}));o.medya=digitalMediaArchive;o.medyaNotu='Yüklenmiş ek bağlantıları kayıtta saklanır; yeni seçilen dosyalar Sheets kaydı sırasında arşivlenir.';return o;}
+function saveDraft(){try{localStorage.setItem(digitalDraftKey(),JSON.stringify(formData()));alert('Form verileri bu tarayıcıya kaydedildi. Yeni seçilen dosyalar taslakta saklanmaz; yüklenmiş dosyaların bağlantıları korunur.');}catch(e){alert('Taslak kaydedilemedi: '+e.message);}}
+function loadDraft(){try{let d=JSON.parse(localStorage.getItem(digitalDraftKey())||'null');if(!d){alert('Kayıtlı taslak bulunamadı.');return;}digitalMediaArchive=d.medya||[];let f=$('maintenanceForm');$('partsRows').innerHTML='';for(let i=0;i<Math.max(2,(d.yedekParcalar||[]).length);i++)addPart();Object.entries(d).forEach(([k,v])=>{if(typeof v!=='string')return;let el=f.elements.namedItem(k);if(el)el.value=v;});(d.kontrolMaddeleri||[]).forEach((it,i)=>{let radio=document.querySelector(`input[name="status_${i}"][value="${CSS.escape(it.sonuc)}"]`);if(radio){radio.checked=true;statusChanged(i);}let note=document.querySelector(`[name="note_${i}"]`);if(note)note.value=it.aciklama||'';});(d.yedekParcalar||[]).forEach((r,i)=>{[['parcaAd','ad'],['parcaId','id'],['parcaAdet','adet'],['parcaFiyat','birimFiyat']].forEach(([n,k])=>{const el=f.elements.namedItem(n+i);if(el)el.value=r[k]??'';});});(d.olcumler||[]).forEach((m,j)=>{let i=j+1;['olcumAd','nominal','olculen','kabul'].forEach(k=>{let el=document.querySelector(`[name="${k}${i}"]`);if(el)el.value=m[k==='olcumAd'?'ad':k]||'';});calcMeasure(i);});calcParts();calcDuration();applyPeriod();showSummary();digitalRenderMedia();alert('Taslak yüklendi. Medya dosyalarını yeniden seçmeniz gerekir.');}catch(e){alert('Taslak yüklenemedi: '+e.message);}}
 function exportJson(){let blob=new Blob([JSON.stringify(formData(),null,2)],{type:'application/json;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='FR-XX_Kesit_Bakim_'+(document.querySelector('[name="tarih"]').value||'tarih-yok')+'.json';a.click();URL.revokeObjectURL(a.href);}
-function saveDigitalFormToSystem(){
-  const apiUrl='https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec';
-  let sessionUser=null;
-  try { sessionUser=JSON.parse(sessionStorage.getItem('burkab_user')||'null'); } catch(e) {}
-  const authToken=String((window.BURKAB_AUTH_TOKEN||'') || (sessionUser&&sessionUser.token) || '').trim();
-  if(!authToken){
-    alert('BURKAB oturumu bulunamadı. Bu formu ana BURKAB sisteminin açıldığı aynı GitHub Pages adresinde ve giriş yaptıktan sonra açın.');
-    return;
-  }
-  const d=formData();
-  if(!d.bolum || !(d.cihazNo||d.cihazAdi) || !d.tarih){
-    alert('Kaydetmeden önce Bölüm, Cihaz No/Adı ve Tarih alanlarını doldurun.');
-    return;
-  }
-  const idKey='frxx_digital_form_kayit_id';
-  let formKayitID=localStorage.getItem(idKey);
-  if(!formKayitID){
-    formKayitID='DF-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
-    localStorage.setItem(idKey,formKayitID);
-  }
-  let mainId=localStorage.getItem(idKey+'_main');
-  if(!mainId){
-    mainId='DFK-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2));
-    localStorage.setItem(idKey+'_main',mainId);
-  }
-  const anaKayit={id:mainId,islem:'PLANLI BAKIM',bolum:d.bolum||'',makine:d.cihazNo||d.cihazAdi||'',bildiren:d.bakimPersoneli||sessionUser?.name||sessionUser?.username||'DİJİTAL FORM',tarihBas:d.tarih||'',tarihBit:d.tarih||'',arizaTuru:'DİĞER',konu:d.periyotDayanagi||d.cihazAdi||'FR-XX KESİT GÖRÜNTÜLEME',bakimci:d.bakimPersoneli||'',yapilan:'Dijital form kaydı: FR-XX_KESIT_GORUNTULEME'};
-  const payload={action:'saveDigitalForm',authToken:authToken,formKayitID:formKayitID,formTipi:'FR-XX_KESIT_GORUNTULEME',anaKayit:anaKayit,formData:d,durum:d.cihazDurumu||'TAMAMLANDI'};
-  const btn=[...document.querySelectorAll('button')].find(b=>b.getAttribute('onclick')==='saveDigitalFormToSystem()');
-  if(btn){btn.disabled=true;btn.textContent='Kaydediliyor…';}
-  const callbackName='digitalFormCb_'+Date.now()+'_'+Math.floor(Math.random()*100000);
-  const script=document.createElement('script');
-  let finished=false;
-  const timer=setTimeout(()=>finish(new Error('Google Sheets yanıt zaman aşımı. URL, dağıtım ve Apps Script yönlendirmesini kontrol edin.')),60000);
-  function finish(err,result){
-    if(finished)return; finished=true; clearTimeout(timer);
-    try{script.remove();delete window[callbackName];}catch(e){}
-    if(btn){btn.disabled=false;btn.textContent='Bakım Formunu Sisteme Kaydet';}
-    if(err){alert('Dijital form kaydedilemedi: '+err.message);return;}
-    if(!result||result.ok!==true){alert('Dijital form kaydedilemedi: '+((result&&result.error)||'Sunucudan başarılı yanıt alınamadı.'));return;}
-    localStorage.removeItem(idKey);localStorage.removeItem(idKey+'_main');
-    alert('Kayıt başarılı. Form No: '+(result.formNo||'sunucudan dönmedi')+'\nKayıt sekmesi: '+(result.sheet||'Dijital_Formlar'));
-  }
-  window[callbackName]=function(result){finish(null,result);};
-  script.onerror=function(){finish(new Error('Apps Script bağlantısı açılamadı. Web App dağıtımını ve URL’yi kontrol edin.'));};
-  script.async=true;
-  script.src=apiUrl+'?callback='+encodeURIComponent(callbackName)+'&payload='+encodeURIComponent(JSON.stringify(payload))+'&_t='+Date.now();
-  document.head.appendChild(script);
+function digitalApiUrl(){return String(window.BURKAB_GS_URL||'https://script.google.com/macros/s/AKfycbzzj7TxQREn8Cz8DyqhrymhVK6bP4Pfbj039CJxXHcZGW6884fQsKiY8-6B2denRt1D/exec').trim();}
+async function digitalPost(payload,confirm){
+ let originalError;
+ try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
+  let response;try{response=await fetch(digitalApiUrl(),{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:controller.signal});}finally{clearTimeout(timer);}
+  const result=JSON.parse(await response.text());
+  if(result?.ok!==true){const e=new Error(result?.error||'Sheets kayıt işlemi reddedildi.');e.serverRejected=true;throw e;}
+  return result;
+ }catch(e){if(e.serverRejected)throw e;originalError=e;}
+ // CORS nedeniyle yanıt okunmasa bile yazma gerçekleşmiş olabilir.
+ let known=await confirm().catch(()=>null);if(known)return known;
+ // Aynı kimlikle gönderilen tekrar, mükerrer ana kayıt veya detay açmaz.
+ await fetch(digitalApiUrl(),{method:'POST',mode:'no-cors',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+ known=await confirm();if(known)return known;
+ throw new Error('Sheets’ten kayıt teyidi alınamadı. '+(originalError?.message||''));
 }
-function clearForm(){if(!confirm('Form alanları temizlensin mi?'))return;$('maintenanceForm').reset();document.querySelectorAll('.checkitem input[type=radio]').forEach(x=>x.checked=false);document.querySelectorAll('[id^=noteWrap_]').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('[id^=pv_]').forEach(x=>x.innerHTML='');Object.keys(mediaStore).forEach(k=>delete mediaStore[k]);[1,2,3].forEach(calcMeasure);calcParts();calcDuration();updateProgress();showSummary();}
+function digitalReadFile(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=()=>reject(new Error('Dosya okunamadı: '+file.name));r.readAsDataURL(file);});}
+async function digitalFileHash(file){const buffer=await file.arrayBuffer(),hash=await crypto.subtle.digest('SHA-256',buffer);return Array.from(new Uint8Array(hash)).map(v=>v.toString(16).padStart(2,'0')).join('');}
+let digitalMediaArchive=[];
+function digitalRenderMedia(){
+ digitalMediaArchive.forEach(m=>{const target=$('pv_'+m.slot);if(!target||!/^https:\/\/drive\.google\.com\/file\/d\//.test(m.url||''))return;
+   if([...target.querySelectorAll('a')].some(a=>a.getAttribute('data-file')===m.fileId))return;
+   const a=document.createElement('a');a.href=m.url;a.target='_blank';a.rel='noopener';a.setAttribute('data-file',m.fileId);a.textContent='📎 '+(m.name||'Kaydedilmiş ek');target.appendChild(a);
+ });
+}
+
+async function digitalUploadMedia(identity,token){
+ const selected=[];Object.entries(mediaStore).forEach(([key,files])=>files.forEach(file=>selected.push({file,slot:/^\d+$/.test(key)?'video_'+key:key})));
+ for(const x of selected){if(x.file.size>8*1024*1024)throw new Error(x.file.name+' 8 MB sınırını aşıyor; daha kısa video / küçük dosya seçin.');}
+ const archive=[...digitalMediaArchive];
+ for(let i=0;i<selected.length;i++){
+  const {file,slot}=selected[i],hash=await digitalFileHash(file);
+  if(archive.some(m=>m.slot===slot&&m.hash===hash))continue;
+  digitalSaveMessage('Ekler Drive’a yükleniyor: '+(i+1)+' / '+selected.length);
+  const payload={action:'saveDigitalForm',mode:'uploadMedia',authToken:token,formKayitID:identity.formKayitID,
+   mediaFiles:[{slot,name:file.name,mime:file.type,base64:await digitalReadFile(file)}]};
+  const check=async()=>{const r=await digitalRequest({action:'getDigitalForm',formKayitID:identity.formKayitID,authToken:token,mediaProbe:[{slot,hash}]});return r?.ok===true&&r.media?.length===1?{...r,formKayitID:identity.formKayitID}:null;};
+  const r=await digitalPost(payload,check);
+  if(r.formKayitID!==identity.formKayitID||!Array.isArray(r.media)||r.media.length!==1||r.media[0].hash!==hash)throw new Error('Medya yükleme onayı eşleşmedi.');
+  archive.push(...r.media);digitalMediaArchive=[...archive];
+ }
+ return archive;
+}
+
+let digitalFormBusy=false;
+function digitalUser(){try{return JSON.parse(sessionStorage.getItem('burkab_user')||'null');}catch{return null;}}
+function digitalScope(){const f=$('maintenanceForm').elements;return encodeURIComponent([f.namedItem('cihazNo').value.trim(),f.namedItem('seriNo').value.trim(),f.namedItem('isEmri').value.trim()||f.namedItem('tarih').value].join('|'));}
+function digitalDraftKey(){return 'frxx_kesit_bakim_draft_v2_'+digitalScope();}
+function digitalIdentityKey(){return 'frxx_kesit_kayit_v2_'+digitalScope();}
+function digitalValue(name){return String($('maintenanceForm').elements.namedItem(name)?.value||'').trim();}
+function digitalStatus(i){return document.querySelector(`input[name="status_${i}"]:checked`)?.value||'';}
+function digitalValidate(){
+ const f=$('maintenanceForm');if(!f.reportValidity())return 'Zorunlu alanları tamamlayın.';
+ for(const name of ['cihazNo','cihazAdi','seriNo','bolum','tarih','bakimPersoneli','cihazDurumu','kullanimaAlindi','sonrakiBakim'])if(!digitalValue(name))return 'Eksik alan: '+({cihazNo:'Cihaz No',cihazAdi:'Cihaz Adı',seriNo:'Seri No',bolum:'Bölüm',tarih:'Gerçekleşen bakım tarihi',bakimPersoneli:'Bakım personeli',cihazDurumu:'Cihaz durumu',kullanimaAlindi:'Kullanıma alındı',sonrakiBakim:'Sonraki bakım tarihi'}[name]);
+ if(!normalizePeriod(digitalValue('periyot')))return 'Geçerli bakım periyodunu seçin.';
+ if(digitalValue('tarih')>localDate())return 'Gerçekleşen bakım tarihi gelecekte olamaz. Plan tarihi ayrı alandadır.';
+ if(digitalValue('sonrakiBakim')<=digitalValue('tarih'))return 'Sonraki bakım tarihi gerçekleşen bakımdan sonra olmalı.';
+ let bad=false;
+ for(let i=0;i<ITEMS.length;i++){
+  if(!activeItem(ITEMS[i]))continue;
+  const status=digitalStatus(i),note=digitalValue('note_'+i);
+  if(!status)return ITEMS[i].no+' numaralı bakım maddesini değerlendirin.';
+  if((status==='UYGUN DEĞİL'||status==='—')&&!note)return ITEMS[i].no+' numaralı madde için açıklama / uygulanmama nedeni gerekli.';
+  if(status==='UYGUN DEĞİL')bad=true;
+ }
+ let complete=0;
+ for(let i=1;i<=3;i++){
+  const names=['olcumAd','nominal','olculen','kabul'],values=names.map(n=>digitalValue(n+i));
+  if(values.every(v=>!v))continue;
+  const n=num(values[1]),m=num(values[2]),k=num(values[3]);
+  if(!values[0]||n===null||m===null||k===null||k<0)return i+'. ölçüm satırını ad, nominal, ölçülen ve negatif olmayan kabul kriteriyle tamamlayın.';
+  complete++;if(Math.abs(m-n)>k)bad=true;
+ }
+ const olcumGerekli=ITEMS.some((it,i)=>it.no==='6.1'&&activeItem(it)&&digitalStatus(i)!=='—');
+ if(olcumGerekli&&(!complete||!digitalValue('referansStandart')||!digitalValue('sertifika')))return 'Ölçüm doğrulaması için referans, sertifika ve en az bir tam ölçüm satırı gerekli.';
+ if(digitalValue('cihazDurumu').includes('uygun değil'))bad=true;
+ if(bad&&(digitalValue('cihazDurumu')==='Kullanıma uygun'||digitalValue('kullanimaAlindi')==='Evet'))return 'Uygunsuz kontrol / ölçüm varken cihaz uygun veya kullanıma alındı olarak kaydedilemez.';
+ if((bad||digitalValue('cihazDurumu').includes('Şartlı'))&&!digitalValue('duzelticiIslem'))return 'Uygunsuzluk / şartlı uygunluk için yapılan işlem ve açıklama gerekli.';
+ for(const r of ['Bakim','Kalite','Onay'])if(!digitalValue('imza'+r+'Ad')||!digitalValue('imza'+r+'Tarih'))return 'Bakım, kalite ve bakım sorumlusu ad / tarih alanlarını tamamlayın.';
+ return '';
+}
+function digitalRequest(payload){
+ const url=digitalApiUrl();
+ return new Promise((resolve,reject)=>{
+  const cb='kesit_api_'+Date.now()+'_'+Math.floor(Math.random()*1000000),script=document.createElement('script');let done=false;
+  const finish=(error,response)=>{if(done)return;done=true;clearTimeout(timer);script.remove();
+   // Geç yanıt geldiğinde JavaScript hatası oluşmasını önle.
+   window[cb]=()=>{};setTimeout(()=>{delete window[cb];},120000);
+   if(error)reject(error);else resolve(response);
+  };
+  const timer=setTimeout(()=>finish(new Error('Sheets yanıtı zaman aşımına uğradı; aynı formu tekrar deneyin.')),60000);
+  window[cb]=r=>finish(null,r);script.onerror=()=>finish(new Error('Sheets bağlantısı kurulamadı.'));
+  script.async=true;script.src=url+'?callback='+encodeURIComponent(cb)+'&payload='+encodeURIComponent(JSON.stringify(payload))+'&_t='+Date.now();
+  document.head.appendChild(script);
+ });
+}
+function digitalSaveMessage(text){$('digitalSaveStatus').textContent=text;}
+async function saveDigitalFormToSystem(){
+ if(digitalFormBusy)return;
+ const error=digitalValidate();if(error){digitalSaveMessage(error);alert(error);return;}
+ const user=digitalUser(),token=String(window.BURKAB_AUTH_TOKEN||user?.token||'').trim();
+ if(!token){digitalSaveMessage('Kayıt gönderilmedi. Ana BURKAB sisteminde yetkili hesabınızla giriş yapın.');return;}
+ if(navigator.onLine===false){digitalSaveMessage('Çevrimdışı. Form korunuyor; bağlantı gelince tekrar deneyin.');return;}
+ const d=formData();d.kontrolMaddeleri.forEach((it,i)=>{it.kapsamaDahil=activeItem(ITEMS[i]);if(!it.kapsamaDahil){it.sonuc='KAPSAM DIŞI';it.aciklama='Seçilen bakım periyodunda değil.';}});
+ const key=digitalIdentityKey(),draftKey=digitalDraftKey();let identity;
+ try{
+  identity=JSON.parse(localStorage.getItem(key)||'null');
+  if(!identity){const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2);identity={formKayitID:'DF-'+uid(),kayitId:'DFK-'+uid()};}
+  localStorage.setItem(key,JSON.stringify(identity));localStorage.setItem(draftKey,JSON.stringify(d));
+ }catch(e){digitalSaveMessage('Kurtarılabilir taslak kaydedilemedi; form gönderilmedi: '+e.message);return;}
+ const anaKayit={id:identity.kayitId,islem:'PLANLI BAKIM',bolum:d.bolum,makine:d.cihazNo,bildiren:user?.name||d.bakimPersoneli,
+  tarihBas:d.tarih,tarihBit:d.tarih,arizaTuru:'DİĞER',konu:d.periyotDayanagi||d.cihazAdi,bakimci:d.bakimPersoneli,
+  yapilan:'Kesit cihazı dijital bakım: '+d.periyot+'; '+d.cihazDurumu,arizaBas:d.baslangic||'',arizaBit:d.bitis||'',durum:'TAMAMLANDI'};
+ const payload={action:'saveDigitalForm',authToken:token,formKayitID:identity.formKayitID,kayitId:identity.kayitId,
+  formTipi:'FR-XX_KESIT_GORUNTULEME',anaKayit,formData:d,durum:'TAMAMLANDI'};
+ digitalFormBusy=true;digitalSaveMessage('Sheets kaydı gönderiliyor…');
+ const controls=[...document.querySelectorAll('input,select,textarea,button')],before=controls.map(e=>e.disabled);controls.forEach(e=>e.disabled=true);
+ try{
+  const ready=await digitalRequest({action:'getDigitalForm',formKayitID:identity.formKayitID,checkSchema:true});
+  if(ready?.ok!==true)throw new Error(ready?.error||'Sheets bağlantısı doğrulanamadı.');
+  if(ready.version!=='KESIT-2026-10-12-V3')throw new Error('Dijital_Formlar.gs güncel sürümü dağıtılmamış. Apps Script dağıtımını güncelleyin.');
+  d._submissionId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random();
+  d.medya=await digitalUploadMedia(identity,token);d.medyaNotu='Ekler Drive arşivinde; bağlantılar bu kayıtta saklanır.';
+  localStorage.setItem(draftKey,JSON.stringify(d));
+  const confirm=async()=>{const r=await digitalRequest({action:'getDigitalForm',formKayitID:identity.formKayitID});
+    const f=r?.forms?.find(x=>x.formKayitID===identity.formKayitID&&x.formData?._submissionId===d._submissionId);
+    return f?{ok:true,formKayitID:f.formKayitID,kayitId:f.kayitId,formNo:f.formNo,sheet:r.sheet||'Dijital_Formlar',version:r.version}:null;
+  };
+  const response=await digitalPost(payload,confirm);
+  if(!response||response.ok!==true)throw new Error(response?.error||'Sunucu kayıt onayı alınamadı.');
+  if(response.formKayitID!==identity.formKayitID||response.kayitId!==identity.kayitId||!response.formNo||!['Dijital_Formlar','Dijital_Formlar_V2'].includes(response.sheet))throw new Error('Ana kayıt ve dijital form kimlikleri doğrulanamadı.');
+  const latestToken=String(window.BURKAB_AUTH_TOKEN||digitalUser()?.token||'').trim();
+  if(latestToken!==token)throw new Error('Oturum değişti; aynı iş emrini yeniden açıp kontrol edin.');
+  // Kimlik başarıdan sonra da korunur; yeniden Kaydet aynı işin kaydını günceller.
+  identity.formNo=response.formNo;localStorage.setItem(key,JSON.stringify(identity));
+  digitalRenderMedia();digitalSaveMessage('Sheets kaydı doğrulandı. Form No: '+response.formNo+' • Form alanları korundu.');
+ }catch(e){digitalSaveMessage('Kayıt tamamlanamadı: '+e.message+' Form ve tekrar deneme kimliği korundu.');}
+ finally{digitalFormBusy=false;controls.forEach((e,i)=>e.disabled=before[i]);}
+}
+function localDate(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+
+function clearForm(){if(digitalFormBusy)return;if(!confirm('Form alanları temizlensin mi?'))return;digitalMediaArchive=[];$('maintenanceForm').reset();document.querySelectorAll('.checkitem input[type=radio]').forEach(x=>x.checked=false);document.querySelectorAll('[id^=noteWrap_]').forEach(x=>x.classList.add('hidden'));document.querySelectorAll('[id^=pv_]').forEach(x=>x.innerHTML='');Object.keys(mediaStore).forEach(k=>delete mediaStore[k]);[1,2,3].forEach(calcMeasure);calcParts();calcDuration();applyPeriod();$('maintenanceForm').elements.namedItem('tarih').value=localDate();showSummary();}
 function init(){
   buildChecklist();buildMeasurements();addPart();addPart();
   const params=new URLSearchParams(window.location.search);
   const map={cihazNo:'cihazNo',cihazAdi:'cihazAdi',seriNo:'seriNo',bolum:'bolum',envanterId:'envanterId',periyot:'periyot',isEmri:'isEmri'};
-  Object.entries(map).forEach(([param,name])=>{const v=params.get(param),el=$('maintenanceForm').elements.namedItem(name);if(v&&el)el.value=v;});
-  const t=$('maintenanceForm').elements.namedItem('tarih');t.value=params.get('planTarihi')||new Date().toISOString().slice(0,10);
+  Object.entries(map).forEach(([param,name])=>{const v=params.get(param),el=$('maintenanceForm').elements.namedItem(name);if(v&&el){if(name==='periyot'){const code=normalizePeriod(v);el.value=code||'A';if(!code)alert('Bağlantıdaki bakım periyodu tanınmadı. Aylık gösteriliyor; doğru periyodu seçin.');}else el.value=v;}});
+  const t=$('maintenanceForm').elements.namedItem('tarih');t.value=localDate();$('maintenanceForm').elements.namedItem('planTarihi').value=params.get('planTarihi')||'';
   const gorev=params.get('planGorevi');if(gorev){const n=$('maintenanceForm').elements.namedItem('periyotDayanagi');if(n)n.value='Planlı bakım: '+gorev;}
   const sorumlu=params.get('sorumlu');if(sorumlu){const n=$('maintenanceForm').elements.namedItem('bakimPersoneli');if(n)n.value=sorumlu;}
   applyPeriod();
