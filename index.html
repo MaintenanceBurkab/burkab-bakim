@@ -1812,7 +1812,7 @@ tr:last-child td { border-bottom: none; }
       </div>
     </div>
     <div class="section chart-box">
-      <div class="section-head"><div class="dot"></div>💰 YEDEK PARÇA MALİYET TRENDİ</div>
+      <div class="section-head"><div class="dot"></div>💰 BAKIM MALİYET TRENDİ — PARÇA + İŞÇİLİK</div>
       <div class="section-body"><canvas id="chartMaliyet" height="200"></canvas></div>
     </div>
   </div>
@@ -5380,7 +5380,7 @@ function makinePerformansVerisi(makine,liste) {
   const mttr=makineMTTR(a), mtbf=makineMTBFVerisi(a), ayni=ayniArizaMTBFVerisi(a);
   const tekrarlar=Object.values(ayni).sort((x,y)=>y.adet-x.adet || y.mtbfSaat-x.mtbfSaat);
   const mttrSaat=mttr/60;
-  const avail=a.length===0?100:(mtbf.saat>0?Math.min(99.9,Math.round(mtbf.saat/(mtbf.saat+mttrSaat)*1000)/10):0);
+  const avail=a.length===0?100:(mtbf.saat>0?Math.min(99.9,Math.round(mtbf.saat/(mtbf.saat+mttrSaat)*1000)/10):null);
   return {arizalar:a,mttr,mtbf,ayni,kronik:tekrarlar[0]||null,avail};
 }
 
@@ -6075,11 +6075,13 @@ let dashZamanFiltre = 'hepsi';
 let dashRenderToken = 0;
 
 function dashZamanDegis(sel) {
+  window._kpiDashboardMonth=null;
   dashZamanFiltre = sel?.value || 'hepsi';
   renderDash();
 }
 
 function dashFiltreTemizle() {
+ window._kpiDashboardMonth=null;
   dashZamanFiltre = 'hepsi';
   const z = document.getElementById('dashZamanSelect');
   const b = document.getElementById('dashBolumSelect');
@@ -6147,6 +6149,7 @@ function filtreliVeri() {
   const f = dashSeciliFiltreBilgisi();
   let sonuc = Array.isArray(kayitlar) ? kayitlar.slice() : [];
 
+  if(window._kpiDashboardMonth){baslangic=window._kpiDashboardMonth+'-01';const d=new Date(Number(window._kpiDashboardMonth.slice(0,4)),Number(window._kpiDashboardMonth.slice(5,7)),0);bitis=yerelYMD(d);if(bitis>today)bitis=today;}
   if (baslangic && bitis) {
     sonuc = sonuc.filter(k => {
       const dStr = dashTarihYMD(k?.tarihBas);
@@ -6157,6 +6160,7 @@ function filtreliVeri() {
   if (f.islem) sonuc = sonuc.filter(k => trNorm(k?.islem) === trNorm(f.islem));
   if (f.risk)  sonuc = sonuc.filter(k => trNorm(k?.riskSeviye) === trNorm(f.risk));
 
+  sonuc=sonuc.filter(k=>!kpiCancelled(k));
   const el = document.getElementById('dashFiltreBilgi');
   if (el) {
     const zamanEtiket = {
@@ -6164,7 +6168,7 @@ function filtreliVeri() {
       gecen_ay:'Geçen Ay', gecen_yil:'Geçen Yıl', hepsi:'Tümü'
     }[dashZamanFiltre] || 'Tümü';
     const detay = [f.bolum, f.islem, f.risk].filter(Boolean);
-    el.textContent = sonuc.length + ' kayıt · ' + zamanEtiket + (detay.length ? ' · ' + detay.join(' · ') : '');
+    el.textContent = sonuc.length + ' kayıt · ' + (window._kpiDashboardMonth||zamanEtiket) + (detay.length ? ' · ' + detay.join(' · ') : '');
   }
   return sonuc;
 }
@@ -6347,32 +6351,22 @@ function kayitToplamMaliyet(k) {
 
 function buildDash(veriArg) {
   const veri   = Array.isArray(veriArg) ? veriArg : filtreliVeri();
-  const total  = veri.length;
+  window._kpiMaliyetVeri=veri.slice();
+  const ozet=kpiOzetHesapla(veri);
+  const total  = ozet.total;
   const arizaV = veri.filter(k =>
   String(k.islem || '').trim().toUpperCase() === 'ARIZA KAYDI'
 );
-  // MTTR yalnızca ARIZA KAYDI üzerinden; onarım süresi çalışma takvimine göre hesaplanır.
-  const mttr = makineMTTR(arizaV);
-
-  // MTBF farklı makinelerin arızalarını birbirine bağlamaz.
-  // Aynı makinenin ardışık arıza başlangıçları arasındaki çalışma süresinin ortalamasıdır.
-  const mtbfDk = dashboardMTBF(arizaV);
-  const mtbf = Math.round(mtbfDk / 60 * 10) / 10;
-
-  const mttrSaat = mttr / 60;
-  let avail;
-  if (arizaV.length === 0) { avail = 100; }
-  else if (mtbf > 0) { avail = Math.min(99.9, Math.round(mtbf/(mtbf+mttrSaat)*1000)/10); }
-  else { avail = 0; }
+  const mttr=ozet.mttr,mtbf=ozet.mtbf,mtbfDk=ozet.mtbfDk,avail=ozet.avail;
 
   const topMaliyet = formatMaliyetOzetListe(veri);
 
   document.getElementById('kpiGrid').innerHTML =
     '<div class="kpi-card" style="--kpi-color:#f5c400"><div class="kpi-val">' + total + '</div><div class="kpi-lbl">Toplam Kayıt</div></div>' +
     '<div class="kpi-card" style="--kpi-color:#d32f2f"><div class="kpi-val">' + arizaV.length + '</div><div class="kpi-lbl">Arıza Kaydı</div></div>' +
-    '<div class="kpi-card" style="--kpi-color:#0277bd"><div class="kpi-val">' + mttr + '<span style="font-size:14px;font-weight:400"> dk</span></div><div class="kpi-lbl">MTTR</div><div class="kpi-sub">Ort. Onarım Süresi</div></div>' +
-    '<div class="kpi-card" style="--kpi-color:#00875a"><div class="kpi-val">' + mtbf + '<span style="font-size:14px;font-weight:400"> sa</span></div><div class="kpi-lbl">MTBF</div><div class="kpi-sub">Arızalar Arası Süre</div></div>' +
-    '<div class="kpi-card" style="--kpi-color:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"><div class="kpi-val">%' + avail + '</div><div class="kpi-lbl">KULLANILABİLİRLİK</div><div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + avail + '%;background:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"></div></div></div>' +
+    '<div class="kpi-card" style="--kpi-color:#0277bd"><div class="kpi-val">' + (mttr===null?'—':mttr) + '<span style="font-size:14px;font-weight:400"> dk</span></div><div class="kpi-lbl">MTTR</div><div class="kpi-sub">Ort. Onarım Süresi</div></div>' +
+    '<div class="kpi-card" style="--kpi-color:#00875a"><div class="kpi-val">' + (mtbf===null?'—':mtbf) + '<span style="font-size:14px;font-weight:400"> sa</span></div><div class="kpi-lbl">MTBF</div><div class="kpi-sub">Arızalar Arası Süre</div></div>' +
+    '<div class="kpi-card" style="--kpi-color:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"><div class="kpi-val">%' + (avail===null?'—':avail) + '</div><div class="kpi-lbl">KULLANILABİLİRLİK</div><div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + avail + '%;background:' + (avail>=95?'#00875a':avail>=85?'#e65100':'#d32f2f') + '"></div></div></div>' +
     '<div class="kpi-card" style="--kpi-color:#b8900a"><div class="kpi-val" style="font-size:20px">' + topMaliyet + '</div><div class="kpi-lbl">TOPLAM MALİYET</div><div class="kpi-sub">Seçili dönem</div></div>';
 
   if (total === 0) {
@@ -6567,11 +6561,11 @@ function buildDash(veriArg) {
     let mAvail;
     if (mAriza.length===0) { mAvail=100; }
     else if (mMTBF>0) { mAvail=Math.min(99.9,Math.round(mMTBF/(mMTBF+mMTTRsa)*1000)/10); }
-    else { mAvail=0; }
+    else { mAvail=null; }
     const bolum = mKayit[0]?.bolum || '-';
-    let durumClass='durum-iyi', durumText='İYİ';
-    if (mAvail<85) { durumClass='durum-kotu'; durumText='KÖTÜ'; }
-    else if (mAvail<95) { durumClass='durum-orta'; durumText='ORTA'; }
+    let durumClass=mAvail===null?'durum-orta':'durum-iyi', durumText=mAvail===null?'VERİ YETERSİZ':'İYİ';
+    if (mAvail!==null&&mAvail<85) { durumClass='durum-kotu'; durumText='KÖTÜ'; }
+    else if (mAvail!==null&&mAvail<95) { durumClass='durum-orta'; durumText='ORTA'; }
     if (mAriza.filter(k=>k.riskSeviye==='KRİTİK').length>0) { durumClass='durum-kritik'; durumText='KRİTİK'; }
     const renk = renkler[idx % renkler.length];
     return '<div class="makine-kart" style="--mk-color:' + renk + '">' +
@@ -6581,9 +6575,9 @@ function buildDash(veriArg) {
       '<div class="mk-stat"><div class="mk-stat-val" style="color:#d32f2f">' + mAriza.length + '</div><div class="mk-stat-lbl">Arıza</div></div>' +
       '<div class="mk-stat"><div class="mk-stat-val" style="color:#0277bd">' + mMTTR + '</div><div class="mk-stat-lbl">MTTR (dk)</div></div>' +
       '<div class="mk-stat"><div class="mk-stat-val" style="color:#00875a">' + mMTBF + '</div><div class="mk-stat-lbl">MTBF (sa)</div></div>' +
-      '<div class="mk-stat"><div class="mk-stat-val" style="color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '">%' + mAvail + '</div><div class="mk-stat-lbl">Kullanılab.</div></div>' +
+      '<div class="mk-stat"><div class="mk-stat-val" style="color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '">%' + (mAvail===null?'—':mAvail) + '</div><div class="mk-stat-lbl">Kullanılab.</div></div>' +
       '</div>' +
-      '<div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + mAvail + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div>' +
+      '<div class="avail-bar" style="margin-top:8px"><div class="avail-fill" style="width:' + (mAvail===null?'—':mAvail) + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div>' +
       (mVeri.kronik ? '<div style="margin-top:8px;font-size:11px;color:var(--muted)">Tekrarlayan arıza: <strong>' + mVeri.kronik.kod + '</strong> · ' + mVeri.kronik.adet + ' kayıt · aynı arıza MTBF ' + mVeri.kronik.mtbfSaat + ' sa</div>' : '') +
       '</div>';
   }).join('') || '<div class="empty">Henüz makine kaydı yok</div>';
@@ -6599,10 +6593,10 @@ function buildDash(veriArg) {
     let mAvail;
     if (mAriza.length===0) { mAvail=100; }
     else if (mMTBF>0) { mAvail=Math.min(99.9,Math.round(mMTBF/(mMTBF+mMTTRsa)*1000)/10); }
-    else { mAvail=0; }
+    else { mAvail=null; }
     const bolum=mKayit[0]?.bolum||'-';
     const sonAriza=mAriza.length?mAriza.slice().sort((a,b)=>(kayitArizaBaslangic(b)||0)-(kayitArizaBaslangic(a)||0))[0].tarihBas:'-';
-    let durumClass='durum-iyi', durumText='İYİ';
+    let durumClass=mAvail===null?'durum-orta':'durum-iyi', durumText=mAvail===null?'VERİ YETERSİZ':'İYİ';
     if(mAvail<85){durumClass='durum-kotu';durumText='KÖTÜ';}
     else if(mAvail<95){durumClass='durum-orta';durumText='ORTA';}
     return '<tr>' +
@@ -6610,7 +6604,7 @@ function buildDash(veriArg) {
       '<td style="text-align:center;font-weight:700;color:#d32f2f">' + mAriza.length + '</td>' +
       '<td style="text-align:center;font-family:\'IBM Plex Mono\',monospace;color:#0277bd">' + mMTTR + ' dk</td>' +
       '<td style="text-align:center;font-family:\'IBM Plex Mono\',monospace;color:#00875a">' + mMTBF + ' sa</td>' +
-      '<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px"><div class="avail-bar" style="flex:1"><div class="avail-fill" style="width:' + mAvail + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div><span style="font-weight:700;color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + ';min-width:42px">%' + mAvail + '</span></div></td>' +
+      '<td style="text-align:center"><div style="display:flex;align-items:center;gap:6px"><div class="avail-bar" style="flex:1"><div class="avail-fill" style="width:' + (mAvail===null?'—':mAvail) + '%;background:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + '"></div></div><span style="font-weight:700;color:' + (mAvail>=95?'#00875a':mAvail>=85?'#e65100':'#d32f2f') + ';min-width:42px">%' + (mAvail===null?'—':mAvail) + '</span></div></td>' +
       '<td style="font-family:\'IBM Plex Mono\',monospace;font-size:12px">' + sonAriza + '</td>' +
       '<td><span class="durum-badge ' + durumClass + '">' + durumText + '</span></td>' +
       '<td><button onclick="ekipmanKartModalAcDashboard(\'' +String(mak).replace(/'/g, "\\'") +'\',\'' +String(bolum).replace(/'/g, "\\'") +'\')" style="background:rgba(0,77,64,.1);border:1px solid rgba(0,77,64,.3);border-radius:5px;color:#004d40;cursor:pointer;padding:4px 10px;font-size:11px;font-weight:700">📋 Kart</button></td>' +
@@ -6655,7 +6649,7 @@ async function liveVeriCek() {
   const el=document.getElementById('sonGuncelleme');
   if(el)el.textContent=new Date().toLocaleTimeString('tr-TR');
   if(document.getElementById('tab-uretim')?.classList.contains('active'))renderUretimDurumu();
-  if(document.getElementById('tab-dash')?.classList.contains('active'))renderDash();
+  if(document.getElementById('tab-dash')?.classList.contains('active'))renderDash();if(document.getElementById('tab-iyilestirme')?.classList.contains('active'))renderIyilestirme();
 }
 
 function manuelYenile() {
@@ -12481,7 +12475,8 @@ function _renderIyilestirmeIcerik(liste) {
 
 function iyiHedefModalAc(id) {
   const liste = iyYukle();
-  const h = id ? liste.find(x => x.id === id) : null;
+  const raw = id ? liste.find(x => x.id === id) : null;
+  const h=raw?iyLiveTargets([raw])[0]:null;
   document.getElementById('iyModalId').value        = h ? h.id : '';
   document.getElementById('iyModalBaslik').textContent = h ? 'Hedef Düzenle' : 'Yeni Hedef Tanımla';
   document.getElementById('iy-kpi-tur').value       = h ? h.kpiTur : '';
@@ -12492,6 +12487,7 @@ function iyiHedefModalAc(id) {
   document.getElementById('iy-gerceklesen').value   = h ? h.gerceklesen : '';
   document.getElementById('iy-birim').value         = h ? h.birim : '';
   document.getElementById('iy-yon').value           = h ? h.yon : 'ASAGI';
+  document.getElementById('iy-gerceklesen').readOnly=!!h&&IY_AUTO_TYPES.includes(h.kpiTur);
   document.getElementById('iy-not').value           = h ? h.not : '';
   document.getElementById('iyModal').classList.add('open');
 }
@@ -12503,18 +12499,18 @@ async function iyHedefKaydet() {
   const donem  = document.getElementById('iy-donem').value;
   const hedef  = document.getElementById('iy-hedef').value;
 
-  if (!kpiTur || !donem || !hedef) {
+  if (!kpiTur || !donem || hedef==='' || iyNum(hedef)===null || iyNum(hedef)<0) {
     showToast('❗ KPI türü, dönem ve hedef zorunludur!', 'err');
     return;
   }
 
   const mevId = document.getElementById('iyModalId').value;
-  const yeni = {
+  let yeni = {
     id:           mevId || ('iy_' + Date.now()),
     kpiTur,
     kpiOzel:      document.getElementById('iy-kpi-ozel').value.trim(),
     donem,
-    hedef:        parseFloat(hedef),
+    hedef:        iyNum(hedef),
     gerceklesen:  document.getElementById('iy-gerceklesen').value
                     ? parseFloat(document.getElementById('iy-gerceklesen').value)
                     : null,
@@ -12530,7 +12526,11 @@ async function iyHedefKaydet() {
     'ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'
   ].includes(String(yeni.kpiTur || '').toUpperCase());
 
+  yeni=iyNormalizeTarget(yeni);
+  const duplicate=iyYukle().map(iyNormalizeTarget).some(h=>h.id!==yeni.id&&h.donem===yeni.donem&&h.kpiTur===yeni.kpiTur&&h.birim===yeni.birim&&(h.kpiOzel||'')===(yeni.kpiOzel||''));
+  if(duplicate){showToast('Bu dönem ve KPI için zaten hedef var. Mevcut hedefi düzenleyin.','err');return;}
   if (standartKpi) {
+    if(!_iyFreshState.records){showToast('Önce Güncel verileri al düğmesine basın.','err');return;}
     yeni.gerceklesen = iyGerceklesenHesapla(yeni);
   }
 
@@ -15101,5 +15101,158 @@ async function aksiyonKaydetLocal(id) {
 </style>
     
   <script>try{projeGorunurlukGuncelle_();durusEtkisiGuncelle_();}catch(_e){}</script>
-  </body>
+  <script>
+// === ORTAK KPI HESAPLAMA / CANLI İYİLEŞTİRME V2 ===
+let _iyFreshState={records:false,plans:false,at:null,error:''},_iyRefreshPromise=null;
+const IY_AUTO_TYPES=['MTTR','MTBF','KULLANILABILIRLIK','ARIZA_SAYISI','PLANLI_BAKIM_ORANI','MALIYET'];
+function iyNum(v){if(v===null||v===undefined||String(v).trim()==='')return null;const s=String(v).trim();const n=Number(s.includes(',')?s.replace(/\./g,'').replace(',','.'):s);return Number.isFinite(n)?n:null;}
+function iyKey(v){return trNorm(v).replace(/İ/g,'I').replace(/Ş/g,'S').replace(/Ğ/g,'G').replace(/Ü/g,'U').replace(/Ö/g,'O').replace(/Ç/g,'C');}
+function kpiCancelled(k){return ['IPTAL','SILINDI'].some(x=>iyKey(k?.durum||k?.Durum||'').includes(x));}
+function arizaKayitlari(rows){return (rows||[]).filter(k=>!kpiCancelled(k)&&trNorm(k.islem)==='ARIZA KAYDI');}
+function kpiOzetHesapla(rows){
+ const valid=(rows||[]).filter(k=>!kpiCancelled(k)),fail=arizaKayitlari(valid),durations=fail.map(kayitOnarimDakikasi).filter(x=>Number.isFinite(x)&&x>0),mttr=durations.length?makineMTTR(fail):null,mtbfDk=dashboardMTBF(fail),mtbf=mtbfDk>0?Math.round(mtbfDk/60*10)/10:null;
+ const avail=!valid.length?null:!fail.length?100:mtbf!==null&&mttr!==null?Math.min(99.9,Math.round(mtbf/(mtbf+mttr/60)*1000)/10):null;
+ const costs={'₺':0,'$':0,'€':0};valid.forEach(k=>{const c=maliyetDovizleri(k);Object.keys(costs).forEach(u=>costs[u]+=Number(c[u])||0);});Object.keys(costs).forEach(u=>costs[u]=Math.round(costs[u]*100)/100);
+ return {total:valid.length,arizaSayisi:fail.length,mttr,mtbf,mtbfDk:mtbfDk||null,avail,costs,eksikOnarim:fail.length-durations.length};
+}
+function iyNormalizeTarget(h){
+ const x={...h},type=String(x.kpiTur||'').toUpperCase(),unit=iyKey(x.birim||''),target=iyNum(x.hedef);x.hedef=target;x.kpiTur=type;
+ if(type==='MTTR'||type==='MTBF'){
+  let factor=1;const isDay=/GUN|DAY/.test(unit),isHour=/SAAT|SA$|HOUR|^H$/.test(unit),isMinute=/DK|DAK|MIN/.test(unit);
+  if(type==='MTBF'){factor=isDay?24:isMinute?1/60:1;x.birim='saat';}
+  else{factor=isDay?1440:isHour?60:1;x.birim='dk';}
+  if(target!==null)x.hedef=Math.round(target*factor*1000)/1000;
+  if(factor!==1)x.birimNotu='Eski hedef: '+h.hedef+' '+h.birim+' → '+x.hedef+' '+x.birim+(isDay?' (1 gün = 24 saat)':'');
+ }else if(type==='ARIZA_SAYISI')x.birim='adet';
+ else if(['KULLANILABILIRLIK','PLANLI_BAKIM_ORANI','OEE'].includes(type))x.birim='%';
+ else if(type==='MALIYET'){x.birim=/EUR|€|EURO/.test(unit)?'€':/USD|\$|DOLAR/.test(unit)?'$':'₺';}
+ if(IY_AUTO_TYPES.includes(type))x.yon=['MTTR','ARIZA_SAYISI','MALIYET'].includes(type)?'ASAGI':'YUKARI';
+ return x;
+}
+function iyDonemKayitlari(period){
+ const today=yerelYMD(new Date());return (Array.isArray(kayitlar)?kayitlar:[]).filter(k=>{const day=dashTarihYMD(k.tarihBas||k.tarih);return !kpiCancelled(k)&&day&&day.slice(0,7)===period&&day<=today;});
+}
+function iyGerceklesenHesapla(target){
+ const h=iyNormalizeTarget(target);if(h.donem>yerelYMD(new Date()).slice(0,7))return null;const rows=iyDonemKayitlari(h.donem),m=kpiOzetHesapla(rows);
+ switch(h.kpiTur){
+ case 'MTTR':return m.mttr;case 'MTBF':return m.mtbf;case 'ARIZA_SAYISI':return m.arizaSayisi;case 'KULLANILABILIRLIK':return m.avail;
+ case 'MALIYET':return m.costs[h.birim];
+ case 'PLANLI_BAKIM_ORANI':{
+  if(!_iyFreshState.plans)return null;
+  const today=yerelYMD(new Date()),plans=planlarYukle().filter(p=>{const day=dashTarihYMD(p.tarih);return !kpiCancelled(p)&&day&&day.slice(0,7)===h.donem&&day<=today;});
+  if(!plans.length)return null;return Math.round(plans.filter(p=>iyKey(p.durum)==='TAMAMLANDI').length/plans.length*1000)/10;
+ }
+ default:return iyNum(h.gerceklesen);
+ }
+}
+function iyBasariOrani(h){
+ const g=iyNum(h.gerceklesen),t=iyNum(h.hedef);if(g===null||t===null||g<0||t<0)return null;
+ const down=h.yon==='ASAGI';if(t===0)return down?(g===0?100:0):null;
+ if(down)return g<=t?100:Math.max(0,Math.min(100,Math.round(t/g*100)));
+ return Math.max(0,Math.min(100,Math.round(g/t*100)));
+}
+function iyLiveTargets(raw){return raw.map(h=>{const n=iyNormalizeTarget(h);return {...n,gerceklesen:IY_AUTO_TYPES.includes(n.kpiTur)?(_iyFreshState.records?iyGerceklesenHesapla(n):null):iyNum(n.gerceklesen)};});}
+function iyFmt(v){return v===null||v===undefined?'Veri yetersiz':Number(v).toLocaleString('tr-TR',{maximumFractionDigits:2});}
+function iyEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function iyRenderControls(){
+ const body=document.querySelector('#tab-iyilestirme .section-body');if(!body||document.getElementById('iyLiveControls'))return;
+ const el=document.createElement('div');el.id='iyLiveControls';el.style.cssText='padding:12px;background:#f1f8e9;border:1px solid #c5e1a5;border-radius:8px;margin-bottom:14px';
+ el.innerHTML='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>Dönem:</b><select id="iyLivePeriod" onchange="renderIyilestirme()"></select><button onclick="gsIyilestirmeYukle()" class="btn-kaydet" style="width:auto">↻ Güncel verileri al</button><button onclick="iyDashboardKarsilastir()" class="btn-kaydet" style="width:auto">Aynı dönemi Dashboard’da göster</button></div><div id="iyLiveStatus" role="status" style="margin-top:8px;font-size:12px"></div><small>Tüm bölümler / işlemler / riskler · MTTR: dakika · MTBF: çalışma saati · İptal kayıtları hariç. Gün hedefleri 24 saat/gün ile dönüştürülür. Cari ay bugünle sınırlıdır. Planlı bakım oranı yalnızca vadesi gelen planları kapsar.</small>';
+ body.insertBefore(el,body.firstChild);
+}
+function renderIyilestirme(){
+ iyRenderControls();const raw=iyYukle(),list=iyLiveTargets(raw),select=document.getElementById('iyLivePeriod');
+ if(select){const old=select.value,periods=[...new Set([yerelYMD(new Date()).slice(0,7),...list.map(h=>h.donem)])].filter(Boolean).sort().reverse();select.innerHTML=periods.map(p=>'<option>'+iyEsc(p)+'</option>').join('');select.value=periods.includes(old)?old:periods[0];}
+ _renderIyilestirmeIcerik(list);
+ const status=document.getElementById('iyLiveStatus');if(status)status.textContent=_iyFreshState.error||(_iyFreshState.at?'Kaynak kayıtların son okunması: '+new Date(_iyFreshState.at).toLocaleString('tr-TR'):'Güncel veriler bekleniyor.');
+}
+function _renderIyilestirmeIcerik(list){
+ const period=document.getElementById('iyLivePeriod')?.value||yerelYMD(new Date()).slice(0,7),cards=document.getElementById('iyKpiGrid'),current=list.filter(h=>h.donem===period);
+ if(cards)cards.innerHTML=current.length?current.map(h=>{const score=iyBasariOrani(h),color=score===null?'#777':score>=100?'#00875a':score>=80?'#e65100':'#d32f2f';return '<div class="iy-hedef-kart" style="--iy-renk:'+color+'"><b>'+iyEsc(iyHedefAd(h))+'</b><div style="font-size:23px;font-weight:800;color:'+color+';margin:8px 0">'+iyFmt(h.gerceklesen)+(h.gerceklesen!==null?' '+iyEsc(h.birim):'')+'</div><div>Hedef: '+iyFmt(h.hedef)+' '+iyEsc(h.birim)+' · '+(h.yon==='ASAGI'?'En fazla':'En az')+'</div><div style="margin-top:8px">Hedefe ulaşma: <b>'+(score===null?'Değerlendirilemedi':'%'+score)+'</b></div><div class="iy-prog-bar"><div class="iy-prog-fill" style="width:'+(score||0)+'%;background:'+color+'"></div></div><small>'+iyEsc(period)+(h.birimNotu?'<br>'+iyEsc(h.birimNotu):'')+'</small></div>';}).join(''):'<div class="empty">Bu dönem için hedef tanımlanmamış.</div>';
+ const months=[...new Set(list.map(h=>h.donem))].sort(),keys=[...new Set(list.map(h=>h.kpiTur+'|'+h.birim+'|'+(h.kpiOzel||'')))],trend=document.getElementById('iyTrendBlok');
+ if(trend)trend.innerHTML='<div style="margin:16px 0"><b>Hedef ve canlı gerçekleşen — dönem karşılaştırması</b><div class="tbl-wrap"><table><thead><tr><th>KPI / birim</th>'+months.map(m=>'<th colspan="2">'+iyEsc(m)+'</th>').join('')+'</tr><tr><th></th>'+months.map(()=>'<th>Hedef</th><th>Gerçekleşen</th>').join('')+'</tr></thead><tbody>'+keys.map(key=>{const [type,unit,custom]=key.split('|');return '<tr><td>'+iyEsc(type==='DIGER'?custom:type)+' / '+iyEsc(unit)+'</td>'+months.map(m=>{const h=list.find(h=>h.donem===m&&h.kpiTur===type&&h.birim===unit&&(h.kpiOzel||'')===custom);return h?'<td>'+iyFmt(h.hedef)+'</td><td>'+iyFmt(h.gerceklesen)+'</td>':'<td>—</td><td>—</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div></div>';
+ const details=document.getElementById('iyHedefListesi');if(!details)return;
+ details.innerHTML='<b>Tüm hedef kayıtları</b><div class="tbl-wrap"><table><thead><tr><th>Dönem</th><th>KPI</th><th>Hedef</th><th>Gerçekleşen</th><th>Hedefe ulaşma</th><th>Yön</th><th>Notlar</th><th>İşlem</th></tr></thead><tbody>'+list.slice().sort((a,b)=>b.donem.localeCompare(a.donem)).map(h=>'<tr><td>'+iyEsc(h.donem)+'</td><td>'+iyEsc(iyHedefAd(h))+'</td><td>'+iyFmt(h.hedef)+' '+iyEsc(h.birim)+'</td><td>'+iyFmt(h.gerceklesen)+(h.gerceklesen!==null?' '+iyEsc(h.birim):'')+'</td><td>'+(iyBasariOrani(h)===null?'Değerlendirilemedi':'%'+iyBasariOrani(h))+'</td><td>'+(h.yon==='ASAGI'?'↓ Düşük iyi':'↑ Yüksek iyi')+'</td><td>'+iyEsc(h.not||'')+(h.birimNotu?'<br><small>'+iyEsc(h.birimNotu)+'</small>':'')+'</td><td><button type="button" data-iy-edit="'+iyEsc(h.id)+'">Düzenle</button> <button type="button" data-iy-delete="'+iyEsc(h.id)+'">Sil</button></td></tr>').join('')+'</tbody></table></div>';
+ details.querySelectorAll('[data-iy-edit]').forEach(b=>b.onclick=()=>iyiHedefModalAc(b.dataset.iyEdit));details.querySelectorAll('[data-iy-delete]').forEach(b=>b.onclick=()=>iyHedefSil(b.dataset.iyDelete));
+}
+async function gsIyilestirmeYukle(){
+ if(_iyRefreshPromise)return _iyRefreshPromise;
+ _iyRefreshPromise=(async()=>{
+  iyRenderControls();const status=document.getElementById('iyLiveStatus');if(status)status.textContent='Kayıtlar, planlar ve hedefler Sheets’ten okunuyor…';
+  const results=await Promise.allSettled([gsGet(),gsRequest({action:'getIyilestirme'}),gsRequest({action:'syncPlanlar'})]);
+  const valid=(i)=>results[i].status==='fulfilled'&&results[i].value?.ok&&Array.isArray(results[i].value.data);
+  _iyFreshState.records=valid(0);_iyFreshState.plans=valid(2);_iyFreshState.error='';
+  if(valid(0)){kayitlar=results[0].value.data.map(row=>({...row,id:parseInt(row.id)||row.id,sure:parseInt(row.sure)||0}));_iyFreshState.at=new Date().toISOString();}
+  if(valid(2))planlarKaydet(results[2].value.data);
+  if(valid(1)){const targets=results[1].value.data.filter(row=>!kpiCancelled(row)).map(row=>({id:String(row.ID||''),kpiTur:row['KPI Turu']||'',kpiOzel:row['Ozel KPI Adi']||'',donem:String(row['Donem (YIL-AY)']||'').slice(0,7),hedef:iyNum(row['Hedef Deger']),gerceklesen:iyNum(row['Gerceklesen Deger']),birim:row.Birim||'',yon:/ASAGI|AZALT|↓/.test(trNorm(row['Hedef Yonu']))?'ASAGI':'YUKARI',not:row['Notlar / Aksiyon']||'',guncelleme:row['Son Guncelleme']||''}));iyKaydetLS(targets);}
+  const errors=[];if(!valid(0))errors.push('Bakım kayıtları alınamadı; otomatik KPI değerleri gösterilmiyor.');if(!valid(1))errors.push('Hedefler alınamadı; son yerel hedef listesi kullanılıyor.');if(!valid(2))errors.push('Planlar alınamadı; planlı bakım oranı hesaplanamadı.');_iyFreshState.error=errors.join(' ');
+  renderIyilestirme();if(valid(0)&&document.getElementById('tab-dash')?.classList.contains('active'))renderDash();
+  // Ekran hesabı kalıcı değerlerden bağımsızdır. Tek istek yalnızca türetilmiş alanları eşitler.
+  if(valid(0)&&valid(1)){
+   const raw=iyYukle(),live=iyLiveTargets(raw),updates=live.filter(h=>IY_AUTO_TYPES.includes(h.kpiTur)).map(h=>({ID:h.id,kpiTur:h.kpiTur,hedef:h.hedef,birim:h.birim,yon:h.yon,gerceklesen:h.gerceklesen,eskiHedef:raw.find(x=>x.id===h.id)?.hedef,eskiBirim:raw.find(x=>x.id===h.id)?.birim}));
+   try{const r=await gsRequest({action:'syncIyilestirmeKPI',kayitlar:updates});if(!r?.ok)throw new Error(r?.error||'KPI eşitleme başarısız');if(r.skipped){_iyFreshState.error+=' '+r.skipped+' hedef başka işlemde değişti; yeniden yenileyin.';}}catch(e){_iyFreshState.error+=' Ekran güncel; Sheets gerçekleşen alanları eşitlenemedi: '+e.message;const el=document.getElementById('iyLiveStatus');if(el)el.textContent=_iyFreshState.error;}
+  }
+  return iyLiveTargets(iyYukle());
+ })().finally(()=>{_iyRefreshPromise=null;});return _iyRefreshPromise;
+}
+async function iyGerceklesenleriGuncelle(){return gsIyilestirmeYukle();}
+async function iyHedefSil(id){if(!confirm('Bu hedefi iptal etmek istiyor musunuz? Kayıt Sheets’te korunur.'))return;try{const r=await gsRequest({action:'deleteIyilestirme',id});if(!r?.ok)throw new Error(r?.error||'Hedef iptal edilemedi');iyKaydetLS(iyYukle().filter(h=>h.id!==id));renderIyilestirme();showToast('Hedef iptal edildi.','ok');}catch(e){showToast(e.message,'err');}}
+function iyDashboardKarsilastir(){
+ const period=document.getElementById('iyLivePeriod')?.value;if(!period)return;window._kpiDashboardMonth=period;
+ ['dashBolumSelect','dashIslemSelect','dashRiskSelect'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+ goTab('dash',document.querySelector('.nav-tab[onclick*="dash"]'));renderDash();
+}
+document.getElementById('iy-kpi-tur')?.addEventListener('change',function(){
+ const type=this.value,auto=IY_AUTO_TYPES.includes(type),unit=document.getElementById('iy-birim'),direction=document.getElementById('iy-yon'),actual=document.getElementById('iy-gerceklesen');actual.readOnly=auto;
+ if(auto){unit.value=type==='MTTR'?'dk':type==='MTBF'?'saat':type==='ARIZA_SAYISI'?'adet':type==='MALIYET'?'₺':'%';direction.value=['MTTR','ARIZA_SAYISI','MALIYET'].includes(type)?'ASAGI':'YUKARI';}
+});
+iyRenderControls();
+
+</script>
+<script>
+// === MALİYET İZLENEBİLİRLİĞİ ===
+function parseTutar(v){
+ if(typeof v==='number')return Number.isFinite(v)?v:0;
+ let s=String(v??'').trim().replace(/[^\d,.-]/g,'');if(!s)return 0;
+ if(s.includes(',')&&s.includes('.')){s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');}
+ else if(s.includes(',')){s=s.replace(',','.');}
+ else if(/^[-]?\d{1,3}(\.\d{3})+$/.test(s)){s=s.replace(/\./g,'');}
+ const n=Number(s);return Number.isFinite(n)?n:0;
+}
+function kpiCurrency(v){const x=iyKey(v);return ['EUR','EURO','€'].includes(x)?'€':['USD','DOLAR','$'].includes(x)?'$':'₺';}
+function kpiParcaMaliyetleri(k){
+ const out={'₺':0,'$':0,'€':0},arr=parseParcalar(k?.parcalar||'');
+ arr.forEach(p=>{const u=kpiCurrency(p.para),total=p.toplam!==null&&p.toplam!==undefined&&String(p.toplam).trim()!==''?parseTutar(p.toplam):parseTutar(p.adet)*parseTutar(p.fiyat);out[u]+=total;});
+ return out;
+}
+function maliyetDovizleri(k){
+ const out=kpiParcaMaliyetleri(k),arr=parseParcalar(k?.parcalar||'');if(!k)return out;
+ if(!arr.length&&k.toplamMaliyet){
+  const text=String(k.toplamMaliyet);let matched=false;
+  for(const u of ['₺','$','€']){const escaped=u==='₺'?'₺':u==='$'?'\\$':'€';const m=text.match(new RegExp('([0-9][0-9.,]*)\\s*'+escaped));if(m){out[u]+=parseTutar(m[1]);matched=true;}}
+  if(!matched)out['₺']+=parseTutar(text);
+  const labor=parseTutar(k.iscilikMaliyeti);if(labor>0&&Math.abs(out['₺']-labor)<0.01)out['₺']=0;
+ }
+ out['₺']+=parseTutar(k.iscilikMaliyeti);return out;
+}
+function kpiMaliyetDokumuAc(){
+ const scope=window._kpiMaliyetVeri||filtreliVeri(),months=[...new Set(scope.map(k=>dashTarihYMD(k.tarihBas)).filter(Boolean).map(d=>d.slice(0,7)))].sort();
+ let dlg=document.getElementById('kpiCostDlg');if(!dlg){dlg=document.createElement('dialog');dlg.id='kpiCostDlg';dlg.style.cssText='width:min(1200px,96vw);max-height:90vh;border:0;border-radius:12px';document.body.appendChild(dlg);}
+ dlg.innerHTML='<div style="padding:18px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><b>Bakım maliyeti — kayıt bazlı döküm</b><button onclick="document.getElementById(\'kpiCostDlg\').close()">Kapat</button></div><p>Grafikteki toplam, parça ve TL işçilik tutarlarını birlikte içerir. Para birimleri çevrilmez. Eski toplam metinlerinin parça/işçilik ayrımı doğrulanmalıdır.</p><select id="kpiCostMonth">'+months.map(m=>'<option>'+iyEsc(m)+'</option>').join('')+'</select><div id="kpiCostRows" class="tbl-wrap" style="margin-top:12px"></div></div>';
+ const select=dlg.querySelector('#kpiCostMonth');select.value=months[0]||'';
+ function render(){
+  const rows=scope.filter(k=>dashTarihYMD(k.tarihBas).slice(0,7)===select.value&&!kpiCancelled(k)),totals={'₺':0,'$':0,'€':0};
+  const lines=rows.map(k=>{const parts=kpiParcaMaliyetleri(k),sum=maliyetDovizleri(k),labor=parseTutar(k.iscilikMaliyeti),legacy=!parseParcalar(k.parcalar||'').length&&String(k.toplamMaliyet||'').trim();Object.keys(totals).forEach(u=>totals[u]+=sum[u]);
+   const positiveParts=Object.entries(parts).filter(([,v])=>v!==0).map(([u,v])=>formatPara(v,u)).join(' + ')||'0,00 ₺';
+   return '<tr><td>'+iyEsc(k.formNo||k.id)+'</td><td>'+iyEsc(dashTarihYMD(k.tarihBas))+'</td><td>'+iyEsc(k.makine)+'</td><td>'+iyEsc(k.islem)+'</td><td>'+iyEsc(positiveParts)+'</td><td>'+iyEsc(formatPara(labor,'₺'))+'</td><td>'+iyEsc(formatToplamMaliyet(k))+'</td><td>'+iyEsc(legacy?'Eski toplam metni: '+k.toplamMaliyet+' — ayrımı kontrol edin':'Parça satırlarından hesaplandı')+'</td></tr>';
+  }).join('');
+  const totalText=Object.entries(totals).filter(([,v])=>v!==0).map(([u,v])=>formatPara(v,u)).join(' + ')||'0,00 ₺';
+  dlg.querySelector('#kpiCostRows').innerHTML='<p><b>'+iyEsc(select.value)+' toplamı: '+iyEsc(totalText)+'</b> · '+rows.length+' kayıt · Dashboard’daki mevcut filtre kapsamı</p><table><thead><tr><th>Form</th><th>Tarih</th><th>Makine</th><th>İşlem</th><th>Tanımlı parça</th><th>İşçilik</th><th>Grafiğe dahil toplam</th><th>Kaynak / kontrol</th></tr></thead><tbody>'+lines+'</tbody></table>';
+ }
+ select.onchange=render;render();dlg.showModal();
+}
+const _kpiCostCanvas=document.getElementById('chartMaliyet');if(_kpiCostCanvas){const body=_kpiCostCanvas.parentElement,button=document.createElement('button');button.type='button';button.textContent='Ay toplamını oluşturan kayıtları göster';button.style.cssText='margin-top:12px;padding:8px 12px;cursor:pointer';button.onclick=kpiMaliyetDokumuAc;body.appendChild(button);}
+
+</script>
+</body>
 </html>
