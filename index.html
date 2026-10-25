@@ -13881,6 +13881,127 @@ getParcaListesi = function() {
 document.addEventListener('click', function(ev) {
   if (!ev.target.closest('.parca-row')) ypFormParcaDropdownKapat();
 });
+
+// ══ EKİPMAN ETİKETİ: bölüm renkli, mm ölçülü, GERÇEK QR; A4 çoklu veya etiket yazıcısı ══
+const ETIKET_RENK = [['TESİS', '#15803d'], ['HAZIRLIK', '#6d28d9'], ['ALT MONTAJ', '#a16207'], ['KALIP', '#0f766e'], ['ÜRETİM', '#b91c1c'], ['KESİM', '#c2570a'], ['TEST', '#1d5fbf'], ['DEPO', '#123a73'], ['SEVK', '#123a73'], ['BAKIM', '#4b5563']];
+const etiketRenk_ = b => { const n = ypN(b), h = ETIKET_RENK.find(([k]) => n.includes(ypN(k))); return h ? h[1] : '#374151'; };
+const etkEsc_ = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function etiketQrSrc_(url, px) {      // gerçek QR → PNG (data URL)
+  return new Promise(res => qrLibYukle(() => {
+    try {
+      const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(d);
+      new QRCode(d, { text: url, width: px, height: px, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.Q });
+      setTimeout(() => { const c = d.querySelector('canvas'), im = d.querySelector('img'); const src = c ? c.toDataURL('image/png') : (im ? im.src : ''); d.remove(); res(src); }, 30);
+    } catch (e) { res(''); }
+  }));
+}
+function etiketHtml_(e, sablon, qr) {
+  const kod = e.barkod || e.makine, renk = etiketRenk_(e.bolum), bolum = String(e.bolum || '').toUpperCase(), kmp = sablon === 'kmp';
+  const n = String(e.makine || '').length;
+  const idMm = Math.max(3.2, Math.round(Math.min(kmp ? 9.5 : 15, (kmp ? 34 : 54) / (Math.max(n, 1) * 0.62)) * 10) / 10);   // kod uzunluğuna göre etikete tam sığar
+  const kisaUrl = 'burkab-bakim · ' + kod;
+  const alanlar = [['SERİ NO', e.serino], ['BAKIM PERİYODU', e.periyot], ['KONUM', e.konum], ['KAPASİTE', e.kapasite]].filter(x => x[1]);
+  const alt = alanlar.slice(0, kmp ? 2 : 4).map(([l, v]) => `<div${String(v).length > 12 ? ' style="grid-column:1/-1"' : ''}><small>${l}</small><b>${etkEsc_(v)}</b></div>`).join('');
+  if (kmp) return `<div class="etk etk-kmp" style="--c:${renk}"><div class="etk-ust2"><span>${etkEsc_(bolum)}</span><em>BURKAB A.Ş.</em></div>
+    <div class="etk-orta"><div class="etk-sol"><div class="etk-id" style="font-size:${idMm}mm">${etkEsc_(e.makine)}</div><div class="etk-tur" style="font-size:2.7mm;max-height:6mm">${etkEsc_(e.tur || '')}</div>
+    <div class="etk-alt" style="padding-bottom:1.2mm;grid-template-columns:1fr">${alanlar.slice(0, 1).map(([l, v]) => `<div><small style="font-size:1.4mm">${l}</small><b style="font-size:2.4mm">${etkEsc_(v)}</b></div>`).join('')}</div></div>
+    <div class="etk-qr"><img src="${qr}" alt="QR"><span style="font-size:1.4mm">${etkEsc_(kod)}</span></div></div><div class="etk-serit">OKUT → İŞ EMRİNİ SEÇ → BAŞLAT</div></div>`;
+  return `<div class="etk" style="--c:${renk}"><div class="etk-bant"><span style="font-size:${bolum.length > 14 ? 3.6 : 4.6}mm">${etkEsc_(bolum)}</span></div>
+    <div class="etk-ana"><div class="etk-ust"><b>BURKAB A.Ş.</b><i>EKİPMAN SİCİLİ</i></div>
+    <div class="etk-orta"><div class="etk-sol"><div class="etk-id" style="font-size:${idMm}mm">${etkEsc_(e.makine)}</div><div class="etk-tur" style="font-size:4.2mm">${etkEsc_(e.tur || '')}</div>
+    <div class="etk-marka" style="font-size:3.1mm">${etkEsc_(e.marka || '')}</div><div class="etk-alt">${alt}</div></div>
+    <div class="etk-qr"><img src="${qr}" alt="QR"><span>${etkEsc_(kisaUrl)}</span></div></div><div class="etk-serit">OKUT → İŞ EMRİNİ SEÇ → BAŞLAT</div></div></div>`;
+}
+function etiketModalAc_(onSec, yerlesim) {
+  const liste = ekipmanYukle().filter(e => !/HURDA/i.test(String(e.durum || ''))).sort((a, b) => String(a.bolum).localeCompare(String(b.bolum), 'tr') || String(a.makine).localeCompare(String(b.makine), 'tr', { numeric: true }));
+  if (!liste.length) { showToast('Önce ekipman kartı ekleyin veya listeyi yükleyin.', 'err'); return; }
+  const bolumler = [...new Set(liste.map(e => e.bolum).filter(Boolean))];
+  window._etkListe = liste;
+  yplKutu_('🏷️ EKİPMAN ETİKETİ YAZDIR', 'Bölüm renkli, mm ölçülü, gerçek QR. QR okutulunca bakım modülü açılır, ekipman ve iş emri seçenekleri gelir.',
+    `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div><label style="font-size:11px;color:#666">ŞABLON</label><select id="etkSablon" onchange="etiketOnizle_()" style="display:block;padding:8px"><option value="std">Standart 100×70 mm</option><option value="kmp">Kompakt 60×40 mm</option></select></div>
+      <div><label style="font-size:11px;color:#666">YERLEŞİM</label><select id="etkYerlesim" style="display:block;padding:8px"><option value="a4" ${yerlesim === 'a4' ? 'selected' : ''}>A4 sayfa (çoklu)</option><option value="tek" ${yerlesim === 'tek' ? 'selected' : ''}>Etiket yazıcısı (her etiket 1 sayfa)</option></select></div>
+      <div><label style="font-size:11px;color:#666">KOPYA</label><input id="etkKopya" type="number" min="1" max="10" value="1" style="display:block;width:70px;padding:8px"></div>
+      <div><label style="font-size:11px;color:#666">BÖLÜM</label><select id="etkBolum" onchange="etiketListeSuz_()" style="display:block;padding:8px"><option value="">Tümü</option>${bolumler.map(b => `<option>${etkEsc_(b)}</option>`).join('')}</select></div>
+      <div style="align-self:flex-end"><button class="ypl-btn o" onclick="etiketTumu_(true)">Tümünü seç</button> <button class="ypl-btn o" onclick="etiketTumu_(false)">Temizle</button></div></div>
+    <div class="etk-liste" id="etkListe"></div><div id="etkSay" style="margin:8px 0;font-size:12px;font-weight:700"></div>
+    <div style="font-size:11px;color:#666;margin-bottom:4px">ÖNİZLEME (ilk seçilen ekipman)</div><div class="etk-onizle" id="etkOnizle"></div>`,
+    `<span style="flex:1"></span><button class="ypl-btn o" onclick="yplKapat_()">KAPAT</button><button class="ypl-btn" onclick="etiketYazdirBaslat_()">🖨 YAZDIR</button>`);
+  window._etkSecili = new Set(onSec ? liste.filter(e => ypN(e.barkod) === ypN(onSec) || ypN(e.makine) === ypN(onSec)).map(e => e.makine) : []);
+  etiketListeSuz_();
+}
+function etiketListeSuz_() {
+  const b = document.getElementById('etkBolum').value, l = window._etkListe.filter(e => !b || e.bolum === b);
+  document.getElementById('etkListe').innerHTML = l.map(e => `<label><input type="checkbox" data-m="${etkEsc_(e.makine)}" ${window._etkSecili.has(e.makine) ? 'checked' : ''} onchange="etiketSec_(this)"><b>${etkEsc_(e.makine)}</b> <span style="color:#666">${etkEsc_(e.tur || '')} · ${etkEsc_(e.bolum || '')}</span></label>`).join('') || '<div style="padding:12px;color:#777">Bu bölümde ekipman yok.</div>';
+  etiketOnizle_();
+}
+function etiketSec_(c) { c.checked ? window._etkSecili.add(c.dataset.m) : window._etkSecili.delete(c.dataset.m); etiketOnizle_(); }
+function etiketTumu_(v) { document.querySelectorAll('#etkListe input').forEach(c => { c.checked = v; v ? window._etkSecili.add(c.dataset.m) : window._etkSecili.delete(c.dataset.m); }); etiketOnizle_(); }
+async function etiketOnizle_() {
+  const sec = window._etkListe.filter(e => window._etkSecili.has(e.makine)), say = document.getElementById('etkSay'), o = document.getElementById('etkOnizle'); if (!o) return;
+  say.textContent = sec.length + ' ekipman seçili';
+  if (!sec.length) { o.innerHTML = '<span style="color:#777">Listeden ekipman seçin.</span>'; return; }
+  const e = sec[0], qr = await etiketQrSrc_(qrUrl_(e.barkod || e.makine), 220);
+  o.innerHTML = etiketHtml_(e, document.getElementById('etkSablon').value, qr);
+}
+async function etiketYazdirBaslat_() {
+  const sec = window._etkListe.filter(e => window._etkSecili.has(e.makine)); if (!sec.length) { showToast('❗ En az bir ekipman seçin.', 'err'); return; }
+  const sablon = document.getElementById('etkSablon').value, yer = document.getElementById('etkYerlesim').value, kopya = Math.max(1, Math.min(10, parseInt(document.getElementById('etkKopya').value, 10) || 1));
+  try {
+    showLoading(true);
+    const html = [];
+    for (const e of sec) { const qr = await etiketQrSrc_(qrUrl_(e.barkod || e.makine), 300); for (let k = 0; k < kopya; k++) html.push(etiketHtml_(e, sablon, qr)); }
+    const w = sablon === 'std' ? 100 : 60, h = sablon === 'std' ? 70 : 40;
+    let st = document.getElementById('etiketBaskiStil'); if (!st) { st = document.createElement('style'); st.id = 'etiketBaskiStil'; document.head.appendChild(st); }
+    const sayfa = yer === 'tek' ? `@page{size:${w}mm ${h}mm;margin:0}` : `@page{size:A4 portrait;margin:5mm}`;
+    const kolon = yer === 'tek' ? '' : (sablon === 'std' ? 'grid-template-columns:repeat(2,100mm);' : 'grid-template-columns:repeat(3,60mm);column-gap:3mm;');
+    st.textContent = sayfa + `@media print{html,body{background:#fff!important}body>*:not(#etiketBaski){display:none!important}#etiketBaski{display:${yer === 'tek' ? 'block' : 'grid'}!important;${kolon}}${yer === 'tek' ? '#etiketBaski .etk{page-break-after:always;margin:0}' : ''}}`;
+    document.getElementById('etiketBaski')?.remove();
+    const a = document.createElement('div'); a.id = 'etiketBaski'; a.innerHTML = html.join(''); document.body.appendChild(a);
+    window.onafterprint = () => { a.remove(); st.textContent = ''; window.onafterprint = null; };
+    setTimeout(() => window.print(), 300);
+  } catch (e) { showToast('⚠️ Etiket hazırlanamadı: ' + e.message, 'err'); } finally { showLoading(false); }
+}
+function qrEtiketYazdir() { etiketModalAc_((document.getElementById('em-barkod')?.value || document.getElementById('em-makine')?.value || '').trim()); }
+function qrA4Yazdir() { etiketModalAc_((document.getElementById('em-barkod')?.value || document.getElementById('em-makine')?.value || '').trim(), 'a4'); }
+
+// ══ QR OKUTMA: telefon kamerası bağlantıyı açar → giriş → ekipman hızlı ekranı (arıza / bakım kaydı bir dokunuşla) ══
+const _qrDeepKod = new URLSearchParams(location.search).get('e') || '';
+const ekipmanBul_ = k => ekipmanYukle().find(e => ypN(e.barkod) === ypN(k) || ypN(e.makine) === ypN(k));
+async function qrDeepLinkAc_() {
+  if (!_qrDeepKod || window._qrDeepAcildi) return;
+  if (!(typeof currentUser !== 'undefined' && currentUser && currentUser.token)) { setTimeout(qrDeepLinkAc_, 1500); return; }   // giriş yapılana kadar bekle
+  window._qrDeepAcildi = true;
+  let e = ekipmanBul_(_qrDeepKod); if (!e) { await gsEkipmanYukle(); e = ekipmanBul_(_qrDeepKod); }
+  try { history.replaceState(null, '', location.pathname); } catch (x) {}
+  ekipmanHizliEkran_(e, _qrDeepKod);
+}
+function ekipmanHizliEkran_(e, kod) {
+  window._qrHizli = { makine: e ? e.makine : kod, bolum: e ? e.bolum : '' };
+  const son = e ? kayitlar.filter(k => ypN(k.makine) === ypN(e.makine)).sort((a, b) => String(b.tarihBas).localeCompare(String(a.tarihBas))).slice(0, 5) : [];
+  const bilgi = e ? [['BÖLÜM', e.bolum], ['TÜR', e.tur], ['MARKA / MODEL', e.marka], ['SERİ NO', e.serino], ['KONUM', e.konum], ['BAKIM PERİYODU', e.periyot], ['DURUM', e.durum]].filter(x => x[1]) : [];
+  yplKutu_('📍 ' + etkEsc_(window._qrHizli.makine), e ? 'QR ile açıldı · ne yapmak istiyorsunuz?' : 'Bu kod için ekipman kartı bulunamadı; yine de kayıt açabilirsiniz.',
+    (bilgi.length ? `<div class="hz-grid">${bilgi.map(([l, v]) => `<div><small>${l}</small><b>${etkEsc_(v)}</b></div>`).join('')}</div>` : '')
+    + `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"><button class="hz-btn" style="background:#c62828" onclick="qrKayitAc_('ARIZA KAYDI')">🔴 ARIZA KAYDI AÇ</button>
+       <button class="hz-btn" style="background:#15803d" onclick="qrKayitAc_('PLANLI BAKIM')">🛠 PERİYODİK BAKIM YAP</button><button class="hz-btn" style="background:#1d5fbf" onclick="qrKayitAc_('SERVİS BAKIM')">🔧 SERVİS BAKIM</button></div>`
+    + `<div style="font-size:11px;font-weight:700;color:#666;margin-bottom:4px">SON KAYITLAR</div>` + (son.length ? `<table class="ypl-tbl"><tbody>${son.map(k => `<tr><td>${etkEsc_(String(k.tarihBas || '').slice(0, 10))}</td><td><b>${etkEsc_(k.islem)}</b></td><td>${etkEsc_(k.arizaTuru || k.konu || '')}</td><td>${etkEsc_(k.durum || '')}</td></tr>`).join('')}</tbody></table>` : '<div style="color:#777;font-size:13px">Bu ekipman için kayıt yok.</div>'),
+    `<span style="flex:1"></span><button class="ypl-btn o" onclick="yplKapat_()">KAPAT</button>`);
+}
+function qrKayitAc_(islem) {
+  const h = window._qrHizli || {}; yplKapat_();
+  goTab('form', document.querySelector(".nav-tab[onclick*=\"goTab('form'\"]"));
+  setTimeout(() => {
+    const b = document.getElementById('bolum');
+    if (b && h.bolum) { const o = [...b.options].find(x => ypN(x.value) === ypN(h.bolum)); if (o) { b.value = o.value; if (typeof onBolum === 'function') onBolum(); } }
+    const m = document.getElementById('makine'); if (m) m.value = h.makine || '';
+    const btn = [...document.querySelectorAll('#tab-form [data-v]')].find(x => x.dataset.v === islem && /pickIslem/.test(x.getAttribute('onclick') || ''));
+    if (btn) pickIslem(btn);
+    scrollTo(0, 0);
+  }, 200);
+}
+
+
 // ══════════════════════════════════════════════════════════════
 // BAKIM RİSK AKSİYON PLANI — DETAY / GÜNCELLE / TAMAMLA
 // IATF 4.4 — Mevcut riskAksiyon alanını kullanır
