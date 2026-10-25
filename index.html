@@ -12860,8 +12860,8 @@ function sicilAIRender(){
 function makinePlanlariAc(){try{goTab('planlar',document.querySelector('.nav-tab[onclick*="planlar"]'));setTimeout(()=>{if(typeof renderPlanlar==='function')renderPlanlar();},250)}catch(e){showToast('Planlı bakım ekranı açılamadı','err')}}
 function planliBakimTalimatAc(){
   // GitHub deposundaki PDF dosyasının gerçek adı (boşluklar ve Türkçe karakterler dahil).
-  // Dosyayı depo köküne şu adla yükleyin: TL-XXX_KESIT_GORUNTULEME_PERIYODIK_BAKIM_TALIMATI.pdf
-  const url = 'https://maintenanceburkab.github.io/burkab-bakim/TL-XXX_KESIT_GORUNTULEME_PERIYODIK_BAKIM_TALIMATI.pdf';
+  // Dosyayı depo köküne şu adla yükleyin: TL-125_KESIT_GORUNTULEME_PERIYODIK_BAKIM_TALIMATI.pdf
+  const url = 'https://maintenanceburkab.github.io/burkab-bakim/TL-125_KESIT_GORUNTULEME_PERIYODIK_BAKIM_TALIMATI.pdf';
   try {
     const win = window.open(url, '_blank');
     if (!win) window.location.href = url;
@@ -12873,7 +12873,7 @@ function planliBakimTalimatAc(){
 function planliBakimFormAc(){
   try {
     // Dijital form GitHub Pages'ten yüklenir; ekipman ve aktif plan bilgileri URL ile aktarılır.
-    const baseUrl = 'https://maintenanceburkab.github.io/burkab-bakim/FR-XX_KESIT_GORUNTULEME_DIGITAL_BAKIM_FORMU.html';
+    const baseUrl = 'https://maintenanceburkab.github.io/burkab-bakim/FR-261_KESIT_GORUNTULEME_DIGITAL_BAKIM_FORMU.html';
     const data = _sicilData || {};
     const eq = data.ekipman || {};
     const plans = (typeof planlarYukle === 'function' ? planlarYukle() : [])
