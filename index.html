@@ -25171,5 +25171,27 @@ function upsPlanFormAc(plan){
 })();
 </script>
 
+
+<script>
+// BURKAB_EQUIPMENT_PDF_LINKS_V1 — PDF'ler index.html ile aynı klasörde.
+(function(){
+ const previousInstruction=planliBakimTalimatAc;
+ planliBakimTalimatAc=function(){
+  const machine=String(typeof _sicilMakine!=='undefined'?_sicilMakine:'').trim().toUpperCase();
+  const files={
+   'UPS-01':'TL-129_UPS_PERIYODIK_BAKIM_TALIMATI.pdf',
+   'UPS-02':'TL-129_UPS_PERIYODIK_BAKIM_TALIMATI.pdf',
+   'JEN-01':'TL-128_JENERATOR_PERIYODIK_BAKIM_TALIMATI.pdf'
+  };
+  if(!files[machine])return previousInstruction.apply(this,arguments);
+  try{
+   const url=new URL(files[machine],location.href);url.search='';url.hash='';
+   const win=window.open(url.href,'_blank');
+   if(win){try{win.opener=null;}catch(_){}}else window.location.href=url.href;
+  }catch(e){showToast('Bakım PDF açılamadı: '+e.message,'err');}
+ };
+})();
+
+</script>
 </body>
 </html>
