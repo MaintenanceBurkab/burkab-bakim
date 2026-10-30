@@ -12228,7 +12228,7 @@ function planliBakimFormAc(){
     const plans = (typeof planlarYukle === 'function' ? planlarYukle() : [])
       .filter(p => String(p.makine || '').trim() === String(_sicilMakine || '').trim() && p.durum !== 'tamamlandi')
       .sort((a,b) => String(a.tarih || '').localeCompare(String(b.tarih || '')));
-    const plan = plans[0] || {};
+    const plan = (window.BURKAB_SELECTED_PLAN&&String(window.BURKAB_SELECTED_PLAN.makine||'').trim()===String(_sicilMakine||'').trim()?window.BURKAB_SELECTED_PLAN:null) || plans[0] || {};
     const params = new URLSearchParams({
       cihazNo: String(_sicilMakine || ''),
       cihazAdi: String(eq.marka || eq.tur || ''),
@@ -14708,7 +14708,7 @@ function mqHeader(){const e=MQ.data?.ekipman;document.getElementById('mqTop').in
 async function mqRequest(payload){const r=await gsRequest(payload,{timeoutMs:90000});if(!r?.ok)throw new Error(r?.error||'Sunucu işlemi tamamlanamadı.');return r;}
 async function makineIslemAc(machine){mqMount();document.getElementById('mqPanel').hidden=false;document.getElementById('mqPanel').style.display='block';if(!currentUser?.token){MQ.pending=machine||MQ.pending;document.getElementById('mqBody').innerHTML='<div class="mq-empty">Önce kullanıcı hesabınızla giriş yapın. QR bağlantısındaki makine girişten sonra açılacaktır.<button data-mq="close">Giriş ekranına dön</button></div>';mqHeader();return;}const next=String(machine||'').trim();if(workMachineKey(next)!==workMachineKey(MQ.makine)){MQ.labelProof=null;MQ.ticket='';}MQ.makine=next;MQ.tab='ariza';workLabelUi();MQ.job=null;MQ.session=null;MQ.data=null;mqHeader();if(!MQ.makine){document.getElementById('mqBody').innerHTML='<div class="mq-card"><label>Makine numarası<input id="mqMachineInput" placeholder="TP-03" autocomplete="off"></label><button class="primary" data-mq="open">Makineyi aç</button><button type="button" class="primary" data-mq="camera-machine">📷 Kamerayla makine QR oku</button></div>';return;}await mqLoad();}
 async function mqLoad(){MQ.busy=true;document.getElementById('mqError').textContent='';document.getElementById('mqBody').innerHTML='<div class="mq-empty">Makine ve açık işler sunucudan yükleniyor…</div>';try{const r=await mqRequest({action:'getEquipmentWorkV2',makine:MQ.makine});MQ.data=r;MQ.makine=r.ekipman.makine;mqHeader();mqRender();return true;}catch(e){MQ.data=null;document.getElementById('mqError').textContent=e.message;document.getElementById('mqBody').innerHTML='<button data-mq="refresh">Yeniden dene</button>';return false;}finally{MQ.busy=false;workLabelUi();}}
-function mqRender(){mqHeader();const body=document.getElementById('mqBody');if(MQ.job){mqEditor();return;}if(MQ.tab==='sicil'){const e=MQ.data.ekipman;body.innerHTML=`<div class="mq-card"><div class="mq-grid">${[['Makine',e.makine],['Marka / model',e.marka],['Seri numarası',e.serino],['Bölüm',e.bolum],['Konum',e.konum],['Bakım periyodu',eqPeriodText(e)],['Sorumlu',e.sorumlubakimci]].map(([k,v])=>`<div><b>${mqEsc(k)}</b><div class="mq-meta">${mqEsc(v||'—')}</div></div>`).join('')}</div><p style="white-space:pre-wrap">${mqEsc(e.teknik||'')}</p><button data-mq="passport">Ayrıntılı sicil / KPI</button></div><h3>Son bakım ve işlem kayıtları</h3>${MQ.data.gecmis.map(k=>`<div class="mq-card"><b>${mqEsc(k.formNo)} · ${mqEsc(k.islem)}</b><div class="mq-meta">${mqEsc(k.tarihBas)} · ${mqEsc(k.bakimci||'')}</div><p>${mqEsc(k.yapilan||k.konu||'')}</p></div>`).join('')||'<div class="mq-empty">Geçmiş kayıt yok.</div>'}`;return;}const list=MQ.tab==='ariza'?MQ.data.arizalar:MQ.data.planlar;body.innerHTML=list.map((k,i)=>{const type=MQ.tab==='ariza'?'ARIZA':'PLAN',s=MQ.data.islemler.find(s=>s.Tur===type&&String(s.KaynakId)===String(k.id)),my=s?.PersonelKullanici===currentUser.username;return `<div class="mq-card"><h3>${mqEsc(MQ.tab==='ariza'?k.formNo+' — '+k.konu:k.gorev)}</h3><div class="mq-meta">${MQ.tab==='ariza'?'Bildiren: '+mqEsc(k.bildiren||'—'):'Planlanan tarih: '+mqEsc(k.tarih)+' · Atanan: '+mqEsc(k.bakimci||'—')}</div>${MQ.tab==='plan'?`<p style="white-space:pre-wrap">${mqEsc(k.notlar||'')}</p>`:''}${s?`<p>Başlatan: <b>${mqEsc(s.PersonelAdi)}</b> · ${mqWhen(s.Baslangic)}</p>`:''}<button class="primary" data-mq="job" data-i="${i}">${s?(my?'İşe devam et':'İş detayını gör'):'İş detayını aç'}</button></div>`;}).join('')||'<div class="mq-empty">Bu makinede '+(MQ.tab==='ariza'?'açık arıza':'bekleyen periyodik bakım')+' yok.</div>';}
+function mqRender(){mqHeader();const body=document.getElementById('mqBody');if(MQ.job){mqEditor();return;}if(MQ.tab==='sicil'){const e=MQ.data.ekipman;body.innerHTML=`<div class="mq-card"><div class="mq-grid">${[['Makine',e.makine],['Marka / model',e.marka],['Seri numarası',e.serino],['Bölüm',e.bolum],['Konum',e.konum],['Bakım periyodu',eqPeriodText(e)],['Sorumlu',e.sorumlubakimci]].map(([k,v])=>`<div><b>${mqEsc(k)}</b><div class="mq-meta">${mqEsc(v||'—')}</div></div>`).join('')}</div><p style="white-space:pre-wrap">${mqEsc(e.teknik||'')}</p><button data-mq="passport">Ayrıntılı sicil / KPI</button></div><h3>Son bakım ve işlem kayıtları</h3>${MQ.data.gecmis.map(k=>`<div class="mq-card"><b>${mqEsc(k.formNo)} · ${mqEsc(k.islem)}</b><div class="mq-meta">${mqEsc(k.tarihBas)} · ${mqEsc(k.bakimci||'')}</div><p>${mqEsc(k.yapilan||k.konu||'')}</p></div>`).join('')||'<div class="mq-empty">Geçmiş kayıt yok.</div>'}`;return;}const list=MQ.tab==='ariza'?MQ.data.arizalar:MQ.data.planlar;body.innerHTML=list.map((k,i)=>{const type=MQ.tab==='ariza'?'ARIZA':'PLAN',s=MQ.data.islemler.find(s=>s.Tur===type&&String(s.KaynakId)===String(k.id)),my=s?.PersonelKullanici===currentUser.username;return `<div class="mq-card"><h3>${mqEsc(MQ.tab==='ariza'?k.formNo+' — '+k.konu:k.gorev)}</h3><div class="mq-meta">${MQ.tab==='ariza'?'Bildiren: '+mqEsc(k.bildiren||'—'):'Planlanan tarih: '+mqEsc(k.tarih)+' · Atanan: '+mqEsc(k.bakimci||'—')}</div>${MQ.tab==='plan'?`<p style="white-space:pre-wrap">${mqEsc(k.notlar||'')}</p>`:''}${s?`<p>Başlatan: <b>${mqEsc(s.PersonelAdi)}</b> · ${mqWhen(s.Baslangic)}</p>`:''}<button class="primary" data-mq="job" data-i="${i}">${MQ.tab==='plan'?'Bakım formunu aç':(s?(my?'İşe devam et':'İş detayını gör'):'İş detayını aç')}</button></div>`;}).join('')||'<div class="mq-empty">Bu makinede '+(MQ.tab==='ariza'?'açık arıza':'bekleyen periyodik bakım')+' yok.</div>';}
 function mqDraftKey(){return 'burkab_mq_draft_'+currentUser.username+'_'+MQ.session?.IslemId;}
 function mqDraftSave(){if(!MQ.session||!document.getElementById('mqWorkNote'))return;try{localStorage.setItem(mqDraftKey(),JSON.stringify({note:document.getElementById('mqWorkNote').value,parts:MQ.parts,checks:[...document.querySelectorAll('#mqPanel [data-check]:checked')].map(x=>x.dataset.check),quality:document.getElementById('mqQuality')?.value||''}));}catch(_){}}
 function mqEditor(){const k=MQ.job,s=MQ.session,other=s&&s.PersonelKullanici!==currentUser.username,type=MQ.tab==='ariza'?'ARIZA':'PLAN';mqHeader();let draft={};if(s){try{draft=JSON.parse(localStorage.getItem(mqDraftKey())||'{}');}catch(_){}if(s.Durum==='TAMAMLANIYOR'){const frozen=JSON.parse(s.SonucJSON||'{}');draft={note:frozen.yapilan,parts:frozen.parcalar,checks:frozen.kontroller,quality:frozen.kalite};}}let checks=s?JSON.parse(s.KontrollerJSON||'[]'):(k.kontroller||[]);document.getElementById('mqBody').innerHTML=`<div class="mq-card"><button data-mq="back">← İş listesine dön</button><h3>${mqEsc(type==='ARIZA'?k.formNo+' — '+k.konu:k.gorev)}</h3>${type==='PLAN'?`<div class="mq-meta">Plan tarihi: ${mqEsc(k.tarih)}</div><p style="white-space:pre-wrap">${mqEsc(k.notlar||'')}</p>`:`<div class="mq-meta">Bildiren: ${mqEsc(k.bildiren)} · Arıza: ${mqEsc(k.arizaTuru||k.arizaKodu||'—')}</div>`}${!s?(currentUser?.role==='yonetici'?'<p>Görüntüleme yetkisi. İşi bakım personeli başlatır.</p>':'<label>Makine etiketi / QR<input id="workLabelCode" placeholder="Makine üzerindeki kodu okutun" autocomplete="off"></label><div class="mq-buttons"><button type="button" class="primary" data-mq="camera">📷 Kamerayla QR oku</button><button type="button" data-mq="verify-label">Etiketi doğrula</button></div><p id="workLabelStatus">Etiket doğrulaması gerekli.</p><p>Başlangıç zamanı “İşe başla” dediğinizde sunucuda kaydedilir.</p><button class="green" data-mq="begin">İşe başla</button>'):`<p>Başlatan: <b>${mqEsc(s.PersonelAdi)}</b><br>Başlangıç: ${mqWhen(s.Baslangic)}</p>${other?'<p>Bu işi başlatan personel tamamlayabilir.</p>':`${s.Durum==='TAMAMLANIYOR'?'<div class="mq-error">Tamamlama aktarımı yarım kalmış. Yeniden tamamla dediğinizde aynı kayıt üzerinden devam edilir.</div>':''}${checks.length?'<h3>Bakım kontrol listesi</h3>'+checks.map(c=>`<label class="mq-check"><input type="checkbox" data-check="${mqEsc(c.id)}" ${draft.checks?.includes(c.id)?'checked':''}><span>${mqEsc(c.aciklama)}${c.zorunlu?' *':''}</span></label>`).join(''):''}<label>Yapılan müdahale / bakım açıklaması *<textarea id="mqWorkNote">${mqEsc(draft.note||'')}</textarea></label><h3>Kullanılan parçalar</h3><div id="mqParts"></div><div class="mq-part"><input id="mqPartName" placeholder="Parça adı / stok kodu" style="flex:2;min-width:170px"><input id="mqPartQty" type="number" min="0.001" step="any" value="1" style="width:90px" aria-label="Adet"><input id="mqPartPrice" type="number" min="0" step="any" value="0" style="width:110px" aria-label="Birim fiyat"><select id="mqPartCurrency"><option>TL</option><option>EUR</option><option>USD</option></select><button data-mq="part-add">Parça ekle</button></div><label>Çalışma kontrolü / sonuç<select id="mqQuality"><option value="">Seçiniz</option><option ${draft.quality==='ÇALIŞMA KONTROLÜ YAPILDI'?'selected':''}>ÇALIŞMA KONTROLÜ YAPILDI</option><option ${draft.quality==='BAKIM TAMAMLANDI'?'selected':''}>BAKIM TAMAMLANDI</option><option ${draft.quality==='TEST BEKLİYOR'?'selected':''}>TEST BEKLİYOR</option></select></label><button class="green" data-mq="finish">İşi tamamla</button>`}`}</div>`;if(s&&!other){if(draft.parts)MQ.parts=draft.parts;mqPartsRender();}workLabelUi();}
@@ -14739,7 +14739,7 @@ const eqBootTimer=setInterval(()=>{mqNav();if(currentUser?.token&&_appReady){mqA
    const eq=equipment(),m=machine();
    if(!eq.makine)throw new Error('Seçilen ekipmanın bilgileri henüz yüklenmedi. Sicilin yüklenmesini bekleyip yeniden deneyin.');
    const plans=(typeof planlarYukle==='function'?planlarYukle():[]).filter(p=>String(p.makine||'').trim()===m&&!['TAMAMLANDI','KAPALI','IPTAL','PASIF','ARSIV'].includes(eqN(p.durum))&&['HAFTALIK','7','H'].includes(eqN(p.periyot||p.periyod).replace(/[\s_-]/g,''))).sort((a,b)=>String(a.tarih||'').localeCompare(String(b.tarih||'')));
-   const plan=plans[0]||{};
+   const plan=(window.BURKAB_SELECTED_PLAN&&String(window.BURKAB_SELECTED_PLAN.makine||'').trim()===m?window.BURKAB_SELECTED_PLAN:null)||plans[0]||{};
    const u=new URL('FR-234_JENERATOR_HAFTALIK_PERIYODIK_BAKIM_FORMU.html',location.href);u.search='';u.hash='';
    for(const [k,v]of Object.entries({cihazNo:m,cihazAdi:eq.marka||eq.tur||'Jeneratör',seriNo:eq.serino||'',bolum:eq.bolum||'TESİS',periyot:'haftalik',isEmri:plan.id||'',planTarihi:plan.tarih||'',sorumlu:plan.bakimci||eq.sorumlubakimci||''}))u.searchParams.set(k,String(v));
    const win=window.open(u.href,'_blank');if(!win){showToast('Form penceresi engellendi. Açılır pencereye izin verip tekrar deneyin.','err');return;}
@@ -14764,7 +14764,7 @@ const eqBootTimer=setInterval(()=>{mqNav();if(currentUser?.token&&_appReady){mqA
    const eq=equipment(),m=machine();
    if(!eq.makine)throw new Error("Seçilen ekipmanın bilgileri henüz yüklenmedi. Sicilin yüklenmesini bekleyip yeniden deneyin.");
    const plans=(typeof planlarYukle==='function'?planlarYukle():[]).filter(p=>String(p.makine||'').trim()===m&&!['TAMAMLANDI','KAPALI','IPTAL','PASIF','ARSIV'].includes(eqN(p.durum))&&['GUNLUK','1','G'].includes(eqN(p.periyot||p.periyod).replace(/[\s_-]/g,''))).sort((a,b)=>String(a.tarih||'').localeCompare(String(b.tarih||'')));
-   const plan=plans[0]||{};
+   const plan=(window.BURKAB_SELECTED_PLAN&&String(window.BURKAB_SELECTED_PLAN.makine||'').trim()===m?window.BURKAB_SELECTED_PLAN:null)||plans[0]||{};
    const u=new URL('FR-233_UPS_GUNLUK_PERIYODIK_BAKIM_FORMU.html',location.href);u.search='';u.hash='';
    for(const [k,v]of Object.entries({cihazNo:m,cihazAdi:eq.marka||eq.tur||'UPS',seriNo:eq.serino||'',bolum:eq.bolum||'TESİS',periyot:'gunluk',isEmri:plan.id||'',planTarihi:plan.tarih||'',sorumlu:plan.bakimci||eq.sorumlubakimci||''}))u.searchParams.set(k,String(v));
    const win=window.open(u.href,'_blank');if(!win){showToast('UPS form penceresi engellendi. Açılır pencereye izin verip tekrar deneyin.','err');return;}
@@ -25191,6 +25191,63 @@ function upsPlanFormAc(plan){
   }catch(e){showToast('Bakım PDF açılamadı: '+e.message,'err');}
  };
 })();
+
+</script>
+
+<style>
+button.burkab-work-open{background:#f2c500!important;color:#18232c!important;border:1px solid #d4ae00!important;font-weight:700!important;box-shadow:0 2px 4px #0002}
+button.burkab-work-open:hover{background:#ffda22!important}
+button.burkab-work-open:focus-visible{outline:3px solid #18232c;outline-offset:2px}
+</style>
+<script>
+// BURKAB_WORK_FORM_LINKS_V1 — periyodik iş ve ekipman kartı aynı form açıcısını kullanır.
+function workPlanFormAc(plan){
+ const machine=String(plan.makine||'').trim();
+ const live=typeof MQ!=='undefined'&&MQ.data?.ekipman;
+ const eq=live&&String(live.makine||'').trim()===machine?live:(typeof ekipmanYukle==='function'?ekipmanYukle():[]).find(e=>String(e.makine||'').trim()===machine);
+ if(!machine||!eq){showToast('Bu makinenin ekipman bilgileri bulunamadı. Listeyi yenileyin.','err');return;}
+ const previousMachine=_sicilMakine,previousData=_sicilData,previousPlan=window.BURKAB_SELECTED_PLAN;
+ try{_sicilMakine=machine;_sicilData={makine:machine,ekipman:eq};window.BURKAB_SELECTED_PLAN=plan;return planliBakimFormAc();}
+ finally{_sicilMakine=previousMachine;_sicilData=previousData;window.BURKAB_SELECTED_PLAN=previousPlan;}
+}
+(function(){
+ const previousSelect=workSelectExistingJob;
+ workSelectExistingJob=function(id,tur){
+  if(tur!=='PLAN')return workFaultFormAc(id);
+  const plan=(MQ.data?.planlar||[]).find(p=>String(p.id)===String(id));
+  if(!plan){showToast('Plan artık listede değil. İş listesini yenileyin.','err');return;}
+  if(String(plan.makine||'').trim()!==String(MQ.makine||'').trim()){showToast('Plan ve açık makine eşleşmiyor.','err');return;}
+  return workPlanFormAc(plan);
+ };
+ function highlightOpenButtons(){document.querySelectorAll('button').forEach(b=>{if(/^İşi aç$/iu.test(b.textContent.trim()))b.classList.add('burkab-work-open');});}
+ highlightOpenButtons();new MutationObserver(highlightOpenButtons).observe(document.body,{childList:true,subtree:true});
+})();
+
+function workFaultFormAc(id){
+ const job=(MQ.data?.arizalar||[]).find(k=>String(k.id)===String(id));
+ if(!job||String(job.makine||'').trim()!==String(MQ.makine||'').trim()){showToast('Arıza ve makine eşleşmiyor. İş listesini yenileyin.','err');return;}
+ const record={...((typeof kayitlar!=='undefined'?kayitlar:[]).find(k=>String(k.id)===String(id))||{}),...job};
+ const parts=parseParcalar(record.parcalar||'[]');
+ if(typeof mqClose==='function')mqClose();
+ temizle(true);
+ goTab('form',document.querySelector('.nav-tab[onclick*="form"]'));
+ const set=(key,value)=>{const el=document.getElementById(key);if(!el)return;if(el.tagName==='SELECT'&&value&&!Array.from(el.options).some(o=>o.value===String(value)))el.add(new Option(String(value),String(value)));el.value=String(value??'');};
+ const type=record.islem||'ARIZA KAYDI';
+ const button=Array.from(document.querySelectorAll('.islem-btn')).find(b=>b.dataset.v===type);if(button)pickIslem(button);else set('islem',type);
+ set('bolum',record.bolum);onBolum();set('makine',record.makine);
+ const faultButton=Array.from(document.querySelectorAll('.atur-btn')).find(b=>b.dataset.v===record.arizaTuru);if(faultButton)pickAtur(faultButton);
+ for(const key of ['formNo','bildiren','proje','mdNo','revNo','arizaTuru','arizaKodu','konu','tarihBas','tarihBit','arizaBas','onarimBas','onarimBit','arizaBit','kalite','yapilan','teminDurumu'])set(key,record[key]);
+ set('bakimci',record.bakimci||currentUser?.name||'');
+ const display=document.getElementById('bakimciDisplay');if(display)display.textContent=document.getElementById('bakimci').value;
+ const names=String(document.getElementById('bakimci').value).split(',').map(x=>x.trim());document.querySelectorAll('#bakimciDropdown input[type=checkbox]').forEach(b=>b.checked=names.includes(b.value));
+ if(document.getElementById('parcaListesi'))document.getElementById('parcaListesi').innerHTML='';
+ parts.forEach(p=>{parcaEkle();const row=document.getElementById('parcaListesi').lastElementChild;for(const [selector,value]of [['.parca-ad',p.ad],['.parca-adet',p.adet],['.parca-fiyat',p.fiyat],['.parca-para',p.para||'₺']])row.querySelector(selector).value=value??'';});
+ _aktifBildirimKaynakId=String(record.id);_formBekleyenKayitId=null;
+ if(typeof hesaplaMaliyet==='function')hesaplaMaliyet();
+ if(typeof hesaplaSure==='function')hesaplaSure();
+ if(typeof aiFmeaDebounce==='function')aiFmeaDebounce();
+ window.scrollTo({top:0,behavior:'smooth'});showToast('Arıza kaydı açıldı: '+(record.formNo||record.makine)+'. Kaydet aynı kaydı tamamlar.','ok');
+}
 
 </script>
 </body>
